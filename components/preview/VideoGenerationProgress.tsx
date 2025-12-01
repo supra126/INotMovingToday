@@ -162,11 +162,11 @@ export function VideoGenerationProgress({
       {/* Time Info */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-500 text-xs mb-1">Elapsed</div>
+          <div className="text-gray-400 text-xs mb-1">Elapsed</div>
           <div className="text-white font-mono">{formatTime(elapsedTime)}</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-500 text-xs mb-1">Estimated</div>
+          <div className="text-gray-400 text-xs mb-1">Estimated</div>
           <div className="text-white font-mono">~{formatTime(estimatedTime)}</div>
         </div>
       </div>
@@ -174,7 +174,7 @@ export function VideoGenerationProgress({
       {/* Job ID */}
       <div className="text-center mb-6">
         <span className="text-gray-600 text-xs">Job ID: </span>
-        <span className="text-gray-500 text-xs font-mono">{jobId.slice(0, 20)}...</span>
+        <span className="text-gray-400 text-xs font-mono">{jobId.slice(0, 20)}...</span>
       </div>
 
       {/* Cancel Button */}

@@ -27,13 +27,15 @@ export function RatioSelector({
           type="button"
           onClick={() => onChange("9:16")}
           disabled={disabled}
-          className={`p-3 rounded-xl border transition-all flex flex-col items-center justify-center gap-2 ${
+          className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
             value === "9:16"
-              ? "bg-white/10 border-white/30 text-white"
-              : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5"
+              ? "glass-card selection-glow border-blue-500/60 text-white"
+              : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          <div className="w-[18px] h-8 border-2 border-current rounded-sm" />
+          <div className={`w-[18px] h-8 border-2 rounded-sm transition-colors ${
+            value === "9:16" ? "border-blue-400 bg-blue-500/20" : "border-current"
+          }`} />
           <span className="text-xs font-medium">{t("upload.ratio.9:16.name")}</span>
         </button>
 
@@ -42,13 +44,15 @@ export function RatioSelector({
           type="button"
           onClick={() => onChange("16:9")}
           disabled={disabled}
-          className={`p-3 rounded-xl border transition-all flex flex-col items-center justify-center gap-2 ${
+          className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 ${
             value === "16:9"
-              ? "bg-white/10 border-white/30 text-white"
-              : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5"
+              ? "glass-card selection-glow border-blue-500/60 text-white"
+              : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          <div className="w-8 h-[18px] border-2 border-current rounded-sm" />
+          <div className={`w-8 h-[18px] border-2 rounded-sm transition-colors ${
+            value === "16:9" ? "border-blue-400 bg-blue-500/20" : "border-current"
+          }`} />
           <span className="text-xs font-medium">{t("upload.ratio.16:9.name")}</span>
         </button>
       </div>

@@ -1,4 +1,4 @@
-import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
+import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
 
 const isStaticBuild = process.env.NEXT_PUBLIC_BUILD_MODE === "static";
 
@@ -84,17 +84,19 @@ export async function generateScript(
   consistencyMode: ConsistencyMode = "none",
   sceneMode: SceneMode = "auto",
   motionDynamics: MotionDynamics = "moderate",
-  qualityBooster: QualityBooster = "none"
+  qualityBooster: QualityBooster = "none",
+  videoDuration: VideoDuration = 4,
+  cameraMotion: CameraMotion = "auto"
 ): Promise<ScriptResponse> {
   if (isStaticBuild) {
     const { generateScriptClient } = await import("./videoClient");
     if (!apiKey) {
       throw new Error("API key is required for static build");
     }
-    return generateScriptClient(images, suggestion, ratio, apiKey, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+    return generateScriptClient(images, suggestion, ratio, apiKey, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
   } else {
     const { generateScriptAction } = await import("@/app/actions/server/script");
-    return generateScriptAction(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+    return generateScriptAction(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
   }
 }
 
@@ -119,6 +121,20 @@ export async function refineScript(
   }
 }
 
+export interface VideoGenerationOptions {
+  prompt: string;
+  duration: number;
+  ratio: VideoRatio;
+  resolution?: VideoResolution;
+  /** First frame image (base64) - for single_image and frames_to_video modes */
+  firstFrameImage?: string;
+  /** Last frame image (base64) - for frames_to_video mode */
+  lastFrameImage?: string;
+  /** Reference images (base64 array) - for references mode */
+  referenceImages?: string[];
+  apiKey?: string;
+}
+
 /**
  * Start video generation
  */
@@ -128,8 +144,18 @@ export async function startVideoGeneration(
   ratio: VideoRatio,
   referenceImageBase64?: string,
   apiKey?: string,
-  resolution?: VideoResolution
+  resolution?: VideoResolution,
+  options?: {
+    firstFrameImage?: string;
+    lastFrameImage?: string;
+    referenceImages?: string[];
+  }
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
+  // Determine which image mode to use
+  const firstFrameImage = options?.firstFrameImage ?? referenceImageBase64;
+  const lastFrameImage = options?.lastFrameImage;
+  const referenceImages = options?.referenceImages;
+
   if (isStaticBuild) {
     const { startVideoGenerationClient } = await import("./videoClient");
     if (!apiKey) {
@@ -138,7 +164,16 @@ export async function startVideoGeneration(
     return startVideoGenerationClient(prompt, duration, ratio, referenceImageBase64, apiKey, resolution);
   } else {
     const { generateVideoAction } = await import("@/app/actions/server/generate");
-    return generateVideoAction({ prompt, duration, ratio, resolution, referenceImageBase64 });
+    return generateVideoAction({
+      prompt,
+      duration,
+      ratio,
+      resolution,
+      referenceImageBase64,
+      firstFrameImage,
+      lastFrameImage,
+      referenceImages,
+    });
   }
 }
 

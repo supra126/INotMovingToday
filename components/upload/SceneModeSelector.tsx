@@ -51,21 +51,21 @@ export function SceneModeSelector({
               type="button"
               onClick={() => onChange(mode)}
               disabled={disabled}
-              className={`p-3 rounded-xl border transition-all flex flex-col items-center justify-center gap-1 min-h-[80px] ${
+              className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-1 min-h-[80px] ${
                 isSelected
-                  ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                  : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5"
+                  ? "glass-card selection-glow border-blue-500/60 text-blue-400"
+                  : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
               } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
               title={t(`upload.sceneMode.${mode}.description`)}
             >
               {icons[mode]}
               <span className="text-xs font-medium">{t(`upload.sceneMode.${mode}.name`)}</span>
-              <span className="text-[10px] text-gray-500">{t(`upload.sceneMode.${mode}.sublabel`)}</span>
+              <span className="text-[10px] text-gray-400">{t(`upload.sceneMode.${mode}.sublabel`)}</span>
             </button>
           );
         })}
       </div>
-      <p className="text-xs text-gray-500 text-left">
+      <p className="text-xs text-gray-400 text-left">
         {t(`upload.sceneMode.${value}.hint`)}
       </p>
     </div>

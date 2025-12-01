@@ -5,7 +5,11 @@ export interface VideoGenerationParams {
   duration: number;
   ratio: VideoRatio;
   resolution?: VideoResolution;
-  referenceImages?: string[]; // base64 encoded
+  referenceImages?: string[]; // base64 encoded (for style reference mode)
+  /** First frame image for image-to-video (base64 encoded) */
+  firstFrameImage?: string;
+  /** Last frame image for frames-to-video transition (base64 encoded) */
+  lastFrameImage?: string;
   style?: string;
   /** Random seed for reproducibility (0-4294967295). Same seed produces similar results. */
   seed?: number;

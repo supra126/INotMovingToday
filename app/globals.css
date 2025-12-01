@@ -147,6 +147,42 @@ h1, h2, h3, .serif {
   border: 1px solid rgba(75, 85, 99, 0.3);
 }
 
+/* Glass card effect - enhanced */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Selection glow effect */
+.selection-glow {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Preview area effect */
+.preview-glass {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.6) 0%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;
@@ -160,4 +196,50 @@ h1, h2, h3, .serif {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* UploadPhase RWD - Mobile First */
+.upload-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.upload-layout .upload-settings {
+  width: 100%;
+  order: 2;
+}
+
+.upload-layout .upload-preview {
+  width: 100%;
+  order: 1;
+}
+
+.upload-layout .upload-preview-inner {
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Desktop: lg breakpoint (1024px+) */
+@media (min-width: 1024px) {
+  .upload-layout {
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .upload-layout .upload-settings {
+    width: 40%;
+    flex-shrink: 0;
+    order: 1;
+  }
+
+  .upload-layout .upload-preview {
+    flex: 1;
+    order: 2;
+  }
+
+  .upload-layout .upload-preview-inner {
+    max-width: none;
+  }
 }
