@@ -43,7 +43,7 @@ export function ContinuousVideoProgress({
   const getSegmentStatus = (segment: SegmentInfo) => {
     switch (segment.status) {
       case "pending":
-        return { icon: "⏳", color: "text-gray-500", bg: "bg-gray-800" };
+        return { icon: "⏳", color: "text-gray-400", bg: "bg-gray-800" };
       case "generating":
         return { icon: "🎬", color: "text-blue-400", bg: "bg-blue-500/20" };
       case "extending":
@@ -53,7 +53,7 @@ export function ContinuousVideoProgress({
       case "failed":
         return { icon: "✗", color: "text-red-400", bg: "bg-red-500/20" };
       default:
-        return { icon: "?", color: "text-gray-500", bg: "bg-gray-800" };
+        return { icon: "?", color: "text-gray-400", bg: "bg-gray-800" };
     }
   };
 
@@ -147,11 +147,11 @@ export function ContinuousVideoProgress({
                     <span className="text-sm text-white">
                       {index === 0 ? "初始生成" : `延展 #${index}`}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-400">
                       {segment.duration}秒
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
                     {segment.prompt.substring(0, 50)}...
                   </p>
                 </div>
@@ -164,11 +164,11 @@ export function ContinuousVideoProgress({
       {/* Time Info */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-500 text-xs mb-1">目標時長</div>
+          <div className="text-gray-400 text-xs mb-1">目標時長</div>
           <div className="text-white font-mono">{formatTime(totalDuration)}</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-500 text-xs mb-1">片段數</div>
+          <div className="text-gray-400 text-xs mb-1">片段數</div>
           <div className="text-white font-mono">{segments.length}</div>
         </div>
       </div>

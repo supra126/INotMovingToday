@@ -1,12 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { VideoSuggestion } from "@/types";
+import type { VideoSuggestion, VisualDirection, CameraMotion } from "@/types";
 import { SuggestionCard } from "./SuggestionCard";
 import { AdjustmentInput } from "./AdjustmentInput";
 import { Button } from "../common/Button";
 import { useLocale } from "@/contexts/LocaleContext";
+
+// Editable version of VideoSuggestion fields
+interface EditedFields {
+  hookIdea: string;
+  mainContent: string;
+  callToAction: string;
+  visualDirection: VisualDirection;
+  transitionStyle: string;
+  suggestedMusic: string;
+}
 
 interface SuggestionListProps {
   suggestions: [VideoSuggestion, VideoSuggestion, VideoSuggestion];
@@ -15,9 +25,10 @@ interface SuggestionListProps {
     adjustment?: string,
     additionalText?: string
   ) => void;
-  onFinalize: (selectedId: string) => void;
+  onFinalize: (selectedId: string, editedSuggestion?: VideoSuggestion) => void;
   isLoading?: boolean;
   iterationNumber: number;
+  cameraMotion: CameraMotion;
 }
 
 export function SuggestionList({
@@ -26,6 +37,7 @@ export function SuggestionList({
   onFinalize,
   isLoading = false,
   iterationNumber,
+  cameraMotion,
 }: SuggestionListProps) {
   const { t } = useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -33,7 +45,39 @@ export function SuggestionList({
   const [additionalText, setAdditionalText] = useState("");
   const [showAdjustment, setShowAdjustment] = useState(false);
 
+  // Track edited fields for the selected suggestion
+  const [editedFields, setEditedFields] = useState<EditedFields | null>(null);
+
   const selectedSuggestion = suggestions.find((s) => s.id === selectedId);
+
+  // Initialize edited fields when selection changes
+  const handleSelect = useCallback((id: string) => {
+    const suggestion = suggestions.find((s) => s.id === id);
+    if (suggestion) {
+      setSelectedId(id);
+      setEditedFields({
+        hookIdea: suggestion.hookIdea,
+        mainContent: suggestion.mainContent,
+        callToAction: suggestion.callToAction,
+        visualDirection: { ...suggestion.visualDirection },
+        transitionStyle: suggestion.transitionStyle,
+        suggestedMusic: suggestion.suggestedMusic,
+      });
+    }
+  }, [suggestions]);
+
+  // Update a single field
+  const updateField = useCallback((field: keyof EditedFields, value: string) => {
+    setEditedFields((prev) => prev ? { ...prev, [field]: value } : null);
+  }, []);
+
+  // Update a visual direction field
+  const updateVisualDirection = useCallback((field: keyof VisualDirection, value: string) => {
+    setEditedFields((prev) => prev ? {
+      ...prev,
+      visualDirection: { ...prev.visualDirection, [field]: value }
+    } : null);
+  }, []);
 
   const handleContinueRefine = () => {
     if (selectedId) {
@@ -46,16 +90,34 @@ export function SuggestionList({
   };
 
   const handleFinalize = () => {
-    if (selectedId) {
+    if (selectedId && selectedSuggestion && editedFields) {
+      // Merge edited fields into the suggestion
+      const editedSuggestion: VideoSuggestion = {
+        ...selectedSuggestion,
+        hookIdea: editedFields.hookIdea,
+        mainContent: editedFields.mainContent,
+        callToAction: editedFields.callToAction,
+        visualDirection: editedFields.visualDirection,
+        transitionStyle: editedFields.transitionStyle,
+        suggestedMusic: editedFields.suggestedMusic,
+      };
+      onFinalize(selectedId, editedSuggestion);
+    } else if (selectedId) {
       onFinalize(selectedId);
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Section Title */}
+      <div className="text-center">
+        <h3 className="text-xl font-bold text-white mb-2">{t("suggestions.title")}</h3>
+        <p className="text-gray-400 text-sm">{t("suggestions.subtitle")}</p>
+      </div>
+
       {/* Iteration Indicator */}
       <div className="flex items-center justify-center gap-2">
-        <span className="text-gray-500 text-sm">{t("suggestions.iterationHistory")}</span>
+        <span className="text-gray-400 text-sm">{t("suggestions.iterationHistory")}</span>
         <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium">
           #{iterationNumber}
         </span>
@@ -76,7 +138,7 @@ export function SuggestionList({
                 suggestion={suggestion}
                 index={index}
                 isSelected={selectedId === suggestion.id}
-                onSelect={() => setSelectedId(suggestion.id)}
+                onSelect={() => handleSelect(suggestion.id)}
                 disabled={isLoading}
               />
             </motion.div>
@@ -97,78 +159,130 @@ export function SuggestionList({
               Selected: {selectedSuggestion.title}
             </h4>
 
-            {/* Hook & Content */}
+            {/* Hook & Content - Editable */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-500 text-xs">{t("suggestions.fields.hook")}</span>
-                <p className="text-gray-300 text-sm mt-1">
-                  {selectedSuggestion.hookIdea}
-                </p>
+                <span className="text-gray-400 text-xs">{t("suggestions.fields.hook")}</span>
+                <textarea
+                  value={editedFields?.hookIdea || ""}
+                  onChange={(e) => updateField("hookIdea", e.target.value)}
+                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  rows={3}
+                  disabled={isLoading}
+                />
               </div>
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-500 text-xs">{t("suggestions.fields.mainContent")}</span>
-                <p className="text-gray-300 text-sm mt-1">
-                  {selectedSuggestion.mainContent}
-                </p>
+                <span className="text-gray-400 text-xs">{t("suggestions.fields.mainContent")}</span>
+                <textarea
+                  value={editedFields?.mainContent || ""}
+                  onChange={(e) => updateField("mainContent", e.target.value)}
+                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  rows={3}
+                  disabled={isLoading}
+                />
               </div>
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-500 text-xs">{t("suggestions.fields.cta")}</span>
-                <p className="text-gray-300 text-sm mt-1">
-                  {selectedSuggestion.callToAction}
-                </p>
+                <span className="text-gray-400 text-xs">{t("suggestions.fields.cta")}</span>
+                <textarea
+                  value={editedFields?.callToAction || ""}
+                  onChange={(e) => updateField("callToAction", e.target.value)}
+                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  rows={3}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 
-            {/* Visual Direction */}
+            {/* Visual Direction - Editable */}
             <div className="mb-6">
               <h5 className="text-gray-400 text-sm font-medium mb-3">{t("suggestions.visualDirection")}</h5>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="bg-black/20 rounded-lg p-3 border border-blue-500/10">
                   <span className="text-blue-400 text-xs">{t("suggestions.subjectAction")}</span>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {selectedSuggestion.visualDirection?.subjectAction || '-'}
-                  </p>
+                  <textarea
+                    value={editedFields?.visualDirection?.subjectAction || ""}
+                    onChange={(e) => updateVisualDirection("subjectAction", e.target.value)}
+                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-blue-500/30 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                    rows={2}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-purple-500/10">
                   <span className="text-purple-400 text-xs">{t("suggestions.environment")}</span>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {selectedSuggestion.visualDirection?.environment || '-'}
-                  </p>
+                  <textarea
+                    value={editedFields?.visualDirection?.environment || ""}
+                    onChange={(e) => updateVisualDirection("environment", e.target.value)}
+                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-purple-500/30 focus:border-purple-500/50 rounded p-1 focus:outline-none transition-colors"
+                    rows={2}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-cyan-500/10">
                   <span className="text-cyan-400 text-xs">{t("suggestions.cameraStyle")}</span>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {selectedSuggestion.visualDirection?.cameraStyle || '-'}
-                  </p>
+                  <textarea
+                    value={editedFields?.visualDirection?.cameraStyle || ""}
+                    onChange={(e) => updateVisualDirection("cameraStyle", e.target.value)}
+                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-cyan-500/30 focus:border-cyan-500/50 rounded p-1 focus:outline-none transition-colors"
+                    rows={2}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-amber-500/10">
                   <span className="text-amber-400 text-xs">{t("suggestions.lighting")}</span>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {selectedSuggestion.visualDirection?.lightingMood || '-'}
-                  </p>
+                  <textarea
+                    value={editedFields?.visualDirection?.lightingMood || ""}
+                    onChange={(e) => updateVisualDirection("lightingMood", e.target.value)}
+                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-amber-500/30 focus:border-amber-500/50 rounded p-1 focus:outline-none transition-colors"
+                    rows={2}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-pink-500/10">
                   <span className="text-pink-400 text-xs">{t("suggestions.videoQuality")}</span>
-                  <p className="text-gray-300 text-sm mt-1">
-                    {selectedSuggestion.visualDirection?.videoAesthetic || '-'}
-                  </p>
+                  <textarea
+                    value={editedFields?.visualDirection?.videoAesthetic || ""}
+                    onChange={(e) => updateVisualDirection("videoAesthetic", e.target.value)}
+                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-pink-500/30 focus:border-pink-500/50 rounded p-1 focus:outline-none transition-colors"
+                    rows={2}
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Additional Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-500 text-xs">{t("suggestions.transitionStyle")}</span>
-                <p className="text-gray-300 text-sm mt-1">
-                  {selectedSuggestion.transitionStyle}
+            {/* Additional Info - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Camera Motion - Read Only */}
+              <div className="bg-black/20 rounded-lg p-3 border border-cyan-500/10">
+                <span className="text-cyan-400 text-xs">{t("upload.cameraMotion.label")}</span>
+                <p className="text-gray-300 text-sm mt-1 font-medium">
+                  {t(`upload.cameraMotion.${cameraMotion}.name`)}
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  {t(`upload.cameraMotion.${cameraMotion}.hint`)}
                 </p>
               </div>
+              {/* Transition Style - Editable */}
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-500 text-xs">{t("suggestions.suggestedMusic")}</span>
-                <p className="text-gray-300 text-sm mt-1">
-                  {selectedSuggestion.suggestedMusic}
-                </p>
+                <span className="text-gray-400 text-xs">{t("suggestions.transitionStyle")}</span>
+                <textarea
+                  value={editedFields?.transitionStyle || ""}
+                  onChange={(e) => updateField("transitionStyle", e.target.value)}
+                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  rows={3}
+                  disabled={isLoading}
+                />
+              </div>
+              {/* Suggested Music - Editable */}
+              <div className="bg-black/20 rounded-lg p-3">
+                <span className="text-gray-400 text-xs">{t("suggestions.suggestedMusic")}</span>
+                <textarea
+                  value={editedFields?.suggestedMusic || ""}
+                  onChange={(e) => updateField("suggestedMusic", e.target.value)}
+                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  rows={3}
+                  disabled={isLoading}
+                />
               </div>
             </div>
 

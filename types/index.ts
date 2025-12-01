@@ -4,6 +4,22 @@ export type VideoRatio = "9:16" | "16:9" | "1:1";
 
 export type VideoResolution = "720p" | "1080p";
 
+// Veo 模型選擇
+export type VeoModel = "fast" | "standard";
+
+// 影片長度選項
+export type VideoDuration = 4 | 6 | 8;
+
+// 運鏡效果
+export type CameraMotion =
+  | "auto"       // 智慧運鏡：AI 根據內容自動選擇
+  | "static"     // 靜止：固定鏡頭
+  | "push"       // 推進：向主體推近
+  | "pull"       // 拉遠：遠離主體
+  | "pan_right"  // 右平移：從左到右水平移動
+  | "pan_left"   // 左平移：從右到左水平移動
+  | "tilt";      // 傾斜：垂直移動
+
 // 圖片使用位置
 export type ImageUsageMode =
   | "start"   // 影片開頭使用圖片 (Image-to-Video)

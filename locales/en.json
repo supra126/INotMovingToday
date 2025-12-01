@@ -253,24 +253,24 @@
       }
     },
     "motionDynamics": {
-      "label": "Motion Dynamics",
+      "label": "Motion Speed",
       "subtle": {
-        "name": "Subtle",
-        "sublabel": "Product",
-        "description": "Gentle motion effects for product showcase",
-        "hint": "Ideal for product display, atmosphere creation, refined content"
+        "name": "Slow",
+        "sublabel": "Premium",
+        "description": "Slow, elegant motion",
+        "hint": "Slow and elegant, like premium ads. Great for product close-ups, atmosphere"
       },
       "moderate": {
-        "name": "Moderate",
-        "sublabel": "Lifestyle",
-        "description": "Natural flowing motion for everyday content",
-        "hint": "Ideal for lifestyle scenes, character interaction, natural storytelling"
+        "name": "Natural",
+        "sublabel": "Everyday",
+        "description": "Natural, smooth motion",
+        "hint": "Natural everyday rhythm. Great for vlogs, interactions, lifestyle scenes"
       },
       "dramatic": {
-        "name": "Dramatic",
-        "sublabel": "Action",
-        "description": "Strong motion effects for dynamic content",
-        "hint": "Ideal for sports, action scenes, high visual impact content"
+        "name": "Fast",
+        "sublabel": "Dynamic",
+        "description": "Fast, energetic motion",
+        "hint": "Dynamic and energetic. Great for sports, dance, action scenes"
       }
     },
     "qualityBooster": {
@@ -324,7 +324,64 @@
       }
     },
     "startButton": "Start Chilling",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "veoModel": {
+      "label": "Video Model",
+      "fast": {
+        "name": "Veo 3.1 Fast Video",
+        "price": "$0.15/sec"
+      },
+      "standard": {
+        "name": "Veo 3.1 Standard Video",
+        "price": "$0.40/sec"
+      }
+    },
+    "duration": {
+      "label": "Video Duration",
+      "unit": "sec"
+    },
+    "cameraMotion": {
+      "label": "Camera Motion",
+      "auto": {
+        "name": "Smart",
+        "description": "AI chooses best camera motion",
+        "hint": "Let AI automatically select the most suitable camera motion based on image content and video style. Great when you're unsure which motion to use."
+      },
+      "static": {
+        "name": "Static",
+        "description": "Fixed camera, no movement",
+        "hint": "The camera stays completely still. Perfect for showcasing a single subject with full attention."
+      },
+      "push": {
+        "name": "Push",
+        "description": "Move towards subject",
+        "hint": "Camera subtly moves closer to the center. This micro-motion invites viewers into the frame, great for emphasis or creating intimacy."
+      },
+      "pull": {
+        "name": "Pull",
+        "description": "Move away from subject",
+        "hint": "Camera subtly moves backward. Creates a sense of space opening up, perfect for revealing scenes or ending shots."
+      },
+      "pan_right": {
+        "name": "Pan Right",
+        "description": "Move left to right",
+        "hint": "Camera slowly sweeps from left to right. Great for showcasing wide environments or guiding viewer attention rightward."
+      },
+      "pan_left": {
+        "name": "Pan Left",
+        "description": "Move right to left",
+        "hint": "Camera slowly sweeps from right to left. Great for showcasing wide environments or guiding viewer attention leftward."
+      },
+      "tilt": {
+        "name": "Tilt",
+        "description": "Vertical camera movement",
+        "hint": "Camera moves from top to bottom or vice versa. Perfect for showcasing tall objects or full-body shots."
+      }
+    },
+    "priceEstimate": {
+      "label": "~{{price}} to chill",
+      "hint": "Note: Each generation produces random results. Adjusting parameters may produce different outcomes"
+    }
   },
   "loader": {
     "analyzing": {

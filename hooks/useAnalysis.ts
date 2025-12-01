@@ -56,7 +56,8 @@ export interface AnalysisActions {
     consistencyMode: ConsistencyMode,
     sceneMode: SceneMode,
     motionDynamics: MotionDynamics,
-    qualityBooster: QualityBooster
+    qualityBooster: QualityBooster,
+    editedSuggestion?: VideoSuggestion
   ) => Promise<boolean>;
   refineCurrentScript: (adjustment: string, locale: Locale) => Promise<boolean>;
   backToSuggestions: () => void;
@@ -216,11 +217,13 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
     consistencyMode: ConsistencyMode,
     sceneMode: SceneMode,
     motionDynamics: MotionDynamics,
-    qualityBooster: QualityBooster
+    qualityBooster: QualityBooster,
+    editedSuggestion?: VideoSuggestion
   ): Promise<boolean> => {
     if (!session) return false;
 
-    const selectedSuggestion = getSelectedSuggestion(selectedId);
+    // Use edited suggestion if provided, otherwise get from store
+    const selectedSuggestion = editedSuggestion || getSelectedSuggestion(selectedId);
     if (!selectedSuggestion) return false;
 
     const apiKey = isStaticMode() ? getApiKey("gemini") : undefined;

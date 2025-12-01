@@ -266,7 +266,46 @@ export class GeminiClient {
         throw new Error("No JSON found in response");
       }
 
-      const parsed = JSON.parse(jsonMatch[0]) as AnalysisResponse;
+      let jsonStr = jsonMatch[0];
+
+      // Fix common JSON issues from AI responses
+      // 1. Remove trailing commas before } or ]
+      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
+      // 2. Fix unquoted property names (simple cases)
+      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+      // 3. Remove any control characters that might break JSON
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === "\n" || char === "\r" || char === "\t") return char;
+        return "";
+      });
+
+      // Try to parse, if it fails try to fix common structural issues
+      let parsed: AnalysisResponse;
+      try {
+        parsed = JSON.parse(jsonStr) as AnalysisResponse;
+      } catch (parseError) {
+        // Try to fix missing closing braces in nested objects
+        // Count opening and closing braces
+        const openBraces = (jsonStr.match(/\{/g) || []).length;
+        const closeBraces = (jsonStr.match(/\}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+        // Add missing closing braces/brackets
+        let fixedJson = jsonStr;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += "]";
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += "}";
+        }
+
+        // Remove trailing commas again after fixes
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
+
+        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
+        parsed = JSON.parse(fixedJson) as AnalysisResponse;
+      }
 
       // Validate required fields
       if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
@@ -318,7 +357,43 @@ export class GeminiClient {
         throw new Error("No JSON found in response");
       }
 
-      const parsed = JSON.parse(jsonMatch[0]) as ScriptResponse;
+      let jsonStr = jsonMatch[0];
+
+      // Fix common JSON issues from AI responses
+      // 1. Remove trailing commas before } or ]
+      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
+      // 2. Fix unquoted property names (simple cases)
+      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+      // 3. Remove any control characters that might break JSON
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === "\n" || char === "\r" || char === "\t") return char;
+        return "";
+      });
+
+      // Try to parse, if it fails try to fix common structural issues
+      let parsed: ScriptResponse;
+      try {
+        parsed = JSON.parse(jsonStr) as ScriptResponse;
+      } catch (parseError) {
+        // Try to fix missing closing braces in nested objects
+        const openBraces = (jsonStr.match(/\{/g) || []).length;
+        const closeBraces = (jsonStr.match(/\}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+        let fixedJson = jsonStr;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += "]";
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += "}";
+        }
+
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
+
+        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
+        parsed = JSON.parse(fixedJson) as ScriptResponse;
+      }
 
       // Validate required fields
       if (!parsed.script || !parsed.script.scenes) {

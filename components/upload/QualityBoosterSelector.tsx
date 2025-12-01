@@ -85,7 +85,7 @@ export function QualityBoosterSelector({
         })}
       </div>
       {value !== "none" && (
-        <p className="text-xs text-gray-500 text-left">
+        <p className="text-xs text-gray-400 text-left">
           {t(`upload.qualityBooster.${value}.hint`)}
         </p>
       )}

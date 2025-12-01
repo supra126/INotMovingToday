@@ -19,22 +19,6 @@ const cardColors = [
 ];
 const iconColors = ["text-blue-400", "text-purple-400", "text-orange-400"];
 
-const styleIcons: Record<string, string> = {
-  cinematic: "🎬",
-  dynamic: "⚡",
-  storytelling: "📖",
-  "product-demo": "📦",
-  tutorial: "📚",
-  aesthetic: "✨",
-  meme: "😂",
-};
-
-const platformIcons: Record<string, string> = {
-  reels: "📷",
-  shorts: "▶️",
-  tiktok: "🎵",
-};
-
 export function SuggestionCard({
   suggestion,
   index,
@@ -60,21 +44,15 @@ export function SuggestionCard({
       `}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <span
-            className={`text-xs font-medium uppercase tracking-wider ${iconColors[index]}`}
-          >
-            {cardLabels[index]}
-          </span>
-          <h3 className="text-lg font-bold text-white mt-1">
-            {suggestion.title}
-          </h3>
-        </div>
-        <div className="flex items-center gap-1 text-xl">
-          {styleIcons[suggestion.style] || "🎥"}
-          {platformIcons[suggestion.targetPlatform] || "📱"}
-        </div>
+      <div className="mb-3">
+        <span
+          className={`text-xs font-medium uppercase tracking-wider ${iconColors[index]}`}
+        >
+          {cardLabels[index]}
+        </span>
+        <h3 className="text-lg font-bold text-white mt-1">
+          {suggestion.title}
+        </h3>
       </div>
 
       {/* Concept */}

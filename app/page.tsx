@@ -3,7 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { AnalyzingLoader, RefiningLoader, GeneratingScriptLoader } from "@/components/common/AnalyzingLoader";
+import {
+  AnalyzingLoader,
+  RefiningLoader,
+  GeneratingScriptLoader,
+} from "@/components/common/AnalyzingLoader";
 import { Header } from "@/components/layout/Header";
 import { UploadPhase } from "@/components/phases/UploadPhase";
 import { useCreationStore } from "@/lib/storage/session-store";
@@ -16,11 +20,12 @@ import {
   useVideoGeneration,
   useAnalysis,
 } from "@/hooks";
-import type { UploadedImage } from "@/types";
+import type { UploadedImage, VideoSuggestion } from "@/types";
 
 // Dynamic imports for non-critical components
 const ApiKeyModal = dynamic(
-  () => import("@/components/settings/ApiKeyModal").then((mod) => mod.ApiKeyModal),
+  () =>
+    import("@/components/settings/ApiKeyModal").then((mod) => mod.ApiKeyModal),
   { ssr: false }
 );
 
@@ -30,23 +35,24 @@ const GuideModal = dynamic(
 );
 
 const SuggestionsPhase = dynamic(
-  () => import("@/components/phases/SuggestionsPhase").then((mod) => mod.SuggestionsPhase),
+  () =>
+    import("@/components/phases/SuggestionsPhase").then(
+      (mod) => mod.SuggestionsPhase
+    ),
   { ssr: false }
 );
 
 const ScriptPreview = dynamic(
-  () => import("@/components/preview/ScriptPreview").then((mod) => mod.ScriptPreview),
+  () =>
+    import("@/components/preview/ScriptPreview").then(
+      (mod) => mod.ScriptPreview
+    ),
   { ssr: false }
 );
 
 export default function Home() {
-  const {
-    session,
-    startNewSession,
-    resetSession,
-    setPhase,
-    setImages,
-  } = useCreationStore();
+  const { session, startNewSession, resetSession, setPhase, setImages } =
+    useCreationStore();
 
   const { locale } = useLocale();
 
@@ -131,7 +137,7 @@ export default function Home() {
   };
 
   // Handle finalize
-  const handleFinalize = async (selectedId: string) => {
+  const handleFinalize = async (selectedId: string, editedSuggestion?: VideoSuggestion) => {
     if (isStaticMode() && !getApiKey("gemini")) {
       apiKeyStatus.openApiKeyModal();
       return;
@@ -145,7 +151,8 @@ export default function Home() {
       videoSettings.consistencyMode,
       videoSettings.sceneMode,
       videoSettings.motionDynamics,
-      videoSettings.qualityBooster
+      videoSettings.qualityBooster,
+      editedSuggestion
     );
   };
 
@@ -161,7 +168,12 @@ export default function Home() {
 
   // Handle video generation
   const handleGenerateVideo = async () => {
-    if (!analysis.generatedScript || !analysis.selectedSuggestionForScript || !session) return;
+    if (
+      !analysis.generatedScript ||
+      !analysis.selectedSuggestionForScript ||
+      !session
+    )
+      return;
 
     setPhase("generating");
 
@@ -170,7 +182,8 @@ export default function Home() {
       session.images,
       videoSettings.videoRatio,
       videoSettings.videoResolution,
-      videoSettings.imageUsageMode
+      videoSettings.imageUsageMode,
+      videoSettings.cameraMotion
     );
 
     if (success) {
@@ -225,14 +238,16 @@ export default function Home() {
   const showGeneratingScript = phase === "generating-script";
   const showSuggestions = phase === "first-suggestions";
 
-  const showScriptPreview = (
-    (phase === "final-review" || phase === "generating" || phase === "completed") &&
+  const showScriptPreview =
+    (phase === "final-review" ||
+      phase === "generating" ||
+      phase === "completed") &&
     analysis.generatedScript &&
-    analysis.selectedSuggestionForScript
-  );
+    analysis.selectedSuggestionForScript;
 
   const getPreviewPhase = (): "review" | "generating" | "completed" => {
-    if (phase === "completed" && videoGeneration.generatedVideoUrl) return "completed";
+    if (phase === "completed" && videoGeneration.generatedVideoUrl)
+      return "completed";
     if (phase === "generating") return "generating";
     return "review";
   };
@@ -249,7 +264,7 @@ export default function Home() {
         onApiSettingsClick={apiKeyStatus.openApiKeyModal}
       />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
           {showUpload && (
             <UploadPhase
@@ -258,7 +273,9 @@ export default function Home() {
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
               imageUsageMode={videoSettings.imageUsageMode}
-              sceneMode={videoSettings.sceneMode}
+              veoModel={videoSettings.veoModel}
+              videoDuration={videoSettings.videoDuration}
+              cameraMotion={videoSettings.cameraMotion}
               isLoading={analysis.isLoading}
               error={displayError}
               onImagesChange={handleImagesChange}
@@ -266,7 +283,9 @@ export default function Home() {
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
               onImageUsageModeChange={videoSettings.setImageUsageMode}
-              onSceneModeChange={videoSettings.setSceneMode}
+              onVeoModelChange={videoSettings.setVeoModel}
+              onVideoDurationChange={videoSettings.setVideoDuration}
+              onCameraMotionChange={videoSettings.setCameraMotion}
               onAnalyze={handleAnalyze}
             />
           )}
@@ -318,6 +337,8 @@ export default function Home() {
               consistencyMode={videoSettings.consistencyMode}
               motionDynamics={videoSettings.motionDynamics}
               qualityBooster={videoSettings.qualityBooster}
+              cameraMotion={videoSettings.cameraMotion}
+              videoRatio={videoSettings.videoRatio}
               isLoading={analysis.isLoading}
               onConsistencyChange={videoSettings.setConsistencyMode}
               onMotionDynamicsChange={videoSettings.setMotionDynamics}
@@ -346,13 +367,18 @@ export default function Home() {
                 consistencyMode={videoSettings.consistencyMode}
                 motionDynamics={videoSettings.motionDynamics}
                 qualityBooster={videoSettings.qualityBooster}
-                continuousGenState={videoGeneration.continuousGenState || undefined}
+                continuousGenState={
+                  videoGeneration.continuousGenState || undefined
+                }
                 provider={videoGeneration.videoProvider}
                 onCancelGeneration={handleCancelVideoGeneration}
                 videoUrl={videoGeneration.generatedVideoUrl || undefined}
                 sourceVideoUri={videoGeneration.sourceVideoUri || undefined}
                 onExtendVideo={handleExtendVideo}
-                canExtend={videoGeneration.videoProvider.startsWith("Google Veo") && !!videoGeneration.sourceVideoUri}
+                canExtend={
+                  videoGeneration.videoProvider.startsWith("Google Veo") &&
+                  !!videoGeneration.sourceVideoUri
+                }
                 isExtending={videoGeneration.isExtendingVideo}
                 onDownload={() => {}}
                 onStartOver={handleStartOver}

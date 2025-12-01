@@ -253,24 +253,24 @@
       }
     },
     "motionDynamics": {
-      "label": "動態程度",
+      "label": "動態速度",
       "subtle": {
-        "name": "微妙",
-        "sublabel": "產品展示",
-        "description": "細膩的動態效果，適合產品展示",
-        "hint": "適合產品展示、氛圍營造、需要精緻感的內容"
+        "name": "慢",
+        "sublabel": "精品質感",
+        "description": "緩慢優雅的動態",
+        "hint": "緩慢優雅，像高級廣告的質感，適合產品特寫、氛圍營造"
       },
       "moderate": {
-        "name": "中等",
-        "sublabel": "生活場景",
-        "description": "自然流暢的動態，適合日常內容",
-        "hint": "適合生活場景、人物互動、自然流暢的動態敘事"
+        "name": "自然",
+        "sublabel": "日常節奏",
+        "description": "自然流暢的動態",
+        "hint": "日常生活的自然節奏，適合 vlog、人物互動、生活場景"
       },
       "dramatic": {
-        "name": "劇烈",
-        "sublabel": "動作場景",
-        "description": "強烈動態效果，適合動感內容",
-        "hint": "適合運動、動作場景、需要強烈視覺衝擊的內容"
+        "name": "快",
+        "sublabel": "動感活力",
+        "description": "快速動感的動態",
+        "hint": "動感有活力，適合運動、舞蹈、動作場景"
       }
     },
     "qualityBooster": {
@@ -324,7 +324,64 @@
       }
     },
     "startButton": "開始躺平",
-    "analyzing": "分析中..."
+    "analyzing": "分析中...",
+    "veoModel": {
+      "label": "影像模型",
+      "fast": {
+        "name": "Veo 3.1 Fast 影片",
+        "price": "$0.15 美元/秒（約 NT$5）"
+      },
+      "standard": {
+        "name": "Veo 3.1 標準影片",
+        "price": "$0.40 美元/秒（約 NT$13）"
+      }
+    },
+    "duration": {
+      "label": "影片長度",
+      "unit": "秒"
+    },
+    "cameraMotion": {
+      "label": "運鏡效果",
+      "auto": {
+        "name": "智慧",
+        "description": "AI 自動選擇最佳運鏡",
+        "hint": "讓 AI 根據圖片內容和影片風格，自動選擇最適合的運鏡方式。適合不確定要用什麼運鏡的情況。"
+      },
+      "static": {
+        "name": "靜止",
+        "description": "固定鏡頭，無任何移動",
+        "hint": "鏡頭完全固定不動。適合專注展示單一主體，讓觀眾把注意力集中在畫面內容上。"
+      },
+      "push": {
+        "name": "推進",
+        "description": "向主體推近",
+        "hint": "鏡頭緩緩向中心推近。這種微動會讓觀眾有被邀請進入畫面的感覺，適合強調重點或營造親密感。"
+      },
+      "pull": {
+        "name": "拉遠",
+        "description": "遠離主體拉遠",
+        "hint": "鏡頭緩緩往後拉遠。會讓觀眾覺得場景在展開，適合營造空間感或作為結束畫面。"
+      },
+      "pan_right": {
+        "name": "右平移",
+        "description": "從左到右水平移動",
+        "hint": "鏡頭從左到右水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向右。"
+      },
+      "pan_left": {
+        "name": "左平移",
+        "description": "從右到左水平移動",
+        "hint": "鏡頭從右到左水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向左。"
+      },
+      "tilt": {
+        "name": "傾斜",
+        "description": "垂直移動鏡頭",
+        "hint": "鏡頭會從上到下或從下到上緩緩移動。適合展示高聳的物件或人物全身。"
+      }
+    },
+    "priceEstimate": {
+      "label": "約 {{price}} 馬上不動",
+      "hint": "提示：每次生成結果皆為隨機，調整參數後可能產生不同結果"
+    }
   },
   "loader": {
     "analyzing": {

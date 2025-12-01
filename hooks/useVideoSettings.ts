@@ -10,6 +10,9 @@ import type {
   MotionDynamics,
   QualityBooster,
   RecommendedSettings,
+  VeoModel,
+  VideoDuration,
+  CameraMotion,
 } from "@/types";
 
 export interface VideoSettings {
@@ -20,6 +23,9 @@ export interface VideoSettings {
   sceneMode: SceneMode;
   motionDynamics: MotionDynamics;
   qualityBooster: QualityBooster;
+  veoModel: VeoModel;
+  videoDuration: VideoDuration;
+  cameraMotion: CameraMotion;
 }
 
 export interface VideoSettingsActions {
@@ -30,6 +36,9 @@ export interface VideoSettingsActions {
   setSceneMode: (mode: SceneMode) => void;
   setMotionDynamics: (dynamics: MotionDynamics) => void;
   setQualityBooster: (booster: QualityBooster) => void;
+  setVeoModel: (model: VeoModel) => void;
+  setVideoDuration: (duration: VideoDuration) => void;
+  setCameraMotion: (motion: CameraMotion) => void;
   applyRecommendedSettings: (settings: RecommendedSettings) => void;
   resetSettings: () => void;
 }
@@ -42,6 +51,9 @@ const DEFAULT_SETTINGS: VideoSettings = {
   sceneMode: "auto",
   motionDynamics: "moderate",
   qualityBooster: "none",
+  veoModel: "fast",
+  videoDuration: 6,
+  cameraMotion: "auto",
 };
 
 export function useVideoSettings(): VideoSettings & VideoSettingsActions {
@@ -52,6 +64,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
   const [sceneMode, setSceneMode] = useState<SceneMode>(DEFAULT_SETTINGS.sceneMode);
   const [motionDynamics, setMotionDynamics] = useState<MotionDynamics>(DEFAULT_SETTINGS.motionDynamics);
   const [qualityBooster, setQualityBooster] = useState<QualityBooster>(DEFAULT_SETTINGS.qualityBooster);
+  const [veoModel, setVeoModel] = useState<VeoModel>(DEFAULT_SETTINGS.veoModel);
+  const [videoDuration, setVideoDuration] = useState<VideoDuration>(DEFAULT_SETTINGS.videoDuration);
+  const [cameraMotion, setCameraMotion] = useState<CameraMotion>(DEFAULT_SETTINGS.cameraMotion);
 
   const applyRecommendedSettings = useCallback((settings: RecommendedSettings) => {
     setConsistencyMode(settings.consistencyMode);
@@ -67,6 +82,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setSceneMode(DEFAULT_SETTINGS.sceneMode);
     setMotionDynamics(DEFAULT_SETTINGS.motionDynamics);
     setQualityBooster(DEFAULT_SETTINGS.qualityBooster);
+    setVeoModel(DEFAULT_SETTINGS.veoModel);
+    setVideoDuration(DEFAULT_SETTINGS.videoDuration);
+    setCameraMotion(DEFAULT_SETTINGS.cameraMotion);
   }, []);
 
   return {
@@ -77,6 +95,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     sceneMode,
     motionDynamics,
     qualityBooster,
+    veoModel,
+    videoDuration,
+    cameraMotion,
     setVideoRatio,
     setVideoResolution,
     setImageUsageMode,
@@ -84,6 +105,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setSceneMode,
     setMotionDynamics,
     setQualityBooster,
+    setVeoModel,
+    setVideoDuration,
+    setCameraMotion,
     applyRecommendedSettings,
     resetSettings,
   };
