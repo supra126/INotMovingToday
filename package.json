@@ -1,0 +1,68 @@
+{
+  "name": "inotmovingtoday",
+  "version": "0.1.0",
+  "description": "AI video generator for Reels, TikTok & Shorts. Powered by Google Gemini & Veo.",
+  "keywords": [
+    "ai",
+    "video",
+    "gemini",
+    "veo",
+    "reels",
+    "tiktok",
+    "shorts",
+    "youtube"
+  ],
+  "author": "MagMa <https://github.com/mag477>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supra126/INotMovingToday.git"
+  },
+  "bin": {
+    "inotmovingtoday": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "build:static": "NEXT_PUBLIC_BUILD_MODE=static next build",
+    "start": "next start",
+    "start:static": "node bin/cli.js",
+    "prepublishOnly": "pnpm build:static",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "framer-motion": "^11.18.2",
+    "next": "16.0.6",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "uuid": "^11.1.0",
+    "zod": "^4.1.13",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "baseline-browser-mapping": "^2.8.32",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.5",
+    "prettier": "^3.5.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd",
+  "browserslist": [
+    "Chrome >= 90",
+    "Firefox >= 90",
+    "Safari >= 14",
+    "Edge >= 90"
+  ]
+}
