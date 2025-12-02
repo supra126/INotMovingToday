@@ -4,7 +4,31 @@ export type VideoRatio = "9:16" | "16:9" | "1:1";
 
 export type VideoResolution = "720p" | "1080p";
 
-// 圖片使用位置
+// Veo 模型選擇
+export type VeoModel = "fast" | "standard";
+
+// 影片長度選項
+export type VideoDuration = 4 | 6 | 8;
+
+// 運鏡效果
+export type CameraMotion =
+  | "auto"       // 智慧運鏡：AI 根據內容自動選擇
+  | "static"     // 靜止：固定鏡頭
+  | "push"       // 推進：向主體推近
+  | "pull"       // 拉遠：遠離主體
+  | "pan_right"  // 右平移：從左到右水平移動
+  | "pan_left"   // 左平移：從右到左水平移動
+  | "tilt_up"    // 由下往上：鏡頭向上傾斜
+  | "tilt_down"; // 由上往下：鏡頭向下傾斜
+
+// 影片生成模式
+export type VideoGenerationMode =
+  | "single_image"      // 單張圖片 → 影片
+  | "frames_to_video"   // 首尾幀動畫（起始圖 + 結束圖）
+  | "references"        // 參考風格生成（1-3 張參考圖）
+  | "text_only";        // 純文字生成（不使用圖片）
+
+// 圖片使用位置 (保留向後相容，但已被 VideoGenerationMode 取代)
 export type ImageUsageMode =
   | "start"   // 影片開頭使用圖片 (Image-to-Video)
   | "none";   // 不使用圖片（純文字生成）
@@ -30,6 +54,7 @@ export type MotionDynamics =
 
 // 品質增強器 (Veo 3.1 優化)
 export type QualityBooster =
+  | "auto"        // 智慧：AI 根據內容自動選擇
   | "none"        // 不使用增強
   | "commercial"  // 商業級製作
   | "cinematic"   // 電影級視覺
@@ -59,6 +84,14 @@ export interface UploadedImage {
   previewUrl: string;
   uploadedAt: number;
   order: number;
+}
+
+// 影片生成用的圖片集（支援不同模式）
+export interface VideoImageSet {
+  mode: VideoGenerationMode;
+  startFrame?: UploadedImage;      // 單張圖片模式 / 首尾幀的起始圖
+  endFrame?: UploadedImage;        // 首尾幀的結束圖
+  references?: UploadedImage[];    // 參考圖（1-3張）
 }
 
 export interface UserInput {
@@ -122,10 +155,10 @@ export interface VideoSuggestion {
   targetPlatform: VideoPlatform;
   estimatedDuration: number; // 秒數（預設 8 秒）
 
-  // 初步規劃
-  hookIdea: string; // 開頭吸睛點
-  mainContent: string; // 主要內容描述
-  callToAction: string; // 結尾行動呼籲
+  // 社群貼文內容
+  hookIdea: string; // 社群貼文大標題（吸睛標題）
+  mainContent: string; // 社群貼文內容（搭配影片的發文文案）
+  callToAction: string; // Hashtag 建議
 
   // 視覺方向（整體風格）
   visualDirection: VisualDirection;
@@ -311,3 +344,8 @@ export interface ApiError {
   message: string;
   details?: unknown;
 }
+
+// ============ 匯出函數類型 ============
+
+// Re-export ExportableScript from prompts
+export type { ExportableScript } from "@/lib/ai/prompts";

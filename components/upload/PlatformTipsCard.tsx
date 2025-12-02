@@ -84,7 +84,7 @@ export function PlatformTipsCard({ ratio }: PlatformTipsCardProps) {
           ))}
         </div>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-400">
           {t(`upload.platformTips.${ratio === "9:16" ? "vertical" : ratio === "16:9" ? "horizontal" : "square"}.tip`)}
         </p>
       </div>

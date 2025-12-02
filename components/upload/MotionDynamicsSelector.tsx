@@ -60,12 +60,12 @@ export function MotionDynamicsSelector({
             >
               {icons[dynamic]}
               <span className="text-xs font-medium">{t(`upload.motionDynamics.${dynamic}.name`)}</span>
-              <span className="text-[10px] text-gray-500">{t(`upload.motionDynamics.${dynamic}.sublabel`)}</span>
+              <span className="text-[10px] text-gray-400">{t(`upload.motionDynamics.${dynamic}.sublabel`)}</span>
             </button>
           );
         })}
       </div>
-      <p className="text-xs text-gray-500 text-left">
+      <p className="text-xs text-gray-400 text-left">
         {t(`upload.motionDynamics.${value}.hint`)}
       </p>
     </div>

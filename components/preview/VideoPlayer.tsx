@@ -37,14 +37,20 @@ export function VideoPlayer({
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [extensionPrompt, setExtensionPrompt] = useState("");
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        try {
+          await videoRef.current.play();
+          setIsPlaying(true);
+        } catch {
+          // Play was interrupted, ignore the error
+          setIsPlaying(false);
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -176,15 +182,15 @@ export function VideoPlayer({
       {/* Video Info */}
       <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-500 text-xs mb-1">Platform</div>
+          <div className="text-gray-400 text-xs mb-1">Platform</div>
           <div className="text-white text-sm capitalize">{suggestion.targetPlatform}</div>
         </div>
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-500 text-xs mb-1">Duration</div>
+          <div className="text-gray-400 text-xs mb-1">Duration</div>
           <div className="text-white text-sm">{suggestion.estimatedDuration}s</div>
         </div>
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-500 text-xs mb-1">Style</div>
+          <div className="text-gray-400 text-xs mb-1">Style</div>
           <div className="text-white text-sm capitalize">{suggestion.style}</div>
         </div>
       </div>
@@ -276,7 +282,7 @@ export function VideoPlayer({
 
       {/* Share Options */}
       <div className="text-center">
-        <p className="text-gray-500 text-sm mb-3">Share your creation</p>
+        <p className="text-gray-400 text-sm mb-3">Share your creation</p>
         <div className="flex justify-center gap-3">
           {[
             { name: "Instagram", icon: "📸", color: "from-purple-500 to-pink-500" },

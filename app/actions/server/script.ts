@@ -1,7 +1,7 @@
 "use server";
 
 import { GeminiClient } from "@/lib/ai/gemini-client";
-import type { ScriptResponse, Locale, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
+import type { ScriptResponse, Locale, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
 
 /**
  * Check if server has GEMINI_API_KEY configured
@@ -19,7 +19,9 @@ export async function generateScriptAction(
   consistencyMode: ConsistencyMode = "none",
   sceneMode: SceneMode = "auto",
   motionDynamics: MotionDynamics = "moderate",
-  qualityBooster: QualityBooster = "none"
+  qualityBooster: QualityBooster = "none",
+  videoDuration: VideoDuration = 4,
+  cameraMotion: CameraMotion = "auto"
 ): Promise<ScriptResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -32,7 +34,7 @@ export async function generateScriptAction(
     thinkingBudget: parseInt(process.env.GEMINI_THINKING_BUDGET || "2048", 10),
   });
 
-  return client.generateScript(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+  return client.generateScript(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
 }
 
 export async function refineScriptAction(

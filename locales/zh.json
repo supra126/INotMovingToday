@@ -253,61 +253,67 @@
       }
     },
     "motionDynamics": {
-      "label": "動態程度",
+      "label": "動態速度",
       "subtle": {
-        "name": "微妙",
-        "sublabel": "產品展示",
-        "description": "細膩的動態效果，適合產品展示",
-        "hint": "適合產品展示、氛圍營造、需要精緻感的內容"
+        "name": "慢",
+        "sublabel": "精品質感",
+        "description": "緩慢優雅的動態",
+        "hint": "緩慢優雅，像高級廣告的質感，適合產品特寫、氛圍營造"
       },
       "moderate": {
-        "name": "中等",
-        "sublabel": "生活場景",
-        "description": "自然流暢的動態，適合日常內容",
-        "hint": "適合生活場景、人物互動、自然流暢的動態敘事"
+        "name": "自然",
+        "sublabel": "日常節奏",
+        "description": "自然流暢的動態",
+        "hint": "日常生活的自然節奏，適合 vlog、人物互動、生活場景"
       },
       "dramatic": {
-        "name": "劇烈",
-        "sublabel": "動作場景",
-        "description": "強烈動態效果，適合動感內容",
-        "hint": "適合運動、動作場景、需要強烈視覺衝擊的內容"
+        "name": "快",
+        "sublabel": "動感活力",
+        "description": "快速動感的動態",
+        "hint": "動感有活力，適合運動、舞蹈、動作場景"
       }
     },
     "qualityBooster": {
       "label": "品質增強",
+      "auto": {
+        "name": "智慧",
+        "description": "AI 根據圖片內容自動選擇最適合的風格",
+        "hint": "AI 會分析你的圖片，自動套用最合適的視覺風格"
+      },
       "none": {
         "name": "標準",
-        "description": "不使用額外品質增強"
+        "description": "不加任何風格濾鏡，保持原始 AI 生成效果",
+        "hint": "保留原始 AI 生成效果，不做任何額外調整"
       },
       "commercial": {
         "name": "商業級",
-        "description": "商業廣告級製作品質",
-        "hint": "適合品牌廣告、商業宣傳影片"
+        "description": "高對比、飽和色彩、銳利畫面",
+        "hint": "鮮豔飽和的色彩、高對比度、清晰銳利的邊緣細節"
       },
       "cinematic": {
         "name": "電影級",
-        "description": "電影級視覺效果",
-        "hint": "適合故事敘述、品牌形象影片"
+        "description": "淺景深、電影調色、氛圍感光影",
+        "hint": "柔和的背景模糊、溫暖的色調漸變、戲劇性的明暗對比"
       },
       "luxury": {
         "name": "奢侈品",
-        "description": "奢侈品美學風格",
-        "hint": "適合高端產品、精品展示"
+        "description": "黑金質感、慢動作、微光閃爍",
+        "hint": "深邃的黑色背景、金屬光澤反射、緩慢優雅的動態"
       },
       "editorial": {
         "name": "時尚編輯",
-        "description": "編輯級時尚風格",
-        "hint": "適合時尚、美妝、生活風格內容"
+        "description": "雜誌風格調色、模特兒級打光",
+        "hint": "柔和均勻的打光、淡雅的膚色調整、時尚雜誌風格構圖"
       },
       "documentary": {
         "name": "紀錄片",
-        "description": "紀錄片真實感",
-        "hint": "適合真實故事、品牌故事敘述"
+        "description": "自然色調、手持感、真實紋理",
+        "hint": "自然光線、輕微的畫面晃動、真實的環境色彩"
       },
       "artistic": {
         "name": "藝術感",
-        "description": "藝術感視覺風格",
-        "hint": "適合創意內容、藝術表達"
+        "description": "抽象構圖、非常規調色、視覺實驗",
+        "hint": "大膽的色彩組合、創意構圖、意想不到的視覺效果"
       }
     },
     "platformTips": {
@@ -324,7 +330,108 @@
       }
     },
     "startButton": "開始躺平",
-    "analyzing": "分析中..."
+    "analyzing": "分析中...",
+    "veoModel": {
+      "label": "影像模型",
+      "fast": {
+        "name": "Veo 3.1 Fast 影片",
+        "price": "$0.15 美元/秒"
+      },
+      "standard": {
+        "name": "Veo 3.1 標準影片",
+        "price": "$0.40 美元/秒"
+      }
+    },
+    "duration": {
+      "label": "影片長度",
+      "unit": "秒"
+    },
+    "cameraMotion": {
+      "label": "運鏡效果",
+      "auto": {
+        "name": "智慧",
+        "description": "AI 自動選擇最佳運鏡",
+        "hint": "讓 AI 根據圖片內容和影片風格，自動選擇最適合的運鏡方式。適合不確定要用什麼運鏡的情況。"
+      },
+      "static": {
+        "name": "靜止",
+        "description": "固定鏡頭，無任何移動",
+        "hint": "鏡頭完全固定不動。適合專注展示單一主體，讓觀眾把注意力集中在畫面內容上。"
+      },
+      "push": {
+        "name": "推進",
+        "description": "向主體推近",
+        "hint": "鏡頭緩緩向中心推近。這種微動會讓觀眾有被邀請進入畫面的感覺，適合強調重點或營造親密感。"
+      },
+      "pull": {
+        "name": "拉遠",
+        "description": "遠離主體拉遠",
+        "hint": "鏡頭緩緩往後拉遠。會讓觀眾覺得場景在展開，適合營造空間感或作為結束畫面。"
+      },
+      "pan_right": {
+        "name": "右平移",
+        "description": "從左到右水平移動",
+        "hint": "鏡頭從左到右水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向右。"
+      },
+      "pan_left": {
+        "name": "左平移",
+        "description": "從右到左水平移動",
+        "hint": "鏡頭從右到左水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向左。"
+      },
+      "tilt_up": {
+        "name": "由下往上",
+        "description": "鏡頭向上傾斜",
+        "hint": "鏡頭從下往上緩緩移動。適合展示高聳的物件、建築，或從腳到頭的人物全身展示。"
+      },
+      "tilt_down": {
+        "name": "由上往下",
+        "description": "鏡頭向下傾斜",
+        "hint": "鏡頭從上往下緩緩移動。適合俯瞰場景、從頭到腳的人物展示，或營造揭示效果。"
+      }
+    },
+    "priceEstimate": {
+      "label": "約 {{price}} 馬上不動",
+      "hint": "提示：每次生成結果皆為隨機，調整參數後可能產生不同結果"
+    },
+    "videoMode": {
+      "label": "影片生成模式",
+      "single_image": {
+        "name": "單張圖片",
+        "description": "用一張圖片生成影片",
+        "hint": "上傳一張圖片作為影片起點，AI 會從這張圖片開始生成動態內容"
+      },
+      "frames_to_video": {
+        "name": "首尾幀動畫",
+        "description": "從起始圖過渡到結束圖",
+        "hint": "上傳起始圖和結束圖，AI 會生成兩張圖之間的平滑過渡動畫"
+      },
+      "references": {
+        "name": "參考風格",
+        "description": "用參考圖維持風格一致",
+        "hint": "上傳 1-3 張參考圖，AI 會根據這些圖片的風格生成影片，保持視覺一致性"
+      },
+      "text_only": {
+        "name": "純文字",
+        "description": "不使用圖片，純文字描述",
+        "hint": "不使用任何參考圖片，完全根據文字描述生成影片"
+      }
+    },
+    "modeUploader": {
+      "startImage": "起始圖片",
+      "startFrame": "起始幀",
+      "endFrame": "結束幀",
+      "reference": "參考圖",
+      "required": "必填",
+      "optional": "選填",
+      "remove": "移除",
+      "clickToUpload": "點擊上傳",
+      "processing": "處理中...",
+      "textOnlyHint": "純文字模式：不需要上傳圖片，直接在補充說明輸入你想要的影片內容"
+    },
+    "preview": {
+      "textOnly": "純文字模式：不使用圖片",
+      "uploadHint": "請在左側上傳圖片"
+    }
   },
   "loader": {
     "analyzing": {
@@ -336,8 +443,8 @@
       "description": "（根據你的回饋調整方向中）"
     },
     "generatingScript": {
-      "title": "小GG 正在編寫劇本",
-      "description": "（努力把創意變成文字中）"
+      "title": "小GG 正在努力的路上",
+      "description": "（你不要努力了，我努力）"
     }
   },
   "analysis": {
@@ -368,21 +475,25 @@
       "hook": "開場吸睛點",
       "mainContent": "主要內容",
       "cta": "行動呼籲",
+      "title": "大標題",
+      "postContent": "發文內容",
+      "hashtag": "Hashtag",
       "duration": "時長",
       "platform": "平台",
       "music": "配樂風格"
     },
     "visualDirection": "視覺方向",
     "subjectAction": "主體與動作",
-    "environment": "環境與背景",
+    "environment": "環境一致性",
     "cameraStyle": "運鏡風格",
+    "cameraMotion": "運鏡效果",
     "lighting": "光影氛圍",
     "videoQuality": "影片質感",
-    "transitionStyle": "轉場風格",
+    "qualityBooster": "品質增強",
     "suggestedMusic": "建議音樂",
     "addAdjustments": "新增調整",
     "refineMore": "繼續調整",
-    "finalizeScript": "確定並生成腳本",
+    "finalizeScript": "確認並生成影片",
     "iterationHistory": "迭代紀錄"
   },
   "recommendedSettings": {
@@ -453,8 +564,8 @@
     "extendPlaceholder": "例如：鏡頭緩緩拉遠，展現完整的風景...",
     "extendButton": "延展影片",
     "editScript": "修改劇本",
-    "regenerate": "重新生成",
-    "createNew": "建立新影片",
+    "regenerate": "重新修改提詞",
+    "createNew": "重新生成",
     "retryGeneration": "重新嘗試"
   },
   "errors": {
@@ -466,7 +577,9 @@
     "videoGenerationFailed": "影片生成失敗",
     "networkError": "網路連線錯誤",
     "unknownError": "發生未知錯誤",
-    "pleaseUploadImage": "請上傳至少一張圖片"
+    "pleaseUploadImage": "請上傳至少一張圖片",
+    "quotaExceeded": "API 配額已用完，請稍後再試或檢查您的帳單設定",
+    "rateLimited": "請求太頻繁，請稍後再試"
   },
   "warnings": {
     "consistencyWarning": "此影片超過 8 秒，將使用 AI 延展功能。片段之間的視覺一致性可能會有所不同。"

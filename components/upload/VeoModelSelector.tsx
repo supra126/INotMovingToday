@@ -1,50 +1,55 @@
 "use client";
 
-import type { VideoResolution } from "@/types";
+import type { VeoModel } from "@/types";
 import { useLocale } from "@/contexts/LocaleContext";
 
-interface ResolutionSelectorProps {
-  value: VideoResolution;
-  onChange: (resolution: VideoResolution) => void;
+interface VeoModelSelectorProps {
+  value: VeoModel;
+  onChange: (model: VeoModel) => void;
   disabled?: boolean;
 }
 
-export function ResolutionSelector({
+export function VeoModelSelector({
   value,
   onChange,
   disabled = false,
-}: ResolutionSelectorProps) {
+}: VeoModelSelectorProps) {
   const { t } = useLocale();
 
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-300 text-left">
-        {t("upload.settings.resolution")}
+        {t("upload.veoModel.label")}
       </label>
       <div className="grid grid-cols-2 gap-2">
+        {/* Fast */}
         <button
           type="button"
-          onClick={() => onChange("720p")}
+          onClick={() => onChange("fast")}
           disabled={disabled}
-          className={`py-2.5 rounded-xl border-2 transition-all duration-200 text-sm font-medium ${
-            value === "720p"
+          className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+            value === "fast"
               ? "glass-card selection-glow border-blue-500/60 text-white"
               : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          {t("upload.resolution.720p")}
+          <span className="text-sm font-medium">{t("upload.veoModel.fast.name")}</span>
+          <span className="text-xs text-gray-400">{t("upload.veoModel.fast.price")}</span>
         </button>
+
+        {/* Standard */}
         <button
           type="button"
-          onClick={() => onChange("1080p")}
+          onClick={() => onChange("standard")}
           disabled={disabled}
-          className={`py-2.5 rounded-xl border-2 transition-all duration-200 text-sm font-medium ${
-            value === "1080p"
+          className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+            value === "standard"
               ? "glass-card selection-glow border-blue-500/60 text-white"
               : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
           } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          {t("upload.resolution.1080p")}
+          <span className="text-sm font-medium">{t("upload.veoModel.standard.name")}</span>
+          <span className="text-xs text-gray-400">{t("upload.veoModel.standard.price")}</span>
         </button>
       </div>
     </div>

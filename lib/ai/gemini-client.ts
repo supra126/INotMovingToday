@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, Part } from "@google/generative-ai";
-import type { AnalysisResponse, Locale, ScriptResponse, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
-import { buildInitialPrompt, buildRefinementPrompt, buildFinalScriptPrompt, buildScriptRefinementPrompt, getImageUsageInstruction, getConsistencyPromptSection, getSceneModeInstruction, getMotionDynamicsInstruction, getQualityBoosterInstruction } from "./prompts";
+import type { AnalysisResponse, Locale, ScriptResponse, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
+import { buildInitialPrompt, buildRefinementPrompt, buildFinalScriptPrompt, buildScriptRefinementPrompt, getImageUsageInstruction, getConsistencyPromptSection, getSceneModeInstruction, getMotionDynamicsInstruction, getQualityBoosterInstruction, getCameraMotionInstruction } from "./prompts";
 import { geminiLogger as logger } from "@/lib/logger";
 
 const MODEL_NAME = "gemini-2.5-flash";
@@ -178,7 +178,9 @@ export class GeminiClient {
     consistencyMode: ConsistencyMode = "none",
     sceneMode: SceneMode = "auto",
     motionDynamics: MotionDynamics = "moderate",
-    qualityBooster: QualityBooster = "none"
+    qualityBooster: QualityBooster = "none",
+    videoDuration: VideoDuration = 4,
+    cameraMotion: CameraMotion = "auto"
   ): Promise<ScriptResponse> {
     const model = this.genAI.getGenerativeModel({
       model: MODEL_NAME,
@@ -200,8 +202,11 @@ export class GeminiClient {
     // Get consistency prompt section
     const consistencySection = getConsistencyPromptSection(consistencyMode, locale);
 
+    // Use user-selected duration instead of suggestion's estimated duration
+    const targetDuration = videoDuration;
+
     // Get scene mode instruction
-    const sceneModeInstruction = getSceneModeInstruction(sceneMode, suggestion.estimatedDuration, locale);
+    const sceneModeInstruction = getSceneModeInstruction(sceneMode, targetDuration, locale);
 
     // Get motion dynamics instruction
     const motionDynamicsInstruction = getMotionDynamicsInstruction(motionDynamics, locale);
@@ -209,11 +214,14 @@ export class GeminiClient {
     // Get quality booster instruction
     const qualityBoosterInstruction = getQualityBoosterInstruction(qualityBooster, locale);
 
+    // Get camera motion instruction (IMPORTANT: constrains all visualPrompts)
+    const cameraMotionInstruction = getCameraMotionInstruction(cameraMotion, locale);
+
     const basePrompt = buildFinalScriptPrompt(
       suggestion.title,
       suggestion.concept,
       suggestion.style,
-      suggestion.estimatedDuration,
+      targetDuration,
       ratio,
       images.length,
       imageDescriptions,
@@ -236,6 +244,9 @@ export class GeminiClient {
     }
     if (qualityBoosterInstruction) {
       prompt += `\n\n${qualityBoosterInstruction}`;
+    }
+    if (cameraMotionInstruction) {
+      prompt += `\n\n${cameraMotionInstruction}`;
     }
 
     const imageParts = await Promise.all(
@@ -266,7 +277,46 @@ export class GeminiClient {
         throw new Error("No JSON found in response");
       }
 
-      const parsed = JSON.parse(jsonMatch[0]) as AnalysisResponse;
+      let jsonStr = jsonMatch[0];
+
+      // Fix common JSON issues from AI responses
+      // 1. Remove trailing commas before } or ]
+      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
+      // 2. Fix unquoted property names (simple cases)
+      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+      // 3. Remove any control characters that might break JSON
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === "\n" || char === "\r" || char === "\t") return char;
+        return "";
+      });
+
+      // Try to parse, if it fails try to fix common structural issues
+      let parsed: AnalysisResponse;
+      try {
+        parsed = JSON.parse(jsonStr) as AnalysisResponse;
+      } catch (parseError) {
+        // Try to fix missing closing braces in nested objects
+        // Count opening and closing braces
+        const openBraces = (jsonStr.match(/\{/g) || []).length;
+        const closeBraces = (jsonStr.match(/\}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+        // Add missing closing braces/brackets
+        let fixedJson = jsonStr;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += "]";
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += "}";
+        }
+
+        // Remove trailing commas again after fixes
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
+
+        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
+        parsed = JSON.parse(fixedJson) as AnalysisResponse;
+      }
 
       // Validate required fields
       if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
@@ -318,7 +368,43 @@ export class GeminiClient {
         throw new Error("No JSON found in response");
       }
 
-      const parsed = JSON.parse(jsonMatch[0]) as ScriptResponse;
+      let jsonStr = jsonMatch[0];
+
+      // Fix common JSON issues from AI responses
+      // 1. Remove trailing commas before } or ]
+      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
+      // 2. Fix unquoted property names (simple cases)
+      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+      // 3. Remove any control characters that might break JSON
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        if (char === "\n" || char === "\r" || char === "\t") return char;
+        return "";
+      });
+
+      // Try to parse, if it fails try to fix common structural issues
+      let parsed: ScriptResponse;
+      try {
+        parsed = JSON.parse(jsonStr) as ScriptResponse;
+      } catch (parseError) {
+        // Try to fix missing closing braces in nested objects
+        const openBraces = (jsonStr.match(/\{/g) || []).length;
+        const closeBraces = (jsonStr.match(/\}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+        let fixedJson = jsonStr;
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += "]";
+        }
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += "}";
+        }
+
+        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
+
+        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
+        parsed = JSON.parse(fixedJson) as ScriptResponse;
+      }
 
       // Validate required fields
       if (!parsed.script || !parsed.script.scenes) {

@@ -275,7 +275,7 @@ export function ScriptPreview({
   const getSegmentStatus = (segment: SegmentInfo) => {
     switch (segment.status) {
       case "pending":
-        return { icon: "⏳", color: "text-gray-500", bg: "bg-gray-800" };
+        return { icon: "⏳", color: "text-gray-400", bg: "bg-gray-800" };
       case "generating":
         return { icon: "🎬", color: "text-blue-400", bg: "bg-blue-500/20" };
       case "extending":
@@ -285,7 +285,7 @@ export function ScriptPreview({
       case "failed":
         return { icon: "✗", color: "text-red-400", bg: "bg-red-500/20" };
       default:
-        return { icon: "?", color: "text-gray-500", bg: "bg-gray-800" };
+        return { icon: "?", color: "text-gray-400", bg: "bg-gray-800" };
     }
   };
 
@@ -487,7 +487,7 @@ export function ScriptPreview({
                         <span className="text-white text-xs">
                           {index === 0 ? t("generation.initial") : `${t("generation.extension")}${index}`}
                         </span>
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-gray-400 text-xs">
                           {segment.duration}{t("generation.seconds")}
                         </span>
                       </div>
@@ -688,19 +688,19 @@ export function ScriptPreview({
           {/* Video Info Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[#1e1e24] rounded-xl p-4 border border-blue-500/20">
-              <div className="text-gray-500 text-xs uppercase mb-1">{t("suggestions.fields.platform")}</div>
+              <div className="text-gray-400 text-xs uppercase mb-1">{t("suggestions.fields.platform")}</div>
               <div className="text-white font-medium capitalize">{suggestion.targetPlatform}</div>
             </div>
             <div className="bg-[#1e1e24] rounded-xl p-4 border border-blue-500/20">
-              <div className="text-gray-500 text-xs uppercase mb-1">{t("suggestions.fields.duration")}</div>
+              <div className="text-gray-400 text-xs uppercase mb-1">{t("suggestions.fields.duration")}</div>
               <div className="text-white font-medium">{suggestion.estimatedDuration}s</div>
             </div>
             <div className="bg-[#1e1e24] rounded-xl p-4 border border-blue-500/20">
-              <div className="text-gray-500 text-xs uppercase mb-1">{t("script.scene")}</div>
+              <div className="text-gray-400 text-xs uppercase mb-1">{t("script.scene")}</div>
               <div className="text-white font-medium">{script.script.scenes.length}</div>
             </div>
             <div className="bg-[#1e1e24] rounded-xl p-4 border border-blue-500/20">
-              <div className="text-gray-500 text-xs uppercase mb-1">{t("script.music")}</div>
+              <div className="text-gray-400 text-xs uppercase mb-1">{t("script.music")}</div>
               <div className="text-white font-medium truncate">{script.musicRecommendation.style}</div>
             </div>
           </div>
@@ -793,11 +793,11 @@ export function ScriptPreview({
               </h4>
               <div className="text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t("suggestions.fields.music")}</span>
+                  <span className="text-gray-400">{t("suggestions.fields.music")}</span>
                   <span className="text-gray-300">{script.musicRecommendation.style}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t("suggestions.lighting")}</span>
+                  <span className="text-gray-400">{t("suggestions.lighting")}</span>
                   <span className="text-gray-300">{script.musicRecommendation.mood}</span>
                 </div>
               </div>

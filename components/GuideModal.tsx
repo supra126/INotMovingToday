@@ -105,7 +105,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                     </li>
                   ))}
                 </ul>
-                <p className="text-gray-500 text-xs mt-3">{t("guide.step1.tip")}</p>
+                <p className="text-gray-400 text-xs mt-3">{t("guide.step1.tip")}</p>
               </div>
             </div>
 

@@ -71,7 +71,7 @@ export function ConsistencySelector({
           );
         })}
       </div>
-      <p className="text-xs text-gray-500 text-left">
+      <p className="text-xs text-gray-400 text-left">
         {t(`upload.consistency.${value}.hint`)}
       </p>
     </div>

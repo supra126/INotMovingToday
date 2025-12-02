@@ -1,5 +1,5 @@
 import { createGeminiClient } from "@/lib/ai/gemini-client";
-import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
+import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
 
 /**
  * Client-side image analysis (for static build)
@@ -58,10 +58,12 @@ export async function generateScriptClient(
   consistencyMode: ConsistencyMode = "none",
   sceneMode: SceneMode = "auto",
   motionDynamics: MotionDynamics = "moderate",
-  qualityBooster: QualityBooster = "none"
+  qualityBooster: QualityBooster = "none",
+  videoDuration: VideoDuration = 4,
+  cameraMotion: CameraMotion = "auto"
 ): Promise<ScriptResponse> {
   const client = createGeminiClient(apiKey);
-  return client.generateScript(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+  return client.generateScript(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
 }
 
 /**

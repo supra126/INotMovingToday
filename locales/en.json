@@ -253,61 +253,67 @@
       }
     },
     "motionDynamics": {
-      "label": "Motion Dynamics",
+      "label": "Motion Speed",
       "subtle": {
-        "name": "Subtle",
-        "sublabel": "Product",
-        "description": "Gentle motion effects for product showcase",
-        "hint": "Ideal for product display, atmosphere creation, refined content"
+        "name": "Slow",
+        "sublabel": "Premium",
+        "description": "Slow, elegant motion",
+        "hint": "Slow and elegant, like premium ads. Great for product close-ups, atmosphere"
       },
       "moderate": {
-        "name": "Moderate",
-        "sublabel": "Lifestyle",
-        "description": "Natural flowing motion for everyday content",
-        "hint": "Ideal for lifestyle scenes, character interaction, natural storytelling"
+        "name": "Natural",
+        "sublabel": "Everyday",
+        "description": "Natural, smooth motion",
+        "hint": "Natural everyday rhythm. Great for vlogs, interactions, lifestyle scenes"
       },
       "dramatic": {
-        "name": "Dramatic",
-        "sublabel": "Action",
-        "description": "Strong motion effects for dynamic content",
-        "hint": "Ideal for sports, action scenes, high visual impact content"
+        "name": "Fast",
+        "sublabel": "Dynamic",
+        "description": "Fast, energetic motion",
+        "hint": "Dynamic and energetic. Great for sports, dance, action scenes"
       }
     },
     "qualityBooster": {
       "label": "Quality Boost",
+      "auto": {
+        "name": "Smart",
+        "description": "AI picks the best style based on your image",
+        "hint": "AI analyzes your image and applies the most suitable visual style"
+      },
       "none": {
         "name": "Standard",
-        "description": "No additional quality enhancement"
+        "description": "No style filter, raw AI output",
+        "hint": "Keeps original AI output without any additional adjustments"
       },
       "commercial": {
         "name": "Commercial",
-        "description": "Commercial-grade production quality",
-        "hint": "Ideal for brand ads, promotional videos"
+        "description": "High contrast, saturated colors, sharp imagery",
+        "hint": "Vivid saturated colors, high contrast, crisp sharp edge details"
       },
       "cinematic": {
         "name": "Cinematic",
-        "description": "Cinematic visual effects",
-        "hint": "Ideal for storytelling, brand image videos"
+        "description": "Shallow depth of field, film grading, moody lighting",
+        "hint": "Soft background blur, warm color gradients, dramatic light and shadow"
       },
       "luxury": {
         "name": "Luxury",
-        "description": "Luxury aesthetic style",
-        "hint": "Ideal for high-end products, premium showcase"
+        "description": "Black & gold tones, slow motion, subtle shimmer",
+        "hint": "Deep black backgrounds, metallic reflections, slow elegant motion"
       },
       "editorial": {
         "name": "Editorial",
-        "description": "Editorial fashion style",
-        "hint": "Ideal for fashion, beauty, lifestyle content"
+        "description": "Magazine-style grading, model lighting",
+        "hint": "Soft even lighting, subtle skin tones, fashion magazine composition"
       },
       "documentary": {
         "name": "Documentary",
-        "description": "Documentary authenticity",
-        "hint": "Ideal for real stories, brand narratives"
+        "description": "Natural tones, handheld feel, real textures",
+        "hint": "Natural lighting, slight camera shake, authentic environmental colors"
       },
       "artistic": {
         "name": "Artistic",
-        "description": "Artistic visual style",
-        "hint": "Ideal for creative content, artistic expression"
+        "description": "Abstract framing, unconventional grading, visual experiments",
+        "hint": "Bold color combinations, creative composition, unexpected visual effects"
       }
     },
     "platformTips": {
@@ -324,7 +330,108 @@
       }
     },
     "startButton": "Start Chilling",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "veoModel": {
+      "label": "Video Model",
+      "fast": {
+        "name": "Veo 3.1 Fast Video",
+        "price": "$0.15/sec"
+      },
+      "standard": {
+        "name": "Veo 3.1 Standard Video",
+        "price": "$0.40/sec"
+      }
+    },
+    "duration": {
+      "label": "Video Duration",
+      "unit": "sec"
+    },
+    "cameraMotion": {
+      "label": "Camera Motion",
+      "auto": {
+        "name": "Smart",
+        "description": "AI chooses best camera motion",
+        "hint": "Let AI automatically select the most suitable camera motion based on image content and video style. Great when you're unsure which motion to use."
+      },
+      "static": {
+        "name": "Static",
+        "description": "Fixed camera, no movement",
+        "hint": "The camera stays completely still. Perfect for showcasing a single subject with full attention."
+      },
+      "push": {
+        "name": "Push",
+        "description": "Move towards subject",
+        "hint": "Camera subtly moves closer to the center. This micro-motion invites viewers into the frame, great for emphasis or creating intimacy."
+      },
+      "pull": {
+        "name": "Pull",
+        "description": "Move away from subject",
+        "hint": "Camera subtly moves backward. Creates a sense of space opening up, perfect for revealing scenes or ending shots."
+      },
+      "pan_right": {
+        "name": "Pan Right",
+        "description": "Move left to right",
+        "hint": "Camera slowly sweeps from left to right. Great for showcasing wide environments or guiding viewer attention rightward."
+      },
+      "pan_left": {
+        "name": "Pan Left",
+        "description": "Move right to left",
+        "hint": "Camera slowly sweeps from right to left. Great for showcasing wide environments or guiding viewer attention leftward."
+      },
+      "tilt_up": {
+        "name": "Tilt Up",
+        "description": "Camera tilts upward",
+        "hint": "Camera slowly tilts from bottom to top. Perfect for showcasing tall objects, buildings, or full-body shots from feet to head."
+      },
+      "tilt_down": {
+        "name": "Tilt Down",
+        "description": "Camera tilts downward",
+        "hint": "Camera slowly tilts from top to bottom. Perfect for overview shots, head-to-toe reveals, or creating a reveal effect."
+      }
+    },
+    "priceEstimate": {
+      "label": "~{{price}} to chill",
+      "hint": "Note: Each generation produces random results. Adjusting parameters may produce different outcomes"
+    },
+    "videoMode": {
+      "label": "Video Generation Mode",
+      "single_image": {
+        "name": "Single Image",
+        "description": "Animate one image",
+        "hint": "Upload one image, AI will generate motion from it"
+      },
+      "frames_to_video": {
+        "name": "Frame Animation",
+        "description": "Start to end frame transition",
+        "hint": "Upload start and end images, AI generates smooth transition animation between them"
+      },
+      "references": {
+        "name": "Style Reference",
+        "description": "1-3 reference images",
+        "hint": "Upload reference images to guide AI's visual style"
+      },
+      "text_only": {
+        "name": "Text Only",
+        "description": "No image needed",
+        "hint": "Generate video purely from text description"
+      }
+    },
+    "modeUploader": {
+      "startImage": "Start Image",
+      "startFrame": "Start Frame",
+      "endFrame": "End Frame",
+      "reference": "Reference",
+      "required": "Required",
+      "optional": "Optional",
+      "remove": "Remove",
+      "clickToUpload": "Click or drag to upload",
+      "processing": "Processing...",
+      "textOnlyHint": "Text-only mode: No image upload needed. Enter your video content in the Additional Notes field."
+    },
+    "preview": {
+      "textOnly": "Text-only mode - No preview image",
+      "uploadHint": "Upload an image to see preview"
+    }
   },
   "loader": {
     "analyzing": {
@@ -368,21 +475,25 @@
       "hook": "Opening Hook",
       "mainContent": "Main Content",
       "cta": "Call to Action",
+      "title": "Title",
+      "postContent": "Post Content",
+      "hashtag": "Hashtag",
       "duration": "Duration",
       "platform": "Platform",
       "music": "Music Style"
     },
     "visualDirection": "Visual Direction",
     "subjectAction": "Subject & Action",
-    "environment": "Environment",
+    "environment": "Environment Consistency",
     "cameraStyle": "Camera Style",
+    "cameraMotion": "Camera Motion",
     "lighting": "Lighting",
     "videoQuality": "Video Quality",
-    "transitionStyle": "Transition Style",
+    "qualityBooster": "Quality Boost",
     "suggestedMusic": "Suggested Music",
     "addAdjustments": "Add Adjustments",
     "refineMore": "Refine More",
-    "finalizeScript": "Finalize & Generate Script",
+    "finalizeScript": "Confirm & Generate Video",
     "iterationHistory": "Iteration History"
   },
   "recommendedSettings": {
@@ -453,8 +564,8 @@
     "extendPlaceholder": "e.g., Camera slowly pulls back to reveal the full landscape...",
     "extendButton": "Extend Video",
     "editScript": "Edit Script",
-    "regenerate": "Regenerate",
-    "createNew": "Create New Video",
+    "regenerate": "Edit Prompts",
+    "createNew": "Regenerate",
     "retryGeneration": "Retry"
   },
   "errors": {
@@ -466,7 +577,9 @@
     "videoGenerationFailed": "Video generation failed",
     "networkError": "Network connection error",
     "unknownError": "Unknown error occurred",
-    "pleaseUploadImage": "Please upload at least one image"
+    "pleaseUploadImage": "Please upload at least one image",
+    "quotaExceeded": "API quota exceeded. Please try again later or check your billing settings",
+    "rateLimited": "Too many requests. Please try again later"
   },
   "warnings": {
     "consistencyWarning": "This video exceeds 8 seconds and will use AI extension. Visual consistency between segments may vary."

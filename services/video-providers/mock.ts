@@ -75,8 +75,8 @@ export class MockVideoProvider implements VideoGenerationProvider {
       return {
         status: "completed",
         progress: 100,
-        // Use a sample video for demo purposes
-        videoUrl: "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4",
+        // Use a reliable sample video for demo purposes (Cloudflare-hosted test video)
+        videoUrl: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
         thumbnailUrl: "https://picsum.photos/seed/video/400/711",
       };
     }
