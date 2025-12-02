@@ -14,6 +14,26 @@ import type { ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, Uploa
 import type { ContinuousGenerationState, SegmentInfo } from "@/services/videoService";
 
 /**
+ * Map API error messages to user-friendly error keys
+ */
+function getErrorKey(errorMessage: string): string {
+  const msg = errorMessage.toLowerCase();
+  if (msg.includes("quota") || msg.includes("exceeded your current quota")) {
+    return "quotaExceeded";
+  }
+  if (msg.includes("rate") && msg.includes("limit")) {
+    return "rateLimited";
+  }
+  if (msg.includes("invalid api key") || msg.includes("api key not valid")) {
+    return "apiKeyInvalid";
+  }
+  if (msg.includes("network") || msg.includes("fetch")) {
+    return "networkError";
+  }
+  return "videoGenerationFailed";
+}
+
+/**
  * Crop and resize image to fit target aspect ratio (cover mode)
  * Returns base64 encoded JPEG
  */
@@ -366,7 +386,10 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       }
       return false;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to generate video";
+      const rawError = err instanceof Error ? err.message : "Failed to generate video";
+      // Use error key for i18n lookup (format: errors.{key})
+      const errorKey = getErrorKey(rawError);
+      const errorMessage = `errors.${errorKey}`;
       setError(errorMessage);
 
       setContinuousGenState((prev): ContinuousGenerationState | null => {

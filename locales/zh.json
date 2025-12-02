@@ -577,7 +577,9 @@
     "videoGenerationFailed": "影片生成失敗",
     "networkError": "網路連線錯誤",
     "unknownError": "發生未知錯誤",
-    "pleaseUploadImage": "請上傳至少一張圖片"
+    "pleaseUploadImage": "請上傳至少一張圖片",
+    "quotaExceeded": "API 配額已用完，請稍後再試或檢查您的帳單設定",
+    "rateLimited": "請求太頻繁，請稍後再試"
   },
   "warnings": {
     "consistencyWarning": "此影片超過 8 秒，將使用 AI 延展功能。片段之間的視覺一致性可能會有所不同。"

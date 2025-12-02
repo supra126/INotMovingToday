@@ -577,7 +577,9 @@
     "videoGenerationFailed": "Video generation failed",
     "networkError": "Network connection error",
     "unknownError": "Unknown error occurred",
-    "pleaseUploadImage": "Please upload at least one image"
+    "pleaseUploadImage": "Please upload at least one image",
+    "quotaExceeded": "API quota exceeded. Please try again later or check your billing settings",
+    "rateLimited": "Too many requests. Please try again later"
   },
   "warnings": {
     "consistencyWarning": "This video exceeds 8 seconds and will use AI extension. Visual consistency between segments may vary."

@@ -49,13 +49,16 @@ async function withRetry<T>(
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on certain errors (e.g., invalid API key, invalid parameters)
+      // Don't retry on certain errors (e.g., invalid API key, invalid parameters, quota exceeded)
       const errorMessage = lastError.message.toLowerCase();
       if (
         errorMessage.includes("invalid api key") ||
         errorMessage.includes("api key not valid") ||
         errorMessage.includes("invalid_argument") ||
-        errorMessage.includes("permission denied")
+        errorMessage.includes("permission denied") ||
+        errorMessage.includes("quota") ||
+        errorMessage.includes("rate") ||
+        errorMessage.includes("exceeded")
       ) {
         throw lastError;
       }

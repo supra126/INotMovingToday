@@ -453,7 +453,9 @@ export function SuggestionsPhase({
                       continuousGenState.error && (
                         <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl max-w-xs">
                           <p className="text-red-300 text-sm text-center">
-                            {continuousGenState.error}
+                            {continuousGenState.error.startsWith("errors.")
+                              ? t(continuousGenState.error)
+                              : continuousGenState.error}
                           </p>
                         </div>
                       )}
