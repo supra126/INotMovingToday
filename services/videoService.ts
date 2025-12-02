@@ -121,6 +121,20 @@ export async function refineScript(
   }
 }
 
+export interface VideoGenerationOptions {
+  prompt: string;
+  duration: number;
+  ratio: VideoRatio;
+  resolution?: VideoResolution;
+  /** First frame image (base64) - for single_image and frames_to_video modes */
+  firstFrameImage?: string;
+  /** Last frame image (base64) - for frames_to_video mode */
+  lastFrameImage?: string;
+  /** Reference images (base64 array) - for references mode */
+  referenceImages?: string[];
+  apiKey?: string;
+}
+
 /**
  * Start video generation
  */
@@ -130,8 +144,18 @@ export async function startVideoGeneration(
   ratio: VideoRatio,
   referenceImageBase64?: string,
   apiKey?: string,
-  resolution?: VideoResolution
+  resolution?: VideoResolution,
+  options?: {
+    firstFrameImage?: string;
+    lastFrameImage?: string;
+    referenceImages?: string[];
+  }
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
+  // Determine which image mode to use
+  const firstFrameImage = options?.firstFrameImage ?? referenceImageBase64;
+  const lastFrameImage = options?.lastFrameImage;
+  const referenceImages = options?.referenceImages;
+
   if (isStaticBuild) {
     const { startVideoGenerationClient } = await import("./videoClient");
     if (!apiKey) {
@@ -140,7 +164,16 @@ export async function startVideoGeneration(
     return startVideoGenerationClient(prompt, duration, ratio, referenceImageBase64, apiKey, resolution);
   } else {
     const { generateVideoAction } = await import("@/app/actions/server/generate");
-    return generateVideoAction({ prompt, duration, ratio, resolution, referenceImageBase64 });
+    return generateVideoAction({
+      prompt,
+      duration,
+      ratio,
+      resolution,
+      referenceImageBase64,
+      firstFrameImage,
+      lastFrameImage,
+      referenceImages,
+    });
   }
 }
 

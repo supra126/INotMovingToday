@@ -173,25 +173,44 @@ export class VeoProvider implements VideoGenerationProvider {
       },
     };
 
-    // Add reference image if provided (image-to-video)
-    if (params.referenceImages && params.referenceImages.length > 0) {
-      const base64Data = params.referenceImages[0];
-      // Detect mime type from base64 data or default to jpeg
-      let mimeType = "image/jpeg";
-      if (base64Data.startsWith("/9j/")) {
-        mimeType = "image/jpeg";
-      } else if (base64Data.startsWith("iVBORw")) {
-        mimeType = "image/png";
-      } else if (base64Data.startsWith("R0lGOD")) {
-        mimeType = "image/gif";
-      } else if (base64Data.startsWith("UklGR")) {
-        mimeType = "image/webp";
-      }
+    // Helper function to detect mime type from base64 data
+    const detectMimeType = (base64Data: string): string => {
+      if (base64Data.startsWith("/9j/")) return "image/jpeg";
+      if (base64Data.startsWith("iVBORw")) return "image/png";
+      if (base64Data.startsWith("R0lGOD")) return "image/gif";
+      if (base64Data.startsWith("UklGR")) return "image/webp";
+      return "image/jpeg";
+    };
 
-      (requestBody.instances as Array<Record<string, unknown>>)[0].image = {
-        bytesBase64Encoded: base64Data,
-        mimeType: mimeType,
-      };
+    // Helper function to create image object for Veo API
+    const createImageObject = (base64Data: string) => ({
+      bytesBase64Encoded: base64Data,
+      mimeType: detectMimeType(base64Data),
+    });
+
+    const instance = requestBody.instances as Array<Record<string, unknown>>;
+
+    // Veo 3.1 supports first frame (image) and last frame (lastFrame) in instance
+    // Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos-from-first-and-last-frames
+    // Note: Gemini API (generativelanguage.googleapis.com) may have different support than Vertex AI
+
+    // Mode 1: First + Last frame (frames-to-video transition)
+    if (params.firstFrameImage && params.lastFrameImage) {
+      logger.debug("Using frames-to-video mode with first and last frame");
+      // Both image and lastFrame go in the instance (same level)
+      instance[0].image = createImageObject(params.firstFrameImage);
+      instance[0].lastFrame = createImageObject(params.lastFrameImage);
+    }
+    // Mode 2: First frame only (image-to-video)
+    else if (params.firstFrameImage) {
+      logger.debug("Using image-to-video mode with first frame");
+      instance[0].image = createImageObject(params.firstFrameImage);
+    }
+    // Mode 3: Reference images for style (legacy support)
+    else if (params.referenceImages && params.referenceImages.length > 0) {
+      logger.debug("Using reference images for style guidance");
+      // Veo currently supports one reference image for style
+      instance[0].image = createImageObject(params.referenceImages[0]);
     }
 
     // Use retry wrapper for API call

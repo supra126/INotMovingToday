@@ -10,7 +10,7 @@ import {
   createContinuousGenerationState,
   calculateOverallProgress,
 } from "@/services/videoService";
-import type { ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, UploadedImage, CameraMotion } from "@/types";
+import type { ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, UploadedImage, CameraMotion, VideoGenerationMode } from "@/types";
 import type { ContinuousGenerationState, SegmentInfo } from "@/services/videoService";
 
 /**
@@ -132,7 +132,8 @@ export interface VideoGenerationActions {
     videoRatio: VideoRatio,
     videoResolution: VideoResolution,
     imageUsageMode: ImageUsageMode,
-    cameraMotion: CameraMotion
+    cameraMotion: CameraMotion,
+    videoMode?: VideoGenerationMode
   ) => Promise<boolean>;
   cancelGeneration: () => void;
   extendCurrentVideo: (prompt: string, videoRatio: VideoRatio, videoResolution: VideoResolution) => Promise<void>;
@@ -215,7 +216,8 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     videoRatio: VideoRatio,
     videoResolution: VideoResolution,
     imageUsageMode: ImageUsageMode,
-    cameraMotion: CameraMotion
+    cameraMotion: CameraMotion,
+    videoMode?: VideoGenerationMode
   ): Promise<boolean> => {
     const geminiApiKey = isStaticMode() ? getApiKey("gemini") : undefined;
 
@@ -223,12 +225,31 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     cancelRef.current = false;
 
     try {
-      let referenceImageBase64: string | undefined;
-      if (imageUsageMode === "start" && images.length > 0) {
-        const file = images[0].file;
-        // Crop image to match target video ratio before sending to Veo
-        referenceImageBase64 = await cropImageToRatio(file, videoRatio);
+      // Prepare images based on video mode
+      let firstFrameImage: string | undefined;
+      let lastFrameImage: string | undefined;
+      let referenceImages: string[] | undefined;
+
+      // Determine the effective video mode
+      const effectiveMode = videoMode ?? (imageUsageMode === "start" ? "single_image" : "text_only");
+
+      if (effectiveMode === "frames_to_video" && images.length >= 2) {
+        // Frames to video mode: first image is start frame, second is end frame
+        firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
+        lastFrameImage = await cropImageToRatio(images[1].file, videoRatio);
+      } else if (effectiveMode === "references" && images.length > 0) {
+        // References mode: use all images as style references
+        referenceImages = await Promise.all(
+          images.slice(0, 3).map(img => cropImageToRatio(img.file, videoRatio))
+        );
+      } else if (effectiveMode === "single_image" && images.length > 0) {
+        // Single image mode: use first image as start frame
+        firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
       }
+      // text_only mode: no images
+
+      // Legacy support
+      const referenceImageBase64 = firstFrameImage;
 
       const scenes = script.script.scenes;
       const initialState = createContinuousGenerationState(
@@ -284,7 +305,12 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
             videoRatio,
             referenceImageBase64,
             geminiApiKey,
-            videoResolution
+            videoResolution,
+            {
+              firstFrameImage,
+              lastFrameImage,
+              referenceImages,
+            }
           );
         }
 

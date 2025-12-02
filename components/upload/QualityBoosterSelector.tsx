@@ -105,11 +105,9 @@ export function QualityBoosterSelector({
           {row3.map(renderButton)}
         </div>
       </div>
-      {value !== "none" && value !== "auto" && (
-        <p className="text-xs text-gray-400 text-left">
-          {t(`upload.qualityBooster.${value}.hint`)}
-        </p>
-      )}
+      <p className="text-xs text-gray-400 text-left">
+        {t(`upload.qualityBooster.${value}.hint`)}
+      </p>
     </div>
   );
 }

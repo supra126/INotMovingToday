@@ -73,12 +73,10 @@ export default function Home() {
     }
   }, [session, startNewSession]);
 
-  // Handle image upload with auto-detect ratio
-  const handleImagesChange = useCallback(
-    (images: UploadedImage[]) => {
-      setImages(images);
-
-      if (images.length > 0 && images[0].previewUrl) {
+  // Auto-detect ratio from image
+  const autoDetectRatio = useCallback(
+    (image: UploadedImage) => {
+      if (image.previewUrl) {
         const img = new window.Image();
         img.onload = () => {
           const aspectRatio = img.width / img.height;
@@ -90,16 +88,78 @@ export default function Home() {
             videoSettings.setVideoRatio("1:1");
           }
         };
-        img.src = images[0].previewUrl;
+        img.src = image.previewUrl;
       }
     },
-    [setImages, videoSettings]
+    [videoSettings]
   );
+
+  // Sync all images to session based on current mode
+  const syncImagesToSession = useCallback(
+    (startFrame?: UploadedImage, endFrame?: UploadedImage, refs?: UploadedImage[]) => {
+      const images: UploadedImage[] = [];
+      if (startFrame) images.push(startFrame);
+      if (endFrame) images.push(endFrame);
+      if (refs && refs.length > 0) images.push(...refs);
+      setImages(images);
+    },
+    [setImages]
+  );
+
+  // Handle start frame change with auto-detect ratio
+  const handleStartFrameChange = useCallback(
+    (image: UploadedImage | undefined) => {
+      videoSettings.setStartFrame(image);
+      if (image) {
+        autoDetectRatio(image);
+      }
+      // Sync all images including endFrame for frames_to_video mode
+      syncImagesToSession(image, videoSettings.endFrame, undefined);
+    },
+    [videoSettings, autoDetectRatio, syncImagesToSession]
+  );
+
+  // Handle end frame change (for frames_to_video mode)
+  const handleEndFrameChange = useCallback(
+    (image: UploadedImage | undefined) => {
+      videoSettings.setEndFrame(image);
+      // Sync both frames to session for analysis
+      syncImagesToSession(videoSettings.startFrame, image, undefined);
+    },
+    [videoSettings, syncImagesToSession]
+  );
+
+  // Handle references change with auto-detect ratio
+  const handleReferencesChange = useCallback(
+    (images: UploadedImage[]) => {
+      videoSettings.setReferences(images);
+      if (images.length > 0) {
+        autoDetectRatio(images[0]);
+      }
+      // Sync references to session for analysis
+      syncImagesToSession(undefined, undefined, images);
+    },
+    [videoSettings, autoDetectRatio, syncImagesToSession]
+  );
+
+  // Check if can analyze based on video mode
+  const canAnalyze = useCallback(() => {
+    switch (videoSettings.videoMode) {
+      case "single_image":
+        return !!videoSettings.startFrame;
+      case "frames_to_video":
+        return !!videoSettings.startFrame && !!videoSettings.endFrame;
+      case "references":
+        return videoSettings.references.length > 0;
+      case "text_only":
+        return true;
+    }
+  }, [videoSettings.videoMode, videoSettings.startFrame, videoSettings.endFrame, videoSettings.references]);
 
   // Handle analyze
   const handleAnalyze = async () => {
-    if (!session?.images.length) {
-      analysis.setError("Please upload at least one image.");
+    if (videoSettings.videoMode !== "text_only" && !canAnalyze()) {
+      analysis.setError("Please upload the required images.");
       return;
     }
 
@@ -179,7 +239,8 @@ export default function Home() {
       videoSettings.videoRatio,
       videoSettings.videoResolution,
       videoSettings.imageUsageMode,
-      videoSettings.cameraMotion
+      videoSettings.cameraMotion,
+      videoSettings.videoMode
     );
 
     if (success) {
@@ -198,6 +259,7 @@ export default function Home() {
     videoSettings.videoResolution,
     videoSettings.imageUsageMode,
     videoSettings.cameraMotion,
+    videoSettings.videoMode,
   ]);
 
   // Check if video is currently being generated
@@ -242,7 +304,8 @@ export default function Home() {
       videoSettings.videoRatio,
       videoSettings.videoResolution,
       videoSettings.imageUsageMode,
-      videoSettings.cameraMotion
+      videoSettings.cameraMotion,
+      videoSettings.videoMode
     );
 
     if (success) {
@@ -276,7 +339,8 @@ export default function Home() {
         videoSettings.videoRatio,
         videoSettings.videoResolution,
         videoSettings.imageUsageMode,
-        videoSettings.cameraMotion
+        videoSettings.cameraMotion,
+        videoSettings.videoMode
       ).then((success) => {
         if (success) {
           setPhase("completed");
@@ -343,11 +407,13 @@ export default function Home() {
         <AnimatePresence mode="wait">
           {showUpload && (
             <UploadPhase
-              images={session?.images || []}
+              videoMode={videoSettings.videoMode}
+              startFrame={videoSettings.startFrame}
+              endFrame={videoSettings.endFrame}
+              references={videoSettings.references}
               description={description}
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
-              imageUsageMode={videoSettings.imageUsageMode}
               veoModel={videoSettings.veoModel}
               videoDuration={videoSettings.videoDuration}
               cameraMotion={videoSettings.cameraMotion}
@@ -355,11 +421,13 @@ export default function Home() {
               qualityBooster={videoSettings.qualityBooster}
               isLoading={analysis.isLoading}
               error={displayError}
-              onImagesChange={handleImagesChange}
+              onVideoModeChange={videoSettings.setVideoMode}
+              onStartFrameChange={handleStartFrameChange}
+              onEndFrameChange={handleEndFrameChange}
+              onReferencesChange={handleReferencesChange}
               onDescriptionChange={setDescription}
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
-              onImageUsageModeChange={videoSettings.setImageUsageMode}
               onVeoModelChange={videoSettings.setVeoModel}
               onVideoDurationChange={videoSettings.setVideoDuration}
               onCameraMotionChange={videoSettings.setCameraMotion}

@@ -21,7 +21,14 @@ export type CameraMotion =
   | "tilt_up"    // 由下往上：鏡頭向上傾斜
   | "tilt_down"; // 由上往下：鏡頭向下傾斜
 
-// 圖片使用位置
+// 影片生成模式
+export type VideoGenerationMode =
+  | "single_image"      // 單張圖片 → 影片
+  | "frames_to_video"   // 首尾幀動畫（起始圖 + 結束圖）
+  | "references"        // 參考風格生成（1-3 張參考圖）
+  | "text_only";        // 純文字生成（不使用圖片）
+
+// 圖片使用位置 (保留向後相容，但已被 VideoGenerationMode 取代)
 export type ImageUsageMode =
   | "start"   // 影片開頭使用圖片 (Image-to-Video)
   | "none";   // 不使用圖片（純文字生成）
@@ -77,6 +84,14 @@ export interface UploadedImage {
   previewUrl: string;
   uploadedAt: number;
   order: number;
+}
+
+// 影片生成用的圖片集（支援不同模式）
+export interface VideoImageSet {
+  mode: VideoGenerationMode;
+  startFrame?: UploadedImage;      // 單張圖片模式 / 首尾幀的起始圖
+  endFrame?: UploadedImage;        // 首尾幀的結束圖
+  references?: UploadedImage[];    // 參考圖（1-3張）
 }
 
 export interface UserInput {
