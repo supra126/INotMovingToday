@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import {
@@ -24,6 +24,8 @@ import type {
   QualityBooster,
   RecommendedSettings,
   Locale,
+  VideoDuration,
+  CameraMotion,
 } from "@/types";
 
 export interface AnalysisState {
@@ -57,6 +59,8 @@ export interface AnalysisActions {
     sceneMode: SceneMode,
     motionDynamics: MotionDynamics,
     qualityBooster: QualityBooster,
+    videoDuration: VideoDuration,
+    cameraMotion: CameraMotion,
     editedSuggestion?: VideoSuggestion
   ) => Promise<boolean>;
   refineCurrentScript: (adjustment: string, locale: Locale) => Promise<boolean>;
@@ -71,6 +75,9 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
   const [generatedScript, setGeneratedScript] = useState<ScriptResponse | null>(null);
   const [selectedSuggestionForScript, setSelectedSuggestionForScript] = useState<VideoSuggestion | null>(null);
   const [isRefiningScript, setIsRefiningScript] = useState(false);
+
+  // Cancel ref to track if script generation was cancelled
+  const cancelScriptRef = useRef(false);
 
   const {
     session,
@@ -218,6 +225,8 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
     sceneMode: SceneMode,
     motionDynamics: MotionDynamics,
     qualityBooster: QualityBooster,
+    videoDuration: VideoDuration,
+    cameraMotion: CameraMotion,
     editedSuggestion?: VideoSuggestion
   ): Promise<boolean> => {
     if (!session) return false;
@@ -230,6 +239,9 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
     if (isStaticMode() && !apiKey) {
       return false;
     }
+
+    // Reset cancel flag before starting
+    cancelScriptRef.current = false;
 
     setError(null);
     setIsLoading(true);
@@ -248,12 +260,24 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
         consistencyMode,
         sceneMode,
         motionDynamics,
-        qualityBooster
+        qualityBooster,
+        videoDuration,
+        cameraMotion
       );
+
+      // Check if cancelled before setting result
+      if (cancelScriptRef.current) {
+        return false;
+      }
+
       setGeneratedScript(script);
       setPhase("final-review");
       return true;
     } catch (err) {
+      // Check if cancelled - don't show error if cancelled
+      if (cancelScriptRef.current) {
+        return false;
+      }
       setError(err instanceof Error ? err.message : "Failed to generate script. Please try again.");
       setPhase("first-suggestions");
       return false;
@@ -289,6 +313,9 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
   }, [generatedScript]);
 
   const backToSuggestions = useCallback(() => {
+    // Set cancel flag to prevent ongoing script generation from completing
+    cancelScriptRef.current = true;
+    setIsLoading(false);
     setGeneratedScript(null);
     setSelectedSuggestionForScript(null);
     setPhase("first-suggestions");

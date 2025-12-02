@@ -158,7 +158,8 @@ function getCameraMotionInstruction(motion: CameraMotion): string {
     pull: "Very slow dolly out, gradually revealing more of the scene.",
     pan_right: "Slow horizontal pan from left to right, smoothly moving across the scene.",
     pan_left: "Slow horizontal pan from right to left, smoothly moving across the scene.",
-    tilt: "Slow vertical tilt, moving up or down to reveal spatial height.",
+    tilt_up: "Slow vertical tilt from bottom to top, revealing height and spatial grandeur.",
+    tilt_down: "Slow vertical tilt from top to bottom, gradually revealing the scene below.",
   };
   return instructions[motion];
 }

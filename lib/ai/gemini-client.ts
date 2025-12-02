@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, Part } from "@google/generative-ai";
-import type { AnalysisResponse, Locale, ScriptResponse, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
-import { buildInitialPrompt, buildRefinementPrompt, buildFinalScriptPrompt, buildScriptRefinementPrompt, getImageUsageInstruction, getConsistencyPromptSection, getSceneModeInstruction, getMotionDynamicsInstruction, getQualityBoosterInstruction } from "./prompts";
+import type { AnalysisResponse, Locale, ScriptResponse, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
+import { buildInitialPrompt, buildRefinementPrompt, buildFinalScriptPrompt, buildScriptRefinementPrompt, getImageUsageInstruction, getConsistencyPromptSection, getSceneModeInstruction, getMotionDynamicsInstruction, getQualityBoosterInstruction, getCameraMotionInstruction } from "./prompts";
 import { geminiLogger as logger } from "@/lib/logger";
 
 const MODEL_NAME = "gemini-2.5-flash";
@@ -178,7 +178,9 @@ export class GeminiClient {
     consistencyMode: ConsistencyMode = "none",
     sceneMode: SceneMode = "auto",
     motionDynamics: MotionDynamics = "moderate",
-    qualityBooster: QualityBooster = "none"
+    qualityBooster: QualityBooster = "none",
+    videoDuration: VideoDuration = 4,
+    cameraMotion: CameraMotion = "auto"
   ): Promise<ScriptResponse> {
     const model = this.genAI.getGenerativeModel({
       model: MODEL_NAME,
@@ -200,8 +202,11 @@ export class GeminiClient {
     // Get consistency prompt section
     const consistencySection = getConsistencyPromptSection(consistencyMode, locale);
 
+    // Use user-selected duration instead of suggestion's estimated duration
+    const targetDuration = videoDuration;
+
     // Get scene mode instruction
-    const sceneModeInstruction = getSceneModeInstruction(sceneMode, suggestion.estimatedDuration, locale);
+    const sceneModeInstruction = getSceneModeInstruction(sceneMode, targetDuration, locale);
 
     // Get motion dynamics instruction
     const motionDynamicsInstruction = getMotionDynamicsInstruction(motionDynamics, locale);
@@ -209,11 +214,14 @@ export class GeminiClient {
     // Get quality booster instruction
     const qualityBoosterInstruction = getQualityBoosterInstruction(qualityBooster, locale);
 
+    // Get camera motion instruction (IMPORTANT: constrains all visualPrompts)
+    const cameraMotionInstruction = getCameraMotionInstruction(cameraMotion, locale);
+
     const basePrompt = buildFinalScriptPrompt(
       suggestion.title,
       suggestion.concept,
       suggestion.style,
-      suggestion.estimatedDuration,
+      targetDuration,
       ratio,
       images.length,
       imageDescriptions,
@@ -236,6 +244,9 @@ export class GeminiClient {
     }
     if (qualityBoosterInstruction) {
       prompt += `\n\n${qualityBoosterInstruction}`;
+    }
+    if (cameraMotionInstruction) {
+      prompt += `\n\n${cameraMotionInstruction}`;
     }
 
     const imageParts = await Promise.all(

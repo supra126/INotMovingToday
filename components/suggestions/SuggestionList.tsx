@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { VideoSuggestion, VisualDirection, CameraMotion } from "@/types";
+import type { VideoSuggestion, VisualDirection, CameraMotion, QualityBooster } from "@/types";
 import { SuggestionCard } from "./SuggestionCard";
 import { AdjustmentInput } from "./AdjustmentInput";
 import { Button } from "../common/Button";
@@ -14,7 +14,6 @@ interface EditedFields {
   mainContent: string;
   callToAction: string;
   visualDirection: VisualDirection;
-  transitionStyle: string;
   suggestedMusic: string;
 }
 
@@ -29,6 +28,7 @@ interface SuggestionListProps {
   isLoading?: boolean;
   iterationNumber: number;
   cameraMotion: CameraMotion;
+  qualityBooster: QualityBooster;
 }
 
 export function SuggestionList({
@@ -38,6 +38,7 @@ export function SuggestionList({
   isLoading = false,
   iterationNumber,
   cameraMotion,
+  qualityBooster,
 }: SuggestionListProps) {
   const { t } = useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -50,21 +51,45 @@ export function SuggestionList({
 
   const selectedSuggestion = suggestions.find((s) => s.id === selectedId);
 
+  // Get prefill text for camera motion
+  const getCameraMotionText = () => {
+    if (cameraMotion === "auto") return t("upload.cameraMotion.auto.hint");
+    return t(`upload.cameraMotion.${cameraMotion}.hint`);
+  };
+
+  // Get prefill text for quality booster
+  const getQualityBoosterText = () => {
+    if (qualityBooster === "auto" || qualityBooster === "none") return "";
+    return t(`upload.qualityBooster.${qualityBooster}.hint`);
+  };
+
   // Initialize edited fields when selection changes
   const handleSelect = useCallback((id: string) => {
     const suggestion = suggestions.find((s) => s.id === id);
     if (suggestion) {
       setSelectedId(id);
+      // Prefill cameraStyle with user's camera motion selection
+      // Prefill videoAesthetic with user's quality booster selection
+      const cameraText = cameraMotion === "auto"
+        ? suggestion.visualDirection.cameraStyle
+        : t(`upload.cameraMotion.${cameraMotion}.hint`);
+      const qualityText = (qualityBooster === "auto" || qualityBooster === "none")
+        ? suggestion.visualDirection.videoAesthetic
+        : t(`upload.qualityBooster.${qualityBooster}.hint`);
+
       setEditedFields({
         hookIdea: suggestion.hookIdea,
         mainContent: suggestion.mainContent,
         callToAction: suggestion.callToAction,
-        visualDirection: { ...suggestion.visualDirection },
-        transitionStyle: suggestion.transitionStyle,
+        visualDirection: {
+          ...suggestion.visualDirection,
+          cameraStyle: cameraText,
+          videoAesthetic: qualityText,
+        },
         suggestedMusic: suggestion.suggestedMusic,
       });
     }
-  }, [suggestions]);
+  }, [suggestions, cameraMotion, qualityBooster, t]);
 
   // Update a single field
   const updateField = useCallback((field: keyof EditedFields, value: string) => {
@@ -98,7 +123,6 @@ export function SuggestionList({
         mainContent: editedFields.mainContent,
         callToAction: editedFields.callToAction,
         visualDirection: editedFields.visualDirection,
-        transitionStyle: editedFields.transitionStyle,
         suggestedMusic: editedFields.suggestedMusic,
       };
       onFinalize(selectedId, editedSuggestion);
@@ -123,8 +147,8 @@ export function SuggestionList({
         </span>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Cards - Vertical Stack */}
+      <div className="flex flex-col gap-3">
         <AnimatePresence mode="popLayout">
           {suggestions.map((suggestion, index) => (
             <motion.div
@@ -159,131 +183,107 @@ export function SuggestionList({
               Selected: {selectedSuggestion.title}
             </h4>
 
-            {/* Hook & Content - Editable */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Social Post Content - Editable - Label on top, content below */}
+            <div className="flex flex-col gap-3 mb-6">
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-400 text-xs">{t("suggestions.fields.hook")}</span>
+                <span className="text-gray-400 text-xs block mb-2">{t("suggestions.fields.title")}</span>
                 <textarea
                   value={editedFields?.hookIdea || ""}
                   onChange={(e) => updateField("hookIdea", e.target.value)}
-                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  className="w-full bg-transparent text-gray-300 text-sm border border-white/10 hover:border-white/20 focus:border-blue-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
                   rows={3}
                   disabled={isLoading}
                 />
               </div>
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-400 text-xs">{t("suggestions.fields.mainContent")}</span>
+                <span className="text-gray-400 text-xs block mb-2">{t("suggestions.fields.postContent")}</span>
                 <textarea
                   value={editedFields?.mainContent || ""}
                   onChange={(e) => updateField("mainContent", e.target.value)}
-                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  className="w-full bg-transparent text-gray-300 text-sm border border-white/10 hover:border-white/20 focus:border-blue-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
                   rows={3}
                   disabled={isLoading}
                 />
               </div>
               <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-400 text-xs">{t("suggestions.fields.cta")}</span>
+                <span className="text-gray-400 text-xs block mb-2">{t("suggestions.fields.hashtag")}</span>
                 <textarea
                   value={editedFields?.callToAction || ""}
                   onChange={(e) => updateField("callToAction", e.target.value)}
-                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
+                  className="w-full bg-transparent text-gray-300 text-sm border border-white/10 hover:border-white/20 focus:border-blue-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
                   rows={3}
                   disabled={isLoading}
                 />
               </div>
             </div>
 
-            {/* Visual Direction - Editable */}
+            {/* Visual Direction - Editable - Label on top, content below */}
             <div className="mb-6">
               <h5 className="text-gray-400 text-sm font-medium mb-3">{t("suggestions.visualDirection")}</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="flex flex-col gap-3">
                 <div className="bg-black/20 rounded-lg p-3 border border-blue-500/10">
-                  <span className="text-blue-400 text-xs">{t("suggestions.subjectAction")}</span>
+                  <span className="text-blue-400 text-xs block mb-2">{t("suggestions.subjectAction")}</span>
                   <textarea
                     value={editedFields?.visualDirection?.subjectAction || ""}
                     onChange={(e) => updateVisualDirection("subjectAction", e.target.value)}
-                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-blue-500/30 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
-                    rows={2}
+                    className="w-full bg-transparent text-gray-300 text-sm border border-blue-500/20 hover:border-blue-500/30 focus:border-blue-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                    rows={3}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-purple-500/10">
-                  <span className="text-purple-400 text-xs">{t("suggestions.environment")}</span>
+                  <span className="text-purple-400 text-xs block mb-2">{t("suggestions.environment")}</span>
                   <textarea
                     value={editedFields?.visualDirection?.environment || ""}
                     onChange={(e) => updateVisualDirection("environment", e.target.value)}
-                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-purple-500/30 focus:border-purple-500/50 rounded p-1 focus:outline-none transition-colors"
-                    rows={2}
+                    className="w-full bg-transparent text-gray-300 text-sm border border-purple-500/20 hover:border-purple-500/30 focus:border-purple-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                    rows={3}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-cyan-500/10">
-                  <span className="text-cyan-400 text-xs">{t("suggestions.cameraStyle")}</span>
+                  <span className="text-cyan-400 text-xs block mb-2">{t("suggestions.cameraMotion")}</span>
                   <textarea
                     value={editedFields?.visualDirection?.cameraStyle || ""}
                     onChange={(e) => updateVisualDirection("cameraStyle", e.target.value)}
-                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-cyan-500/30 focus:border-cyan-500/50 rounded p-1 focus:outline-none transition-colors"
-                    rows={2}
+                    className="w-full bg-transparent text-gray-300 text-sm border border-cyan-500/20 hover:border-cyan-500/30 focus:border-cyan-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                    rows={3}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-amber-500/10">
-                  <span className="text-amber-400 text-xs">{t("suggestions.lighting")}</span>
+                  <span className="text-amber-400 text-xs block mb-2">{t("suggestions.lighting")}</span>
                   <textarea
                     value={editedFields?.visualDirection?.lightingMood || ""}
                     onChange={(e) => updateVisualDirection("lightingMood", e.target.value)}
-                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-amber-500/30 focus:border-amber-500/50 rounded p-1 focus:outline-none transition-colors"
-                    rows={2}
+                    className="w-full bg-transparent text-gray-300 text-sm border border-amber-500/20 hover:border-amber-500/30 focus:border-amber-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                    rows={3}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="bg-black/20 rounded-lg p-3 border border-pink-500/10">
-                  <span className="text-pink-400 text-xs">{t("suggestions.videoQuality")}</span>
+                  <span className="text-pink-400 text-xs block mb-2">{t("suggestions.qualityBooster")}</span>
                   <textarea
                     value={editedFields?.visualDirection?.videoAesthetic || ""}
                     onChange={(e) => updateVisualDirection("videoAesthetic", e.target.value)}
-                    className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-pink-500/30 focus:border-pink-500/50 rounded p-1 focus:outline-none transition-colors"
-                    rows={2}
+                    className="w-full bg-transparent text-gray-300 text-sm border border-pink-500/20 hover:border-pink-500/30 focus:border-pink-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                    rows={3}
                     disabled={isLoading}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Additional Info - 3 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* Camera Motion - Read Only */}
-              <div className="bg-black/20 rounded-lg p-3 border border-cyan-500/10">
-                <span className="text-cyan-400 text-xs">{t("upload.cameraMotion.label")}</span>
-                <p className="text-gray-300 text-sm mt-1 font-medium">
-                  {t(`upload.cameraMotion.${cameraMotion}.name`)}
-                </p>
-                <p className="text-gray-500 text-xs mt-1">
-                  {t(`upload.cameraMotion.${cameraMotion}.hint`)}
-                </p>
-              </div>
-              {/* Transition Style - Editable */}
-              <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-400 text-xs">{t("suggestions.transitionStyle")}</span>
-                <textarea
-                  value={editedFields?.transitionStyle || ""}
-                  onChange={(e) => updateField("transitionStyle", e.target.value)}
-                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
-                  rows={3}
-                  disabled={isLoading}
-                />
-              </div>
-              {/* Suggested Music - Editable */}
-              <div className="bg-black/20 rounded-lg p-3">
-                <span className="text-gray-400 text-xs">{t("suggestions.suggestedMusic")}</span>
-                <textarea
-                  value={editedFields?.suggestedMusic || ""}
-                  onChange={(e) => updateField("suggestedMusic", e.target.value)}
-                  className="w-full mt-1 bg-transparent text-gray-300 text-sm resize-none border border-transparent hover:border-white/20 focus:border-blue-500/50 rounded p-1 focus:outline-none transition-colors"
-                  rows={3}
-                  disabled={isLoading}
-                />
-              </div>
+            {/* Suggested Music - Editable */}
+            <div className="bg-black/20 rounded-lg p-3 mb-6">
+              <span className="text-gray-400 text-xs block mb-2">{t("suggestions.suggestedMusic")}</span>
+              <textarea
+                value={editedFields?.suggestedMusic || ""}
+                onChange={(e) => updateField("suggestedMusic", e.target.value)}
+                className="w-full bg-transparent text-gray-300 text-sm border border-white/10 hover:border-white/20 focus:border-blue-500/50 rounded px-2 py-1.5 focus:outline-none transition-colors resize-none overflow-y-auto"
+                rows={3}
+                disabled={isLoading}
+              />
             </div>
 
             {/* Toggle Adjustment */}

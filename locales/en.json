@@ -275,6 +275,10 @@
     },
     "qualityBooster": {
       "label": "Quality Boost",
+      "auto": {
+        "name": "Smart",
+        "description": "AI automatically selects best quality enhancement"
+      },
       "none": {
         "name": "Standard",
         "description": "No additional quality enhancement"
@@ -372,10 +376,15 @@
         "description": "Move right to left",
         "hint": "Camera slowly sweeps from right to left. Great for showcasing wide environments or guiding viewer attention leftward."
       },
-      "tilt": {
-        "name": "Tilt",
-        "description": "Vertical camera movement",
-        "hint": "Camera moves from top to bottom or vice versa. Perfect for showcasing tall objects or full-body shots."
+      "tilt_up": {
+        "name": "Tilt Up",
+        "description": "Camera tilts upward",
+        "hint": "Camera slowly tilts from bottom to top. Perfect for showcasing tall objects, buildings, or full-body shots from feet to head."
+      },
+      "tilt_down": {
+        "name": "Tilt Down",
+        "description": "Camera tilts downward",
+        "hint": "Camera slowly tilts from top to bottom. Perfect for overview shots, head-to-toe reveals, or creating a reveal effect."
       }
     },
     "priceEstimate": {
@@ -425,17 +434,21 @@
       "hook": "Opening Hook",
       "mainContent": "Main Content",
       "cta": "Call to Action",
+      "title": "Title",
+      "postContent": "Post Content",
+      "hashtag": "Hashtag",
       "duration": "Duration",
       "platform": "Platform",
       "music": "Music Style"
     },
     "visualDirection": "Visual Direction",
     "subjectAction": "Subject & Action",
-    "environment": "Environment",
+    "environment": "Environment Consistency",
     "cameraStyle": "Camera Style",
+    "cameraMotion": "Camera Motion",
     "lighting": "Lighting",
     "videoQuality": "Video Quality",
-    "transitionStyle": "Transition Style",
+    "qualityBooster": "Quality Boost",
     "suggestedMusic": "Suggested Music",
     "addAdjustments": "Add Adjustments",
     "refineMore": "Refine More",
@@ -510,8 +523,8 @@
     "extendPlaceholder": "e.g., Camera slowly pulls back to reveal the full landscape...",
     "extendButton": "Extend Video",
     "editScript": "Edit Script",
-    "regenerate": "Regenerate",
-    "createNew": "Create New Video",
+    "regenerate": "Edit Prompts",
+    "createNew": "Regenerate",
     "retryGeneration": "Retry"
   },
   "errors": {

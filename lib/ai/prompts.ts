@@ -1,4 +1,4 @@
-import type { Locale, VideoRatio, ConsistencyMode, ImageUsageMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
+import type { Locale, VideoRatio, ConsistencyMode, ImageUsageMode, SceneMode, MotionDynamics, QualityBooster, CameraMotion } from "@/types";
 
 // ============ Veo 3.1 Optimized Vocabulary ============
 // Based on Google's official Veo 3.1 documentation and best practices
@@ -149,41 +149,41 @@ export const INITIAL_ANALYSIS_PROMPT = `
 - style: 影片風格（cinematic/dynamic/storytelling/product-demo/tutorial/aesthetic/meme）
 - targetPlatform: 最適合的平台（{platformOptions}）
 - estimatedDuration: 建議時長（8秒，Veo 單次生成上限）
-- hookIdea: 開場策略（根據平台調整，見下方說明）
-- mainContent: 主要內容規劃
-- callToAction: 結尾設計
+- hookIdea: 社群貼文大標題（吸睛的發文標題，適合 IG/TikTok/YouTube，5-15字）
+- mainContent: 社群貼文內容（搭配影片的發文文案，50-100字，包含 emoji）
+- callToAction: Hashtag 建議（5-10個相關 hashtag，用空格分隔）
 - visualDirection: 視覺方向（包含以下子欄位）
   - subjectAction: 主體與動作概述（如：產品緩慢旋轉展示、模特兒走向鏡頭）
-  - environment: 環境與背景基調（如：純白攝影棚、城市街頭、自然森林）
+  - environment: 環境一致性描述（根據上傳圖片的環境，描述如何維持該環境的視覺一致性，如：維持圖片中的純白背景、保持城市街景的氛圍）
   - cameraStyle: 整體運鏡風格（如：穩定推進、手持跟拍、航拍俯瞰、環繞拍攝）
   - lightingMood: 光影氛圍（如：柔和自然光、霓虹冷光、電影感打光、黃金時刻暖光）
   - videoAesthetic: 影片質感（如：高級商業感、vlog隨性風、電影感、復古膠片風）
 - transitionStyle: 轉場建議
 - suggestedMusic: 配樂風格
 
-## 開場策略指南（hookIdea）
-根據影片比例和目標平台，採用不同的開場策略：
+## 社群貼文內容指南
+根據影片比例和目標平台，撰寫適合的社群貼文內容：
 
 **短影音平台（9:16 比例 - TikTok/Reels/Shorts）**
-- 前 0.5-3 秒至關重要，用戶會快速滑走
-- 需要立即的視覺衝擊或 pattern interrupt
-- 強調：瞬間吸引、動態開場、懸念製造
+- hookIdea（大標題）：簡短有力、製造好奇心、適合滑動時吸引目光
+- mainContent（發文內容）：口語化、包含 emoji、鼓勵互動
+- callToAction（Hashtag）：熱門標籤 + 利基標籤混合
 
 **YouTube（16:9 比例）**
-- 前 5-10 秒建立價值預告
-- 用戶已主動點擊，有初步興趣
-- 強調：預告影片價值、建立期待、敘事鋪陳
-- 不需要急促的 hook，可以更從容地開場
+- hookIdea（大標題）：描述性更強、預告影片價值
+- mainContent（發文內容）：可以更詳細、說明影片亮點
+- callToAction（Hashtag）：相關主題標籤
 
 **方形影片（1:1 比例 - Instagram 貼文）**
-- 前 1-3 秒需要吸引滑動中的用戶
-- 介於短影音和 YouTube 之間的策略
+- hookIdea（大標題）：美感導向、簡潔有力
+- mainContent（發文內容）：生活風格感、互動問句
+- callToAction（Hashtag）：5-10個精準標籤
 
 ## 建議設定選擇指南
 根據圖片分析結果，推薦以下設定：
 - consistencyMode: 產品為主→"product"，人物為主→"character"，兩者都有→"both"，風景/抽象→"none"
 - motionDynamics: 產品展示/氛圍營造→"subtle"，生活場景/人物互動→"moderate"，運動/動作場景→"dramatic"
-- qualityBooster: 根據內容風格選擇最適合的品質增強（商業廣告→"commercial"，電影感→"cinematic"，高端產品→"luxury" 等）
+- qualityBooster: 根據內容風格選擇最適合的品質增強（商業廣告→"commercial"，電影感→"cinematic"，高端產品→"luxury"，或 "auto" 讓 AI 自動判斷）
 
 ## 回應格式
 必須輸出有效的 JSON 格式（不要包含 markdown code block）。
@@ -213,7 +213,7 @@ export const INITIAL_ANALYSIS_PROMPT = `
   "recommendedSettings": {
     "consistencyMode": "選填 none 或 product 或 character 或 both",
     "motionDynamics": "選填 subtle 或 moderate 或 dramatic",
-    "qualityBooster": "選填 none 或 commercial 或 cinematic 或 luxury 或 editorial 或 documentary 或 artistic",
+    "qualityBooster": "選填 auto 或 none 或 commercial 或 cinematic 或 luxury 或 editorial 或 documentary 或 artistic",
     "reasoning": "推薦理由（20字內）"
   },
   "suggestions": [
@@ -266,41 +266,41 @@ Each direction must include:
 - style: Video style (cinematic/dynamic/storytelling/product-demo/tutorial/aesthetic/meme)
 - targetPlatform: Best suited platform ({platformOptions})
 - estimatedDuration: Suggested duration (8 seconds, Veo single generation limit)
-- hookIdea: Opening strategy (adjusted by platform, see guide below)
-- mainContent: Main content plan
-- callToAction: Ending design
+- hookIdea: Social post title (catchy headline for IG/TikTok/YouTube, 5-15 words)
+- mainContent: Social post content (caption to accompany the video, 50-100 words, include emoji)
+- callToAction: Hashtag suggestions (5-10 relevant hashtags, separated by spaces)
 - visualDirection: Visual direction (with sub-fields)
   - subjectAction: Subject and action overview (e.g., product slowly rotating, model walking toward camera)
-  - environment: Environment and background (e.g., white studio, city street, natural forest)
+  - environment: Environment consistency description (based on the uploaded image's environment, describe how to maintain visual consistency, e.g., maintain the pure white background from the image, preserve the city street atmosphere)
   - cameraStyle: Overall camera style (e.g., steady push-in, handheld tracking, aerial view, orbit shot)
   - lightingMood: Lighting mood (e.g., soft natural light, neon cold light, cinematic lighting, golden hour warmth)
   - videoAesthetic: Video aesthetic (e.g., premium commercial, vlog casual, cinematic, vintage film)
 - transitionStyle: Transition suggestions
 - suggestedMusic: Music style
 
-## Opening Strategy Guide (hookIdea)
-Adapt the opening strategy based on video ratio and target platform:
+## Social Post Content Guide
+Create appropriate social post content based on video ratio and target platform:
 
 **Short-form Platforms (9:16 ratio - TikTok/Reels/Shorts)**
-- First 0.5-3 seconds are critical, users scroll quickly
-- Requires immediate visual impact or pattern interrupt
-- Focus on: instant attention grab, dynamic opening, creating suspense
+- hookIdea (Title): Short and punchy, create curiosity, catch scrolling attention
+- mainContent (Caption): Conversational, include emojis, encourage engagement
+- callToAction (Hashtags): Mix of trending + niche hashtags
 
 **YouTube (16:9 ratio)**
-- First 5-10 seconds establish value preview
-- Users clicked intentionally, already have initial interest
-- Focus on: previewing video value, building anticipation, narrative setup
-- No need for rushed hooks, can open more leisurely
+- hookIdea (Title): More descriptive, preview video value
+- mainContent (Caption): Can be more detailed, highlight video content
+- callToAction (Hashtags): Topic-relevant hashtags
 
 **Square Videos (1:1 ratio - Instagram Posts)**
-- First 1-3 seconds need to catch scrolling users
-- Strategy between short-form and YouTube
+- hookIdea (Title): Aesthetic-focused, clean and impactful
+- mainContent (Caption): Lifestyle feel, interactive questions
+- callToAction (Hashtags): 5-10 precise hashtags
 
 ## Recommended Settings Guide
 Based on image analysis, recommend the following settings:
 - consistencyMode: Product focus→"product", Person focus→"character", Both→"both", Landscape/abstract→"none"
 - motionDynamics: Product showcase/atmosphere→"subtle", Lifestyle/interaction→"moderate", Sports/action→"dramatic"
-- qualityBooster: Choose based on content style (commercial ads→"commercial", cinematic→"cinematic", luxury products→"luxury", etc.)
+- qualityBooster: Choose based on content style (commercial ads→"commercial", cinematic→"cinematic", luxury products→"luxury", or "auto" to let AI decide)
 
 ## Response Format
 Must output valid JSON format (without markdown code block).
@@ -330,7 +330,7 @@ Note: Values in recommendedSettings must be exact string values, not descriptive
   "recommendedSettings": {
     "consistencyMode": "choose: none, product, character, or both",
     "motionDynamics": "choose: subtle, moderate, or dramatic",
-    "qualityBooster": "choose: none, commercial, cinematic, luxury, editorial, documentary, or artistic",
+    "qualityBooster": "choose: auto, none, commercial, cinematic, luxury, editorial, documentary, or artistic",
     "reasoning": "Brief explanation (under 20 words)"
   },
   "suggestions": [
@@ -1439,11 +1439,11 @@ export function getQualityBoosterInstruction(
   booster: QualityBooster,
   locale: Locale
 ): string {
-  if (booster === "none") {
-    return "";
+  if (booster === "auto" || booster === "none") {
+    return ""; // Let AI choose naturally or no enhancement
   }
 
-  const instructions: Record<Exclude<QualityBooster, "none">, { zh: string; en: string }> = {
+  const instructions: Record<Exclude<QualityBooster, "auto" | "none">, { zh: string; en: string }> = {
     commercial: {
       zh: `## 品質增強：商業級製作
 在每個 visualPrompt 結尾加入以下品質增強詞：
@@ -1495,6 +1495,112 @@ Add these quality enhancers at the end of each visualPrompt:
   };
 
   return instructions[booster][locale === "en" ? "en" : "zh"];
+}
+
+/**
+ * Get camera motion instruction for the script generation prompt
+ * This tells the AI to constrain all visualPrompts to use only the specified camera motion
+ */
+export function getCameraMotionInstruction(
+  motion: CameraMotion,
+  locale: Locale
+): string {
+  if (motion === "auto") {
+    return ""; // Let AI choose naturally
+  }
+
+  const instructions: Record<Exclude<CameraMotion, "auto">, { zh: string; en: string }> = {
+    static: {
+      zh: `## 運鏡限制：完全靜止
+用戶選擇了「靜止」運鏡模式：
+- **所有場景的 cameraMovement 必須設為 "static shot" 或 "locked-off camera"**
+- **visualPrompt 中禁止包含任何運鏡描述**（禁止：dolly、pan、tilt、tracking、orbit、crane、zoom 等）
+- 只允許畫面內的微小變化（如：空氣中漂浮的塵埃、柔和的光線變化）
+- 主體可以有動作，但鏡頭本身必須完全固定
+- 在每個 visualPrompt 開頭加入 "completely static camera, locked-off tripod shot"`,
+      en: `## Camera Motion Restriction: Completely Static
+User selected "Static" camera mode:
+- **All scenes' cameraMovement must be "static shot" or "locked-off camera"**
+- **visualPrompt must NOT include any camera movement descriptions** (NO: dolly, pan, tilt, tracking, orbit, crane, zoom, etc.)
+- Only allow subtle in-frame changes (e.g., floating dust particles, gentle light variations)
+- Subject can have motion, but camera itself must be completely fixed
+- Add "completely static camera, locked-off tripod shot" at the start of each visualPrompt`,
+    },
+    push: {
+      zh: `## 運鏡限制：推進
+用戶選擇了「推進」運鏡模式：
+- 所有場景使用緩慢的推進運鏡（dolly in / push in）
+- 在每個 visualPrompt 中加入 "very slow dolly in" 或 "gentle push toward subject"
+- 禁止使用其他類型的運鏡（pan、tilt、orbit 等）`,
+      en: `## Camera Motion Restriction: Push In
+User selected "Push" camera mode:
+- All scenes use slow push-in movement (dolly in / push in)
+- Add "very slow dolly in" or "gentle push toward subject" in each visualPrompt
+- Do NOT use other camera movements (pan, tilt, orbit, etc.)`,
+    },
+    pull: {
+      zh: `## 運鏡限制：拉遠
+用戶選擇了「拉遠」運鏡模式：
+- 所有場景使用緩慢的拉遠運鏡（dolly out / pull back）
+- 在每個 visualPrompt 中加入 "very slow dolly out" 或 "gentle pull back"
+- 禁止使用其他類型的運鏡（pan、tilt、orbit 等）`,
+      en: `## Camera Motion Restriction: Pull Out
+User selected "Pull" camera mode:
+- All scenes use slow pull-out movement (dolly out / pull back)
+- Add "very slow dolly out" or "gentle pull back" in each visualPrompt
+- Do NOT use other camera movements (pan, tilt, orbit, etc.)`,
+    },
+    pan_right: {
+      zh: `## 運鏡限制：右平移
+用戶選擇了「右平移」運鏡模式：
+- 所有場景使用從左到右的水平平移
+- 在每個 visualPrompt 中加入 "slow pan right" 或 "horizontal pan from left to right"
+- 禁止使用其他類型的運鏡（dolly、tilt、orbit 等）`,
+      en: `## Camera Motion Restriction: Pan Right
+User selected "Pan Right" camera mode:
+- All scenes use horizontal pan from left to right
+- Add "slow pan right" or "horizontal pan from left to right" in each visualPrompt
+- Do NOT use other camera movements (dolly, tilt, orbit, etc.)`,
+    },
+    pan_left: {
+      zh: `## 運鏡限制：左平移
+用戶選擇了「左平移」運鏡模式：
+- 所有場景使用從右到左的水平平移
+- 在每個 visualPrompt 中加入 "slow pan left" 或 "horizontal pan from right to left"
+- 禁止使用其他類型的運鏡（dolly、tilt、orbit 等）`,
+      en: `## Camera Motion Restriction: Pan Left
+User selected "Pan Left" camera mode:
+- All scenes use horizontal pan from right to left
+- Add "slow pan left" or "horizontal pan from right to left" in each visualPrompt
+- Do NOT use other camera movements (dolly, tilt, orbit, etc.)`,
+    },
+    tilt_up: {
+      zh: `## 運鏡限制：由下往上
+用戶選擇了「由下往上」運鏡模式：
+- 所有場景使用從下往上的垂直傾斜運鏡（tilt up）
+- 在每個 visualPrompt 中加入 "slow tilt up" 或 "vertical tilt from bottom to top"
+- 禁止使用其他類型的運鏡（dolly、pan、tilt down、orbit 等）`,
+      en: `## Camera Motion Restriction: Tilt Up
+User selected "Tilt Up" camera mode:
+- All scenes use bottom-to-top vertical tilt movement (tilt up)
+- Add "slow tilt up" or "vertical tilt from bottom to top" in each visualPrompt
+- Do NOT use other camera movements (dolly, pan, tilt down, orbit, etc.)`,
+    },
+    tilt_down: {
+      zh: `## 運鏡限制：由上往下
+用戶選擇了「由上往下」運鏡模式：
+- 所有場景使用從上往下的垂直傾斜運鏡（tilt down）
+- 在每個 visualPrompt 中加入 "slow tilt down" 或 "vertical tilt from top to bottom"
+- 禁止使用其他類型的運鏡（dolly、pan、tilt up、orbit 等）`,
+      en: `## Camera Motion Restriction: Tilt Down
+User selected "Tilt Down" camera mode:
+- All scenes use top-to-bottom vertical tilt movement (tilt down)
+- Add "slow tilt down" or "vertical tilt from top to bottom" in each visualPrompt
+- Do NOT use other camera movements (dolly, pan, tilt up, orbit, etc.)`,
+    },
+  };
+
+  return instructions[motion][locale === "en" ? "en" : "zh"];
 }
 
 // ============ Prompt Export for External Platforms ============

@@ -40,9 +40,14 @@ const icons: Record<CameraMotion, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
     </svg>
   ),
-  tilt: (
+  tilt_up: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+    </svg>
+  ),
+  tilt_down: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
     </svg>
   ),
 };
@@ -54,10 +59,10 @@ export function CameraMotionSelector({
 }: CameraMotionSelectorProps) {
   const { t } = useLocale();
 
-  // Row 1: auto, static, push
-  // Row 2: pull, pan_right, pan_left, tilt
+  // 3 rows x 3 columns for consistency
   const row1: CameraMotion[] = ["auto", "static", "push"];
-  const row2: CameraMotion[] = ["pull", "pan_right", "pan_left", "tilt"];
+  const row2: CameraMotion[] = ["pull", "pan_right", "pan_left"];
+  const row3: CameraMotion[] = ["tilt_up", "tilt_down"];
 
   const renderButton = (motion: CameraMotion) => {
     const isSelected = value === motion;
@@ -90,13 +95,17 @@ export function CameraMotionSelector({
         {t("upload.cameraMotion.label")}
       </label>
       <div className="space-y-2">
-        {/* Row 1: 3 items */}
+        {/* Row 1: auto, static, push */}
         <div className="grid grid-cols-3 gap-2">
           {row1.map(renderButton)}
         </div>
-        {/* Row 2: 4 items */}
-        <div className="grid grid-cols-4 gap-2">
+        {/* Row 2: pull, pan_right, pan_left */}
+        <div className="grid grid-cols-3 gap-2">
           {row2.map(renderButton)}
+        </div>
+        {/* Row 3: tilt_up, tilt_down (2 items, centered) */}
+        <div className="grid grid-cols-3 gap-2">
+          {row3.map(renderButton)}
         </div>
       </div>
       <p className="text-xs text-gray-400 text-left">

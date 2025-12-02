@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AnalyzingLoader,
   RefiningLoader,
-  GeneratingScriptLoader,
 } from "@/components/common/AnalyzingLoader";
 import { Header } from "@/components/layout/Header";
 import { UploadPhase } from "@/components/phases/UploadPhase";
@@ -42,13 +41,14 @@ const SuggestionsPhase = dynamic(
   { ssr: false }
 );
 
-const ScriptPreview = dynamic(
-  () =>
-    import("@/components/preview/ScriptPreview").then(
-      (mod) => mod.ScriptPreview
-    ),
-  { ssr: false }
-);
+// ScriptPreview is no longer used - functionality moved to SuggestionsPhase
+// const ScriptPreview = dynamic(
+//   () =>
+//     import("@/components/preview/ScriptPreview").then(
+//       (mod) => mod.ScriptPreview
+//     ),
+//   { ssr: false }
+// );
 
 export default function Home() {
   const { session, startNewSession, resetSession, setPhase, setImages } =
@@ -136,13 +136,14 @@ export default function Home() {
     );
   };
 
-  // Handle finalize
+  // Handle finalize - now triggers video generation directly after script generation
   const handleFinalize = async (selectedId: string, editedSuggestion?: VideoSuggestion) => {
     if (isStaticMode() && !getApiKey("gemini")) {
       apiKeyStatus.openApiKeyModal();
       return;
     }
 
+    // First generate the script
     await analysis.finalize(
       selectedId,
       videoSettings.videoRatio,
@@ -152,19 +153,77 @@ export default function Home() {
       videoSettings.sceneMode,
       videoSettings.motionDynamics,
       videoSettings.qualityBooster,
+      videoSettings.videoDuration,
+      videoSettings.cameraMotion,
       editedSuggestion
     );
+
+    // Note: Video generation will be triggered after script is ready
+    // This is handled in handleGenerateVideoAfterScript
   };
 
-  // Handle script refinement
-  const handleRefineScript = async (adjustment: string) => {
-    if (isStaticMode() && !getApiKey("gemini")) {
-      apiKeyStatus.openApiKeyModal();
+  // Handle video generation after script is ready (called from useEffect)
+  const handleGenerateVideoAfterScript = useCallback(async () => {
+    if (
+      !analysis.generatedScript ||
+      !analysis.selectedSuggestionForScript ||
+      !session
+    )
       return;
-    }
 
-    await analysis.refineCurrentScript(adjustment, locale);
-  };
+    setPhase("generating");
+
+    const success = await videoGeneration.generateVideo(
+      analysis.generatedScript,
+      session.images,
+      videoSettings.videoRatio,
+      videoSettings.videoResolution,
+      videoSettings.imageUsageMode,
+      videoSettings.cameraMotion
+    );
+
+    if (success) {
+      setPhase("completed");
+    } else {
+      // Stay in generating phase but show error in SuggestionsPhase
+      // Don't go back to final-review since we removed that step
+    }
+  }, [
+    analysis.generatedScript,
+    analysis.selectedSuggestionForScript,
+    session,
+    setPhase,
+    videoGeneration,
+    videoSettings.videoRatio,
+    videoSettings.videoResolution,
+    videoSettings.imageUsageMode,
+    videoSettings.cameraMotion,
+  ]);
+
+  // Check if video is currently being generated
+  const isVideoGenerating = videoGeneration.continuousGenState !== null &&
+    videoGeneration.continuousGenState.phase !== "completed" &&
+    videoGeneration.continuousGenState.phase !== "failed";
+
+  // Auto-trigger video generation when script is ready
+  useEffect(() => {
+    if (
+      session?.phase === "final-review" &&
+      analysis.generatedScript &&
+      analysis.selectedSuggestionForScript &&
+      !isVideoGenerating &&
+      !videoGeneration.generatedVideoUrl
+    ) {
+      handleGenerateVideoAfterScript();
+    }
+  }, [
+    session?.phase,
+    analysis.generatedScript,
+    analysis.selectedSuggestionForScript,
+    isVideoGenerating,
+    videoGeneration.generatedVideoUrl,
+    handleGenerateVideoAfterScript,
+  ]);
 
   // Handle video generation
   const handleGenerateVideo = async () => {
@@ -196,19 +255,34 @@ export default function Home() {
   // Handle cancel video generation
   const handleCancelVideoGeneration = () => {
     videoGeneration.cancelGeneration();
-    setPhase("final-review");
+    analysis.backToSuggestions(); // Reset script and go back to suggestions
   };
 
-  // Handle back to review
-  const handleBackToReview = () => {
+  // Handle edit prompts - go back to step 2 to modify the suggestion
+  const handleEditPrompts = () => {
     videoGeneration.resetVideoState();
-    setPhase("final-review");
+    analysis.backToSuggestions(); // Go back to suggestions phase to edit
   };
 
-  // Handle regenerate video
+  // Handle regenerate video - regenerate with same settings
   const handleRegenerateVideo = () => {
     videoGeneration.resetVideoState();
-    handleGenerateVideo();
+    // Keep the script and suggestion, just regenerate the video
+    if (analysis.generatedScript && analysis.selectedSuggestionForScript && session) {
+      setPhase("generating");
+      videoGeneration.generateVideo(
+        analysis.generatedScript,
+        session.images,
+        videoSettings.videoRatio,
+        videoSettings.videoResolution,
+        videoSettings.imageUsageMode,
+        videoSettings.cameraMotion
+      ).then((success) => {
+        if (success) {
+          setPhase("completed");
+        }
+      });
+    }
   };
 
   // Handle extend video
@@ -220,7 +294,7 @@ export default function Home() {
     );
   };
 
-  // Handle start over
+  // Handle start over - completely reset and start fresh
   const handleStartOver = () => {
     videoGeneration.resetVideoState();
     analysis.resetAnalysisState();
@@ -235,21 +309,22 @@ export default function Home() {
   const showUpload = phase === "initial-upload";
   const showAnalyzing = phase === "analyzing";
   const showRefining = phase === "refining";
-  const showGeneratingScript = phase === "generating-script";
-  const showSuggestions = phase === "first-suggestions";
 
-  const showScriptPreview =
-    (phase === "final-review" ||
-      phase === "generating" ||
-      phase === "completed") &&
-    analysis.generatedScript &&
-    analysis.selectedSuggestionForScript;
+  // Show suggestions phase for selecting, generating-script, generating, and completed states
+  // generating-script is now handled within SuggestionsPhase (no separate loader page)
+  const showSuggestions =
+    phase === "first-suggestions" ||
+    phase === "generating-script" ||
+    phase === "final-review" ||
+    phase === "generating" ||
+    phase === "completed";
 
-  const getPreviewPhase = (): "review" | "generating" | "completed" => {
-    if (phase === "completed" && videoGeneration.generatedVideoUrl)
-      return "completed";
-    if (phase === "generating") return "generating";
-    return "review";
+  // Determine generation phase for SuggestionsPhase
+  const getGenerationPhase = (): "selecting" | "generating" | "completed" => {
+    if (phase === "completed" && videoGeneration.generatedVideoUrl) return "completed";
+    // generating-script, final-review, and generating all show the generating UI
+    if (phase === "generating-script" || phase === "generating" || phase === "final-review") return "generating";
+    return "selecting";
   };
 
   // Combine errors
@@ -276,6 +351,8 @@ export default function Home() {
               veoModel={videoSettings.veoModel}
               videoDuration={videoSettings.videoDuration}
               cameraMotion={videoSettings.cameraMotion}
+              motionDynamics={videoSettings.motionDynamics}
+              qualityBooster={videoSettings.qualityBooster}
               isLoading={analysis.isLoading}
               error={displayError}
               onImagesChange={handleImagesChange}
@@ -286,6 +363,8 @@ export default function Home() {
               onVeoModelChange={videoSettings.setVeoModel}
               onVideoDurationChange={videoSettings.setVideoDuration}
               onCameraMotionChange={videoSettings.setCameraMotion}
+              onMotionDynamicsChange={videoSettings.setMotionDynamics}
+              onQualityBoosterChange={videoSettings.setQualityBooster}
               onAnalyze={handleAnalyze}
             />
           )}
@@ -314,79 +393,40 @@ export default function Home() {
             </motion.div>
           )}
 
-          {showGeneratingScript && (
-            <motion.div
-              key="generating-script"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 flex items-center justify-center min-h-[400px]"
-            >
-              <GeneratingScriptLoader />
-            </motion.div>
-          )}
-
           {showSuggestions && session?.currentSuggestions && (
             <SuggestionsPhase
-              images={session.images}
-              description={session.description}
               currentSuggestions={session.currentSuggestions}
               iterations={session.iterations}
-              imageAnalysis={session.imageAnalysis}
-              recommendedSettings={session.recommendedSettings}
-              consistencyMode={videoSettings.consistencyMode}
-              motionDynamics={videoSettings.motionDynamics}
-              qualityBooster={videoSettings.qualityBooster}
               cameraMotion={videoSettings.cameraMotion}
-              videoRatio={videoSettings.videoRatio}
+              qualityBooster={videoSettings.qualityBooster}
               isLoading={analysis.isLoading}
-              onConsistencyChange={videoSettings.setConsistencyMode}
-              onMotionDynamicsChange={videoSettings.setMotionDynamics}
-              onQualityBoosterChange={videoSettings.setQualityBooster}
+              images={session.images}
+              videoRatio={videoSettings.videoRatio}
               onRefine={handleRefine}
               onFinalize={handleFinalize}
+              // New props for integrated generation
+              generationPhase={getGenerationPhase()}
+              continuousGenState={videoGeneration.continuousGenState || undefined}
+              provider={videoGeneration.videoProvider}
+              videoUrl={videoGeneration.generatedVideoUrl || undefined}
+              sourceVideoUri={videoGeneration.sourceVideoUri || undefined}
+              generatedScript={analysis.generatedScript || undefined}
+              selectedSuggestion={analysis.selectedSuggestionForScript || undefined}
+              consistencyMode={videoSettings.consistencyMode}
+              motionDynamics={videoSettings.motionDynamics}
+              onCancelGeneration={handleCancelVideoGeneration}
+              onExtendVideo={handleExtendVideo}
+              canExtend={
+                videoGeneration.videoProvider.startsWith("Google Veo") &&
+                !!videoGeneration.sourceVideoUri
+              }
+              isExtending={videoGeneration.isExtendingVideo}
+              onStartOver={handleRegenerateVideo}
+              onRegenerate={handleEditPrompts}
             />
           )}
 
-          {showScriptPreview && (
-            <motion.div
-              key="script-preview"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <ScriptPreview
-                script={analysis.generatedScript!}
-                suggestion={analysis.selectedSuggestionForScript!}
-                onBack={analysis.backToSuggestions}
-                onGenerate={handleGenerateVideo}
-                onRefineScript={handleRefineScript}
-                isRefining={analysis.isRefiningScript}
-                phase={getPreviewPhase()}
-                videoRatio={videoSettings.videoRatio}
-                consistencyMode={videoSettings.consistencyMode}
-                motionDynamics={videoSettings.motionDynamics}
-                qualityBooster={videoSettings.qualityBooster}
-                continuousGenState={
-                  videoGeneration.continuousGenState || undefined
-                }
-                provider={videoGeneration.videoProvider}
-                onCancelGeneration={handleCancelVideoGeneration}
-                videoUrl={videoGeneration.generatedVideoUrl || undefined}
-                sourceVideoUri={videoGeneration.sourceVideoUri || undefined}
-                onExtendVideo={handleExtendVideo}
-                canExtend={
-                  videoGeneration.videoProvider.startsWith("Google Veo") &&
-                  !!videoGeneration.sourceVideoUri
-                }
-                isExtending={videoGeneration.isExtendingVideo}
-                onDownload={() => {}}
-                onStartOver={handleStartOver}
-                onBackToReview={handleBackToReview}
-                onRegenerate={handleRegenerateVideo}
-              />
-            </motion.div>
-          )}
+          {/* ScriptPreview removed - functionality now integrated into SuggestionsPhase */}
         </AnimatePresence>
       </main>
 

@@ -8,6 +8,8 @@ import { ImageUsageSelector } from "@/components/upload/ImageUsageSelector";
 import { VeoModelSelector } from "@/components/upload/VeoModelSelector";
 import { DurationSelector } from "@/components/upload/DurationSelector";
 import { CameraMotionSelector } from "@/components/upload/CameraMotionSelector";
+import { MotionDynamicsSelector } from "@/components/upload/MotionDynamicsSelector";
+import { QualityBoosterSelector } from "@/components/upload/QualityBoosterSelector";
 import { PriceEstimate } from "@/components/upload/PriceEstimate";
 import { PlatformTipsCard } from "@/components/upload/PlatformTipsCard";
 import { useLocale } from "@/contexts/LocaleContext";
@@ -19,6 +21,8 @@ import type {
   VeoModel,
   VideoDuration,
   CameraMotion,
+  MotionDynamics,
+  QualityBooster,
 } from "@/types";
 
 interface UploadPhaseProps {
@@ -30,6 +34,8 @@ interface UploadPhaseProps {
   veoModel: VeoModel;
   videoDuration: VideoDuration;
   cameraMotion: CameraMotion;
+  motionDynamics: MotionDynamics;
+  qualityBooster: QualityBooster;
   isLoading: boolean;
   error: string | null;
   onImagesChange: (images: UploadedImage[]) => void;
@@ -40,6 +46,8 @@ interface UploadPhaseProps {
   onVeoModelChange: (model: VeoModel) => void;
   onVideoDurationChange: (duration: VideoDuration) => void;
   onCameraMotionChange: (motion: CameraMotion) => void;
+  onMotionDynamicsChange: (dynamics: MotionDynamics) => void;
+  onQualityBoosterChange: (booster: QualityBooster) => void;
   onAnalyze: () => void;
 }
 
@@ -52,6 +60,8 @@ export function UploadPhase({
   veoModel,
   videoDuration,
   cameraMotion,
+  motionDynamics,
+  qualityBooster,
   isLoading,
   error,
   onImagesChange,
@@ -62,6 +72,8 @@ export function UploadPhase({
   onVeoModelChange,
   onVideoDurationChange,
   onCameraMotionChange,
+  onMotionDynamicsChange,
+  onQualityBoosterChange,
   onAnalyze,
 }: UploadPhaseProps) {
   const { t } = useLocale();
@@ -85,12 +97,9 @@ export function UploadPhase({
       </p>
 
       {/* Main Content - Two Columns on desktop, single column on mobile */}
-      <div
-        className="w-full container mx-auto px-4 lg:px-6 gap-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500"
-        style={{ display: "flex", flexDirection: "row" }}
-      >
-        {/* Left Panel: Settings - 固定寬度 */}
-        <div className="w-[40%] shrink-0 flex flex-col gap-4">
+      <div className="upload-layout w-full container mx-auto px-4 lg:px-6 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Left Panel: Settings */}
+        <div className="upload-settings flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="block text-base font-bold text-gray-400 uppercase tracking-wider text-center md:text-left">
               {t("upload.description.label")}
@@ -147,7 +156,29 @@ export function UploadPhase({
           {/* 6. Camera Motion */}
           <CameraMotionSelector
             value={cameraMotion}
-            onChange={onCameraMotionChange}
+            onChange={(motion) => {
+              onCameraMotionChange(motion);
+              // When camera is static, force motion dynamics to subtle
+              if (motion === "static") {
+                onMotionDynamicsChange("subtle");
+              }
+            }}
+            disabled={isLoading}
+          />
+
+          {/* 7. Motion Dynamics - hidden when camera is static */}
+          {cameraMotion !== "static" && (
+            <MotionDynamicsSelector
+              value={motionDynamics}
+              onChange={onMotionDynamicsChange}
+              disabled={isLoading}
+            />
+          )}
+
+          {/* 8. Quality Booster */}
+          <QualityBoosterSelector
+            value={qualityBooster}
+            onChange={onQualityBoosterChange}
             disabled={isLoading}
           />
 
@@ -215,16 +246,16 @@ export function UploadPhase({
 
         {/* Right Panel: Preview - sticky */}
         <div
-          className={`flex-1 relative ${imageUsageMode === "none" ? "opacity-50" : ""}`}
+          className={`upload-preview relative ${imageUsageMode === "none" ? "opacity-50" : ""}`}
         >
           <div className="lg:sticky lg:top-24">
             <div
-              className={`relative shadow-2xl rounded-2xl overflow-hidden border border-white/10 bg-[#15151a] ${
+              className={`upload-preview-inner relative shadow-2xl rounded-2xl overflow-hidden border border-white/10 bg-[#15151a] ${
                 videoRatio === "9:16"
-                  ? "h-[75vh] aspect-[9/16] mx-auto"
+                  ? "aspect-[9/16] lg:h-[75vh]"
                   : videoRatio === "1:1"
-                    ? "w-full aspect-square"
-                    : "w-full aspect-video"
+                    ? "aspect-square"
+                    : "aspect-video"
               }`}
             >
               <ImageUploader

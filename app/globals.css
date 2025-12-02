@@ -197,3 +197,49 @@ h1, h2, h3, .serif {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* UploadPhase RWD - Mobile First */
+.upload-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.upload-layout .upload-settings {
+  width: 100%;
+  order: 2;
+}
+
+.upload-layout .upload-preview {
+  width: 100%;
+  order: 1;
+}
+
+.upload-layout .upload-preview-inner {
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Desktop: lg breakpoint (1024px+) */
+@media (min-width: 1024px) {
+  .upload-layout {
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .upload-layout .upload-settings {
+    width: 40%;
+    flex-shrink: 0;
+    order: 1;
+  }
+
+  .upload-layout .upload-preview {
+    flex: 1;
+    order: 2;
+  }
+
+  .upload-layout .upload-preview-inner {
+    max-width: none;
+  }
+}

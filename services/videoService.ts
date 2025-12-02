@@ -1,4 +1,4 @@
-import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster } from "@/types";
+import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
 
 const isStaticBuild = process.env.NEXT_PUBLIC_BUILD_MODE === "static";
 
@@ -84,17 +84,19 @@ export async function generateScript(
   consistencyMode: ConsistencyMode = "none",
   sceneMode: SceneMode = "auto",
   motionDynamics: MotionDynamics = "moderate",
-  qualityBooster: QualityBooster = "none"
+  qualityBooster: QualityBooster = "none",
+  videoDuration: VideoDuration = 4,
+  cameraMotion: CameraMotion = "auto"
 ): Promise<ScriptResponse> {
   if (isStaticBuild) {
     const { generateScriptClient } = await import("./videoClient");
     if (!apiKey) {
       throw new Error("API key is required for static build");
     }
-    return generateScriptClient(images, suggestion, ratio, apiKey, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+    return generateScriptClient(images, suggestion, ratio, apiKey, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
   } else {
     const { generateScriptAction } = await import("@/app/actions/server/script");
-    return generateScriptAction(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster);
+    return generateScriptAction(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
   }
 }
 

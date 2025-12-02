@@ -10,6 +10,11 @@ interface QualityBoosterSelectorProps {
 }
 
 const icons: Record<QualityBooster, React.ReactNode> = {
+  auto: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
   none: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -54,37 +59,53 @@ export function QualityBoosterSelector({
 }: QualityBoosterSelectorProps) {
   const { t } = useLocale();
 
-  const boosters: QualityBooster[] = ["none", "commercial", "cinematic", "luxury", "editorial", "documentary", "artistic"];
+  // 3 columns layout for consistency
+  const row1: QualityBooster[] = ["auto", "none", "commercial"];
+  const row2: QualityBooster[] = ["cinematic", "luxury", "editorial"];
+  const row3: QualityBooster[] = ["documentary", "artistic"];
+
+  const renderButton = (booster: QualityBooster) => {
+    const isSelected = value === booster;
+    const isAuto = booster === "auto";
+
+    return (
+      <button
+        key={booster}
+        type="button"
+        onClick={() => onChange(booster)}
+        disabled={disabled}
+        className={`p-2 rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-1 min-h-[60px] ${
+          isSelected
+            ? isAuto
+              ? "glass-card selection-glow border-purple-500/60 text-purple-400"
+              : "glass-card selection-glow border-blue-500/60 text-blue-400"
+            : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        title={t(`upload.qualityBooster.${booster}.description`)}
+      >
+        {icons[booster]}
+        <span className="text-[10px] font-medium text-center leading-tight">{t(`upload.qualityBooster.${booster}.name`)}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-300 text-left">
         {t("upload.qualityBooster.label")}
       </label>
-      <div className="grid grid-cols-4 gap-2">
-        {boosters.map((booster) => {
-          const isSelected = value === booster;
-
-          return (
-            <button
-              key={booster}
-              type="button"
-              onClick={() => onChange(booster)}
-              disabled={disabled}
-              className={`p-2 rounded-xl border transition-all flex flex-col items-center justify-center gap-1 min-h-[70px] ${
-                isSelected
-                  ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
-                  : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5"
-              } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-              title={t(`upload.qualityBooster.${booster}.description`)}
-            >
-              {icons[booster]}
-              <span className="text-[10px] font-medium text-center leading-tight">{t(`upload.qualityBooster.${booster}.name`)}</span>
-            </button>
-          );
-        })}
+      <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-2">
+          {row1.map(renderButton)}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {row2.map(renderButton)}
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {row3.map(renderButton)}
+        </div>
       </div>
-      {value !== "none" && (
+      {value !== "none" && value !== "auto" && (
         <p className="text-xs text-gray-400 text-left">
           {t(`upload.qualityBooster.${value}.hint`)}
         </p>

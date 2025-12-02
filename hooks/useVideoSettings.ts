@@ -50,9 +50,9 @@ const DEFAULT_SETTINGS: VideoSettings = {
   consistencyMode: "none",
   sceneMode: "auto",
   motionDynamics: "moderate",
-  qualityBooster: "none",
+  qualityBooster: "auto",
   veoModel: "fast",
-  videoDuration: 6,
+  videoDuration: 4,
   cameraMotion: "auto",
 };
 

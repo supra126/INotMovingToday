@@ -275,6 +275,10 @@
     },
     "qualityBooster": {
       "label": "品質增強",
+      "auto": {
+        "name": "智慧",
+        "description": "AI 自動選擇最佳品質增強"
+      },
       "none": {
         "name": "標準",
         "description": "不使用額外品質增強"
@@ -372,10 +376,15 @@
         "description": "從右到左水平移動",
         "hint": "鏡頭從右到左水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向左。"
       },
-      "tilt": {
-        "name": "傾斜",
-        "description": "垂直移動鏡頭",
-        "hint": "鏡頭會從上到下或從下到上緩緩移動。適合展示高聳的物件或人物全身。"
+      "tilt_up": {
+        "name": "由下往上",
+        "description": "鏡頭向上傾斜",
+        "hint": "鏡頭從下往上緩緩移動。適合展示高聳的物件、建築，或從腳到頭的人物全身展示。"
+      },
+      "tilt_down": {
+        "name": "由上往下",
+        "description": "鏡頭向下傾斜",
+        "hint": "鏡頭從上往下緩緩移動。適合俯瞰場景、從頭到腳的人物展示，或營造揭示效果。"
       }
     },
     "priceEstimate": {
@@ -393,8 +402,8 @@
       "description": "（根據你的回饋調整方向中）"
     },
     "generatingScript": {
-      "title": "小GG 正在編寫劇本",
-      "description": "（努力把創意變成文字中）"
+      "title": "小GG 正在努力的路上",
+      "description": "（你不要努力了，我努力）"
     }
   },
   "analysis": {
@@ -425,17 +434,21 @@
       "hook": "開場吸睛點",
       "mainContent": "主要內容",
       "cta": "行動呼籲",
+      "title": "大標題",
+      "postContent": "發文內容",
+      "hashtag": "Hashtag",
       "duration": "時長",
       "platform": "平台",
       "music": "配樂風格"
     },
     "visualDirection": "視覺方向",
     "subjectAction": "主體與動作",
-    "environment": "環境與背景",
+    "environment": "環境一致性",
     "cameraStyle": "運鏡風格",
+    "cameraMotion": "運鏡效果",
     "lighting": "光影氛圍",
     "videoQuality": "影片質感",
-    "transitionStyle": "轉場風格",
+    "qualityBooster": "品質增強",
     "suggestedMusic": "建議音樂",
     "addAdjustments": "新增調整",
     "refineMore": "繼續調整",
@@ -510,8 +523,8 @@
     "extendPlaceholder": "例如：鏡頭緩緩拉遠，展現完整的風景...",
     "extendButton": "延展影片",
     "editScript": "修改劇本",
-    "regenerate": "重新生成",
-    "createNew": "建立新影片",
+    "regenerate": "重新修改提詞",
+    "createNew": "重新生成",
     "retryGeneration": "重新嘗試"
   },
   "errors": {

@@ -30,11 +30,11 @@ export function SuggestionCard({
     <motion.button
       onClick={onSelect}
       disabled={disabled}
-      whileHover={{ scale: disabled ? 1 : 1.02 }}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
+      whileHover={{ scale: disabled ? 1 : 1.01 }}
+      whileTap={{ scale: disabled ? 1 : 0.99 }}
       className={`
-        w-full text-left p-5 rounded-2xl border-2 transition-all duration-200
-        bg-gradient-to-br ${cardColors[index]}
+        w-full text-left p-4 rounded-xl border-2 transition-all duration-200
+        bg-gradient-to-r ${cardColors[index]}
         ${
           isSelected
             ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-black"
@@ -43,48 +43,19 @@ export function SuggestionCard({
         ${disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-opacity-60"}
       `}
     >
-      {/* Header */}
-      <div className="mb-3">
-        <span
-          className={`text-xs font-medium uppercase tracking-wider ${iconColors[index]}`}
-        >
-          {cardLabels[index]}
-        </span>
-        <h3 className="text-lg font-bold text-white mt-1">
-          {suggestion.title}
-        </h3>
-      </div>
-
-      {/* Concept */}
-      <p className="text-gray-300 text-sm mb-4 line-clamp-3">
-        {suggestion.concept}
-      </p>
-
-      {/* Tags */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className="bg-black/30 rounded-full px-3 py-1 text-white">
-          {suggestion.estimatedDuration}s
-        </span>
-        <span className="bg-black/30 rounded-full px-3 py-1 text-white capitalize">
-          {suggestion.style.replace("-", " ")}
-        </span>
-        <span className="bg-black/30 rounded-full px-3 py-1 text-gray-400">
-          {suggestion.targetPlatform}
-        </span>
-      </div>
-
-      {/* Selection Indicator */}
-      <div className="mt-4 flex items-center justify-center">
+      {/* Horizontal Layout */}
+      <div className="flex items-center gap-4">
+        {/* Selection Indicator - Left */}
         <div
           className={`
-            w-6 h-6 rounded-full border-2 flex items-center justify-center
+            w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center
             transition-colors duration-200
             ${isSelected ? "bg-blue-500 border-blue-500" : "border-gray-600"}
           `}
         >
           {isSelected && (
             <svg
-              className="w-4 h-4 text-white"
+              className="w-3 h-3 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -92,12 +63,37 @@ export function SuggestionCard({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={3}
                 d="M5 13l4 4L19 7"
               />
             </svg>
           )}
         </div>
+
+        {/* Content - Middle */}
+        <div className="flex-1 min-w-0">
+          {/* Header Row */}
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-wider ${iconColors[index]}`}
+            >
+              {cardLabels[index]}
+            </span>
+            <h3 className="text-base font-bold text-white truncate">
+              {suggestion.title}
+            </h3>
+          </div>
+
+          {/* Concept */}
+          <p className="text-gray-400 text-xs line-clamp-2">
+            {suggestion.concept}
+          </p>
+        </div>
+
+        {/* Platform Tag - Right */}
+        <span className="bg-black/40 rounded-full px-3 py-1 text-gray-300 text-xs flex-shrink-0">
+          {suggestion.targetPlatform}
+        </span>
       </div>
     </motion.button>
   );
