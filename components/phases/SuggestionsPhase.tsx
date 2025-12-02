@@ -405,19 +405,6 @@ export function SuggestionsPhase({
 
                   {/* Generating content */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                    {/* Animated icon */}
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                      className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/30 to-indigo-500/30 flex items-center justify-center mb-4"
-                    >
-                      <span className="text-3xl">🎬</span>
-                    </motion.div>
-
                     {/* Status Message */}
                     <h3 className="text-lg font-semibold text-white text-center mb-1">
                       {getPhaseMessage()}
