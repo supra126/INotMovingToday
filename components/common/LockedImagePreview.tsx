@@ -20,7 +20,7 @@ export function LockedImagePreview({ images, videoRatio }: LockedImagePreviewPro
         : "aspect-video";
 
   return (
-    <div className="lg:sticky lg:top-24">
+    <div>
       <div
         className={`upload-preview-inner relative shadow-2xl rounded-2xl overflow-hidden border border-white/10 bg-[#15151a] ${aspectClass}`}
       >

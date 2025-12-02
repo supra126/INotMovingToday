@@ -129,19 +129,30 @@ export const INITIAL_ANALYSIS_PROMPT = `
 你是一位專業的影片內容策劃師，擅長製作各種平台的爆款內容。
 
 ## 任務
-分析用戶提供的圖片和描述，提出 3 種不同方向的影片創意建議。
+深入分析用戶提供的圖片，提出 3 種 **完全獨特** 的影片創意方向，這些方向必須自然地從圖片的獨特特徵中產生。
 
 ## 輸入
 - 圖片：{imageCount} 張
 - 用戶描述：{userDescription}
 - 影片比例：{videoRatio}
 - 目標平台：{platformDescription}
+- 請求編號：{requestId}
+
+## 關鍵分析要求
+在生成建議之前，你必須深入分析：
+1. **獨特視覺元素**：這張圖片有什麼與眾不同之處？（獨特的顏色、質感、形狀、構圖、意外細節）
+2. **隱藏故事**：只有這張圖片才能講述的敘事可能性？
+3. **情感共鳴**：這張圖片具體喚起什麼感受？
+4. **文化/趨勢連結**：當前哪些趨勢或文化現象與這張圖片的特定元素有關聯？
 
 ## 輸出要求
-提供 3 種 **差異化明顯** 的影片方向：
-1. **安全牌**：最直覺、最符合用戶描述的方向
-2. **創意牌**：有創意轉折或意外角度的方向
-3. **爆款牌**：參考當前平台熱門趨勢的方向
+提供 3 種 **完全不同** 的影片方向。每個方向必須：
+- 專門受到這張圖片中發現的獨特元素啟發（不是通用模板）
+- 探索不同的情感調性（例如：一個活潑、一個戲劇性、一個親密感）
+- 使用不同的視覺敘事手法（例如：一個產品聚焦、一個生活風格、一個抽象/藝術）
+- 針對不同的受眾心理
+
+**避免使用「產品展示」或「生活風格影片」等通用方向 - 要針對你看到的內容具體描述。**
 
 每個方向需包含：
 - title: 簡短吸睛的標題（5-10字）
@@ -246,19 +257,30 @@ export const INITIAL_ANALYSIS_PROMPT_EN = `
 You are a professional video content strategist, expert in creating viral content for various platforms.
 
 ## Task
-Analyze the user's provided images and description, then propose 3 different video creative directions.
+Analyze the user's provided images deeply, then propose 3 **COMPLETELY UNIQUE** video creative directions that emerge organically from the image's specific characteristics.
 
 ## Input
 - Images: {imageCount}
 - User description: {userDescription}
 - Video ratio: {videoRatio}
 - Target platforms: {platformDescription}
+- Request ID: {requestId}
+
+## Critical Analysis Requirements
+Before generating suggestions, you MUST deeply analyze:
+1. **Unique Visual Elements**: What makes THIS specific image different? (unique colors, textures, shapes, compositions, unexpected details)
+2. **Hidden Stories**: What narrative possibilities exist ONLY for this image?
+3. **Emotional Resonance**: What specific feelings does THIS image evoke?
+4. **Cultural/Trend Connections**: What current trends or cultural moments connect to THIS image's specific elements?
 
 ## Output Requirements
-Provide 3 **distinctly different** video directions:
-1. **Safe Choice**: Most intuitive, closely matching the user's description
-2. **Creative Choice**: Unexpected angle or creative twist
-3. **Viral Choice**: Following current platform trends
+Provide 3 **COMPLETELY DIFFERENT** video directions. Each direction must:
+- Be SPECIFICALLY inspired by unique elements found in THIS image (not generic templates)
+- Explore a DIFFERENT emotional tone (e.g., one playful, one dramatic, one intimate)
+- Use DIFFERENT visual storytelling approaches (e.g., one product-focused, one lifestyle, one abstract/artistic)
+- Target DIFFERENT audience mindsets
+
+**AVOID generic directions like "product showcase" or "lifestyle video" - be SPECIFIC to what you see.**
 
 Each direction must include:
 - title: Short catchy title (5-10 words)
@@ -984,6 +1006,9 @@ export function buildInitialPrompt(
   const template = getInitialAnalysisPrompt(locale);
   const platformInfo = getPlatformInfoByRatio(ratio, locale);
 
+  // Generate unique request ID to encourage varied responses
+  const requestId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+
   // Add platform best practices to the prompt
   const platformBestPracticesSection = locale === "en"
     ? `\n\n## Platform Best Practices\n${platformInfo.bestPractices}\nApply these principles when designing the hook and pacing for each suggestion.`
@@ -994,7 +1019,8 @@ export function buildInitialPrompt(
     .replace("{userDescription}", description)
     .replace("{videoRatio}", ratio)
     .replace("{platformDescription}", platformInfo.description + platformBestPracticesSection)
-    .replace("{platformOptions}", platformInfo.options);
+    .replace("{platformOptions}", platformInfo.options)
+    .replace("{requestId}", requestId);
 }
 
 export function buildRefinementPrompt(
@@ -1180,18 +1206,50 @@ export function getConsistencyPromptSection(
 
   const instructions: Record<Exclude<ConsistencyMode, "none">, { zh: string; en: string }> = {
     product: {
-      zh: `## 視覺一致性要求
-用戶強調「產品一致性」：
-- 所有場景中的產品必須保持完全一致的外觀
-- 產品的顏色、形狀、比例、紋理、品牌元素不可改變
-- 在 visualPrompt 中明確強調產品特徵的一致性
-- 即使運鏡或光影變化，產品本身的視覺特徵必須保持不變`,
-      en: `## Visual Consistency Requirements
-User emphasizes "Product Consistency":
-- Product must maintain identical appearance across all scenes
-- Product color, shape, proportions, texture, brand elements must NOT change
-- Explicitly emphasize product feature consistency in visualPrompt
-- Even with camera or lighting changes, product visual features must remain constant`,
+      zh: `## 視覺一致性要求（產品一致性 - 最高優先級）
+用戶強調「產品一致性」，這是最重要的要求：
+
+### 必須在每個 visualPrompt 開頭加入：
+"the same [詳細產品描述] from the reference image, maintaining exact colors, shape, proportions, and all visual details"
+
+### 產品描述模板（根據參考圖片填入）：
+- 顏色：exact [color] color as shown in reference
+- 形狀：identical [shape] shape, same proportions
+- 材質：same [material] texture and finish
+- 細節：all original details preserved, no modifications
+
+### 強制規則：
+1. 每個場景都必須明確提及「the same product from reference image」
+2. 禁止使用模糊描述如「similar product」或「a product」
+3. 如果有手拿產品的動作，必須強調「hand holding the exact same [product] from reference, product unchanged」
+4. 產品不可有任何變形、顏色偏移、或比例改變
+
+### Veo 最佳實踐：
+- 使用 "identical", "exact same", "unchanged" 等強調詞
+- 在每個場景重複產品的關鍵視覺特徵
+- 避免任何可能導致產品變化的描述（如 transform, change, modify）`,
+      en: `## Visual Consistency Requirements (Product Consistency - HIGHEST PRIORITY)
+User emphasizes "Product Consistency" - this is the most important requirement:
+
+### MUST add at the beginning of each visualPrompt:
+"the same [detailed product description] from the reference image, maintaining exact colors, shape, proportions, and all visual details"
+
+### Product Description Template (fill in based on reference image):
+- Color: exact [color] color as shown in reference
+- Shape: identical [shape] shape, same proportions
+- Material: same [material] texture and finish
+- Details: all original details preserved, no modifications
+
+### Mandatory Rules:
+1. Every scene MUST explicitly mention "the same product from reference image"
+2. NEVER use vague descriptions like "similar product" or "a product"
+3. For hand interactions, MUST emphasize "hand holding the exact same [product] from reference, product unchanged"
+4. Product must NOT have any deformation, color shift, or proportion changes
+
+### Veo Best Practices:
+- Use emphasis words: "identical", "exact same", "unchanged"
+- Repeat key visual features of product in each scene
+- Avoid any descriptions that could cause product changes (transform, change, modify)`,
     },
     character: {
       zh: `## 視覺一致性要求
