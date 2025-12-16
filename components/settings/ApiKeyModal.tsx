@@ -126,7 +126,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
           >
             {t("apiKeyModal.geminiKey.label")}
             {serverHasKey ? (
-              <span className="text-gray-500 ml-1 text-xs">{t("apiKeyModal.geminiKey.optional")}</span>
+              <span className="text-gray-400 ml-1 text-xs">{t("apiKeyModal.geminiKey.optional")}</span>
             ) : (
               <span className="text-red-400 ml-1">{t("apiKeyModal.geminiKey.required")}</span>
             )}
@@ -168,10 +168,10 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
               onChange={(e) => setRunwayKey(e.target.value)}
               placeholder={t("apiKeyModal.runwayKey.placeholder")}
               disabled
-              className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-500 placeholder-gray-600 cursor-not-allowed pr-12 font-mono text-sm"
+              className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-gray-400 placeholder-gray-600 cursor-not-allowed pr-12 font-mono text-sm"
             />
           </div>
-          <span className="text-gray-500 text-xs mt-1 inline-block">
+          <span className="text-gray-400 text-xs mt-1 inline-block">
             {t("apiKeyModal.runwayKey.comingSoonHint")}
           </span>
         </div>
@@ -179,7 +179,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
         {/* Show/Hide Keys Toggle */}
         <button
           onClick={() => setShowKeys(!showKeys)}
-          className="text-gray-500 text-sm hover:text-gray-400 flex items-center gap-2"
+          className="text-gray-400 text-sm hover:text-gray-400 flex items-center gap-2"
         >
           <svg
             className="w-4 h-4"

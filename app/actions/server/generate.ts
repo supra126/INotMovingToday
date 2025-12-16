@@ -10,6 +10,12 @@ export interface GenerateVideoParams {
   ratio: VideoRatio;
   resolution?: VideoResolution;
   referenceImageBase64?: string;
+  /** First frame image (base64) - for single_image and frames_to_video modes */
+  firstFrameImage?: string;
+  /** Last frame image (base64) - for frames_to_video mode */
+  lastFrameImage?: string;
+  /** Reference images (base64 array) - for references mode */
+  referenceImages?: string[];
   provider?: VideoProviderType;
 }
 
@@ -81,9 +87,10 @@ export async function generateVideoAction(
     duration: validatedParams.duration,
     ratio: validatedParams.ratio,
     resolution: validatedParams.resolution,
-    referenceImages: params.referenceImageBase64
-      ? [params.referenceImageBase64]
-      : undefined,
+    // New image parameters for different modes
+    firstFrameImage: params.firstFrameImage ?? params.referenceImageBase64,
+    lastFrameImage: params.lastFrameImage,
+    referenceImages: params.referenceImages ?? (params.referenceImageBase64 ? [params.referenceImageBase64] : undefined),
   });
 
   return {
