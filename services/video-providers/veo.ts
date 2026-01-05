@@ -100,13 +100,129 @@ const operationStore = new Map<
     apiKey: string;
     startTime: number;
     videoUrl?: string;
-    /** Original Veo URI for video extension (before conversion to data URL) */
+    /** Blob URL for the video (needs to be revoked on cleanup) */
+    videoBlobUrl?: string;
+    /** Original Veo URI for video extension (before conversion to Blob URL) */
     sourceVideoUri?: string;
     ratio?: string;
     /** Seed used for generation (for consistency in extensions) */
     seed?: number;
+    /** Timestamp when job completed (for TTL cleanup) */
+    completedAt?: number;
   }
 >();
+
+// Cleanup configuration
+const OPERATION_TTL_MS = 30 * 60 * 1000; // 30 minutes TTL for completed operations
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Run cleanup every 5 minutes
+
+/**
+ * Revoke a Blob URL to free memory
+ * Safe to call with undefined or non-blob URLs
+ */
+function revokeBlobUrl(url: string | undefined): void {
+  if (url && url.startsWith("blob:")) {
+    try {
+      URL.revokeObjectURL(url);
+      logger.debug(`Revoked Blob URL: ${url.substring(0, 50)}...`);
+    } catch {
+      // Ignore errors - URL may already be revoked
+    }
+  }
+}
+
+/**
+ * Cleanup expired operations from the store to prevent memory leaks
+ * Removes operations that have been completed for more than TTL
+ * Also revokes Blob URLs to free memory
+ */
+function cleanupExpiredOperations(): void {
+  const now = Date.now();
+  const expiredJobIds: string[] = [];
+
+  for (const [jobId, operation] of operationStore.entries()) {
+    // Remove completed operations older than TTL
+    if (operation.completedAt && now - operation.completedAt > OPERATION_TTL_MS) {
+      expiredJobIds.push(jobId);
+    }
+    // Also remove very old incomplete operations (stuck jobs) - 1 hour
+    else if (!operation.completedAt && now - operation.startTime > 60 * 60 * 1000) {
+      expiredJobIds.push(jobId);
+    }
+  }
+
+  for (const jobId of expiredJobIds) {
+    const operation = operationStore.get(jobId);
+    if (operation) {
+      // Revoke Blob URL to free memory
+      revokeBlobUrl(operation.videoBlobUrl);
+    }
+    operationStore.delete(jobId);
+    logger.debug(`Cleaned up expired operation: ${jobId}`);
+  }
+
+  if (expiredJobIds.length > 0) {
+    logger.info(`Cleaned up ${expiredJobIds.length} expired operations. Active: ${operationStore.size}`);
+  }
+}
+
+// Store interval ID for cleanup
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Start periodic cleanup timer (only in browser environment)
+ * Safe to call multiple times - will not create duplicate timers
+ */
+function startCleanupTimer(): void {
+  if (typeof window !== "undefined" && !cleanupIntervalId) {
+    cleanupIntervalId = setInterval(cleanupExpiredOperations, CLEANUP_INTERVAL_MS);
+    logger.debug("Started operation cleanup timer");
+  }
+}
+
+/**
+ * Stop the periodic cleanup timer and clean up all operations
+ * Call this when the module is being unloaded or app is shutting down
+ */
+export function stopCleanupTimer(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+    logger.debug("Stopped operation cleanup timer");
+  }
+
+  // Clean up all remaining operations and revoke Blob URLs
+  for (const [jobId, operation] of operationStore.entries()) {
+    revokeBlobUrl(operation.videoBlobUrl);
+    logger.debug(`Cleaned up operation on shutdown: ${jobId}`);
+  }
+  operationStore.clear();
+}
+
+// Auto-start cleanup timer in browser environment
+startCleanupTimer();
+
+/**
+ * Manually cleanup a specific job from the store
+ * Call this when you're done with a video and want to free memory immediately
+ * Also revokes Blob URLs to free memory
+ */
+export function cleanupVideoJob(jobId: string): void {
+  const operation = operationStore.get(jobId);
+  if (operation) {
+    // Revoke Blob URL to free memory
+    revokeBlobUrl(operation.videoBlobUrl);
+    operationStore.delete(jobId);
+    logger.debug(`Manually cleaned up job: ${jobId}`);
+  }
+}
+
+/**
+ * Get current operation store size (for debugging/monitoring)
+ */
+export function getOperationStoreSize(): number {
+  return operationStore.size;
+}
 
 /**
  * Generate a random seed if not provided
@@ -130,8 +246,8 @@ export class VeoProvider implements VideoGenerationProvider {
     return {
       name: this.name,
       maxDuration: 8, // Veo 3.1 supports up to 8 seconds per generation
-      supportedRatios: ["9:16", "16:9"],
-      supportsReferenceImage: true,
+      supportedRatios: ["9:16", "16:9"], // Veo only supports these two ratios
+      supportsReferenceImage: true, // Note: image-to-video only supports 16:9
       supportsTextOverlay: false,
       supportsExtension: true, // Veo supports video extension
       maxExtendedDuration: 148, // Maximum total duration with extensions
@@ -160,6 +276,23 @@ export class VeoProvider implements VideoGenerationProvider {
       seed: seed,
     });
 
+    // Determine if using reference images mode (the only mode that doesn't support 9:16)
+    const isReferencesMode = params.referenceImages && params.referenceImages.length > 0 &&
+      !params.firstFrameImage && !params.lastFrameImage;
+
+    // Determine aspect ratio
+    // IMPORTANT: Only "references" mode doesn't support 9:16
+    // - text-to-video: supports 9:16 and 16:9
+    // - single image-to-video: supports 9:16 and 16:9
+    // - first+last frame: supports 9:16 and 16:9
+    // - reference images: only supports 16:9
+    let effectiveRatio: "9:16" | "16:9" = params.ratio === "9:16" ? "9:16" : "16:9";
+
+    if (isReferencesMode && params.ratio === "9:16") {
+      logger.warn("Reference images mode only supports 16:9, forcing ratio change from 9:16 to 16:9");
+      effectiveRatio = "16:9";
+    }
+
     // Build request body using the correct Veo API format
     // Reference: https://ai.google.dev/gemini-api/docs/video
     const requestBody: Record<string, unknown> = {
@@ -169,10 +302,14 @@ export class VeoProvider implements VideoGenerationProvider {
         },
       ],
       parameters: {
-        aspectRatio: params.ratio === "9:16" ? "9:16" : "16:9",
+        aspectRatio: effectiveRatio,
         durationSeconds: duration,
         resolution: params.resolution || "720p",
         seed: seed, // Add seed for reproducibility
+        // Safety settings - allow adult content generation
+        // Note: "allow_all" requires Google allowlist approval, so we use "allow_adult"
+        // Text-to-video theoretically supports "allow_all" but requires special approval
+        personGeneration: "allow_adult",
       },
     };
 
@@ -303,9 +440,25 @@ export class VeoProvider implements VideoGenerationProvider {
 
       if (data.done) {
         if (data.error) {
+          // Mark as completed (failed) for cleanup
+          operation.completedAt = Date.now();
+          operationStore.set(jobId, operation);
           return {
             status: "failed",
             error: data.error.message || "Video generation failed",
+          };
+        }
+
+        // Check for RAI (Responsible AI) content filtering
+        const raiError = this.extractRaiFilterError(data.response || data.result || data);
+        if (raiError) {
+          // Mark as completed (failed) for cleanup
+          operation.completedAt = Date.now();
+          operationStore.set(jobId, operation);
+          logger.warn("Video generation blocked by content filter:", raiError);
+          return {
+            status: "failed",
+            error: raiError.errorCode,
           };
         }
 
@@ -321,7 +474,7 @@ export class VeoProvider implements VideoGenerationProvider {
         }
 
         // If the URL is a Google API URL, we need to fetch it with authentication
-        // and convert to a data URL for browser playback
+        // and convert to a playable URL for browser playback
         if (videoUrl && videoUrl.includes("generativelanguage.googleapis.com")) {
           try {
             const authenticatedUrl = `${videoUrl}${videoUrl.includes("?") ? "&" : "?"}key=${operation.apiKey}`;
@@ -329,11 +482,26 @@ export class VeoProvider implements VideoGenerationProvider {
 
             if (videoResponse.ok) {
               const videoBlob = await videoResponse.blob();
-              const arrayBuffer = await videoBlob.arrayBuffer();
-              const base64 = this.arrayBufferToBase64(arrayBuffer);
               const mimeType = videoBlob.type || "video/mp4";
-              videoUrl = `data:${mimeType};base64,${base64}`;
-              logger.debug("Converted to data URL, size:", base64.length);
+
+              // Check if we're in a browser environment
+              // Server-side (Node.js/Server Actions): Use base64 data URL (serializable)
+              // Client-side (Browser): Use Blob URL (memory efficient)
+              const isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
+
+              if (isBrowser) {
+                // Browser: Use Blob URL (more memory efficient, auto-managed by browser)
+                const blobUrl = URL.createObjectURL(videoBlob);
+                operation.videoBlobUrl = blobUrl; // Track for cleanup
+                videoUrl = blobUrl;
+                logger.debug("Created Blob URL for video, blob size:", videoBlob.size);
+              } else {
+                // Server: Use base64 data URL (serializable for Server Actions)
+                const arrayBuffer = await videoBlob.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString("base64");
+                videoUrl = `data:${mimeType};base64,${base64}`;
+                logger.debug("Created base64 data URL for video, size:", base64.length);
+              }
             } else {
               logger.error("Failed to fetch video:", videoResponse.statusText);
             }
@@ -342,17 +510,28 @@ export class VeoProvider implements VideoGenerationProvider {
           }
         }
 
-        // Cache the video URL
+        // Cache the video URL and mark as completed
         if (videoUrl) {
           operation.videoUrl = videoUrl;
+          operation.completedAt = Date.now(); // Mark completion time for TTL cleanup
           operationStore.set(jobId, operation);
+
+          return {
+            status: "completed",
+            progress: 100,
+            videoUrl: videoUrl,
+            sourceVideoUri: operation.sourceVideoUri,
+          };
         }
 
+        // done=true but no video URL and no RAI error - unknown failure
+        // Mark as completed (failed) for cleanup
+        operation.completedAt = Date.now();
+        operationStore.set(jobId, operation);
+        logger.error("Video generation completed but no video URL found. Response:", JSON.stringify(data, null, 2));
         return {
-          status: "completed",
-          progress: 100,
-          videoUrl: videoUrl || undefined,
-          sourceVideoUri: operation.sourceVideoUri,
+          status: "failed",
+          error: "errors.videoGenerationUnknown",
         };
       }
 
@@ -377,6 +556,8 @@ export class VeoProvider implements VideoGenerationProvider {
   async cancelJob(jobId: string): Promise<void> {
     const operation = operationStore.get(jobId);
     if (operation) {
+      // Revoke Blob URL to free memory
+      revokeBlobUrl(operation.videoBlobUrl);
       // Veo doesn't have a cancel endpoint, but we can remove from our tracking
       operationStore.delete(jobId);
     }
@@ -418,6 +599,8 @@ export class VeoProvider implements VideoGenerationProvider {
         // Clamp to valid range, default to 8 seconds
         durationSeconds: Math.max(4, Math.min(8, params.extensionDuration || 8)),
         seed: seed, // Add seed for potential style consistency
+        // Safety settings - allow adult content generation
+        personGeneration: "allow_adult",
       },
     };
 
@@ -463,18 +646,75 @@ export class VeoProvider implements VideoGenerationProvider {
     throw new Error("Veo extension API returned unexpected response format");
   }
 
-  private arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+  /**
+   * Extract RAI (Responsible AI) filter error from response
+   * Returns error code for i18n if content was filtered, null otherwise
+   */
+  private extractRaiFilterError(response: unknown): { errorCode: string; originalMessage: string } | null {
+    try {
+      const data = response as Record<string, unknown>;
+
+      // Check generateVideoResponse for RAI filtering
+      const generateVideoResponse = data.generateVideoResponse as {
+        raiMediaFilteredCount?: number;
+        raiMediaFilteredReasons?: string[];
+      } | undefined;
+
+      if (generateVideoResponse?.raiMediaFilteredCount && generateVideoResponse.raiMediaFilteredCount > 0) {
+        const reasons = generateVideoResponse.raiMediaFilteredReasons || [];
+        const originalMessage = reasons.join("; ");
+
+        // Map specific error patterns to i18n error codes
+        const errorCode = this.mapRaiErrorToCode(originalMessage);
+
+        return { errorCode, originalMessage };
+      }
+
+      // Also check at root level (in case of different response structure)
+      const rootRaiCount = data.raiMediaFilteredCount as number | undefined;
+      const rootRaiReasons = data.raiMediaFilteredReasons as string[] | undefined;
+
+      if (rootRaiCount && rootRaiCount > 0) {
+        const originalMessage = (rootRaiReasons || []).join("; ");
+        const errorCode = this.mapRaiErrorToCode(originalMessage);
+        return { errorCode, originalMessage };
+      }
+
+      return null;
+    } catch (err) {
+      logger.error("Error extracting RAI filter error:", err);
+      return null;
     }
-    // Use btoa for browser environment
-    if (typeof btoa !== "undefined") {
-      return btoa(binary);
+  }
+
+  /**
+   * Map RAI error message to i18n error code
+   */
+  private mapRaiErrorToCode(message: string): string {
+    const lowerMessage = message.toLowerCase();
+
+    // Children-related content filter
+    if (lowerMessage.includes("children") || lowerMessage.includes("child") || lowerMessage.includes("minor")) {
+      return "errors.contentFilteredChildren";
     }
-    // Use Buffer for Node.js environment
-    return Buffer.from(buffer).toString("base64");
+
+    // Violence/harmful content
+    if (lowerMessage.includes("violence") || lowerMessage.includes("harmful") || lowerMessage.includes("dangerous")) {
+      return "errors.contentFilteredViolence";
+    }
+
+    // Adult/NSFW content
+    if (lowerMessage.includes("adult") || lowerMessage.includes("sexual") || lowerMessage.includes("nsfw")) {
+      return "errors.contentFilteredAdult";
+    }
+
+    // Copyright/trademark
+    if (lowerMessage.includes("copyright") || lowerMessage.includes("trademark") || lowerMessage.includes("brand")) {
+      return "errors.contentFilteredCopyright";
+    }
+
+    // Generic content policy violation
+    return "errors.contentFiltered";
   }
 
   private extractVideoUrlFromResponse(response: unknown): string | undefined {

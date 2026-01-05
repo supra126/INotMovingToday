@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "../common/Button";
+import { useLocale } from "@/contexts/LocaleContext";
 
 interface VideoGenerationProgressProps {
   jobId: string;
@@ -32,10 +33,23 @@ export function VideoGenerationProgress({
   onCancel,
   checkStatus,
 }: VideoGenerationProgressProps) {
+  const { t } = useLocale();
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<"pending" | "processing" | "completed" | "failed">("pending");
   const [elapsedTime, setElapsedTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Translate error message if it's an i18n key, otherwise return as-is
+   */
+  const getTranslatedError = (errorMsg: string | null): string => {
+    if (!errorMsg) return t("generation.failed");
+    // Check if it's an i18n key (starts with "errors.")
+    if (errorMsg.startsWith("errors.")) {
+      return t(errorMsg);
+    }
+    return errorMsg;
+  };
 
   const pollStatus = useCallback(async () => {
     try {
@@ -51,7 +65,7 @@ export function VideoGenerationProgress({
       }
     } catch (err) {
       console.error("Failed to check status:", err);
-      setError(err instanceof Error ? err.message : "Failed to check status");
+      setError(err instanceof Error ? err.message : t("errors.failedToCheckStatus"));
     }
   }, [jobId, checkStatus, onStatusChange]);
 
@@ -89,15 +103,15 @@ export function VideoGenerationProgress({
   const getStatusMessage = () => {
     switch (status) {
       case "pending":
-        return "Preparing to generate...";
+        return t("generation.preparing");
       case "processing":
-        return "Generating your video...";
+        return t("generation.processing");
       case "completed":
-        return "Video ready!";
+        return t("generation.completed");
       case "failed":
-        return error || "Generation failed";
+        return getTranslatedError(error);
       default:
-        return "Processing...";
+        return t("generation.processing");
     }
   };
 
@@ -138,14 +152,14 @@ export function VideoGenerationProgress({
         {getStatusMessage()}
       </h3>
       <p className="text-gray-400 text-sm text-center mb-6">
-        Using {provider}
+        {t("generation.using", { provider })}
       </p>
 
       {/* Progress Bar */}
       {status !== "failed" && (
         <div className="mb-6">
           <div className="flex justify-between text-sm text-gray-400 mb-2">
-            <span>Progress</span>
+            <span>{t("generation.progress")}</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
@@ -162,18 +176,18 @@ export function VideoGenerationProgress({
       {/* Time Info */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-400 text-xs mb-1">Elapsed</div>
+          <div className="text-gray-400 text-xs mb-1">{t("generation.elapsed")}</div>
           <div className="text-white font-mono">{formatTime(elapsedTime)}</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-400 text-xs mb-1">Estimated</div>
+          <div className="text-gray-400 text-xs mb-1">{t("generation.estimated")}</div>
           <div className="text-white font-mono">~{formatTime(estimatedTime)}</div>
         </div>
       </div>
 
       {/* Job ID */}
       <div className="text-center mb-6">
-        <span className="text-gray-600 text-xs">Job ID: </span>
+        <span className="text-gray-600 text-xs">{t("generation.jobId")}: </span>
         <span className="text-gray-400 text-xs font-mono">{jobId.slice(0, 20)}...</span>
       </div>
 
@@ -184,14 +198,14 @@ export function VideoGenerationProgress({
           onClick={onCancel}
           className="w-full"
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
       )}
 
       {/* Error Message */}
       {error && status === "failed" && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
-          {error}
+          {getTranslatedError(error)}
         </div>
       )}
     </motion.div>

@@ -290,12 +290,11 @@ export function SuggestionsPhase({
   };
 
   // Get aspect ratio class based on video ratio
+  // Veo only supports 9:16 and 16:9
   const getAspectRatioClass = () => {
     switch (videoRatio) {
       case "16:9":
         return "aspect-video";
-      case "1:1":
-        return "aspect-square";
       case "9:16":
       default:
         return "aspect-[9/16]";
@@ -348,7 +347,7 @@ export function SuggestionsPhase({
                         key={i}
                         className="px-3 py-1.5 bg-gray-800 rounded-full text-xs text-gray-300"
                       >
-                        #{i + 1}: {selected?.title || "Unknown"}
+                        #{i + 1}: {selected?.title || t("suggestions.unknown")}
                       </div>
                     );
                   })}
@@ -388,9 +387,7 @@ export function SuggestionsPhase({
                   className={`upload-preview-inner relative shadow-2xl rounded-2xl overflow-hidden border border-blue-500/30 bg-[#15151a] ${
                     videoRatio === "9:16"
                       ? "aspect-[9/16] lg:h-[75vh]"
-                      : videoRatio === "1:1"
-                        ? "aspect-square"
-                        : "aspect-video"
+                      : "aspect-video"
                   }`}
                 >
                   {/* Background image with blur */}
@@ -505,9 +502,7 @@ export function SuggestionsPhase({
                   className={`upload-preview-inner relative shadow-2xl rounded-2xl overflow-hidden border border-green-500/30 bg-[#15151a] ${
                     videoRatio === "9:16"
                       ? "aspect-[9/16] lg:h-[75vh]"
-                      : videoRatio === "1:1"
-                        ? "aspect-square"
-                        : "aspect-video"
+                      : "aspect-video"
                   }`}
                 >
                   {/* Video Player */}

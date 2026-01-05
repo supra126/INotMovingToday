@@ -13,18 +13,25 @@
     "download": "Download",
     "hide": "Hide",
     "show": "Show",
-    "done": "Done"
+    "done": "Done",
+    "locked": "Locked",
+    "soon": "Soon",
+    "uploadedImage": "Uploaded image",
+    "preview": "Preview",
+    "closeModal": "Close modal"
   },
   "language": {
     "zh": "繁中",
-    "en": "EN"
+    "en": "EN",
+    "switchTo": "切換至繁體中文"
   },
   "header": {
     "guide": "Guide",
     "apiSettings": "API Settings",
     "apiSettingsFree": "API Settings (Free)",
     "apiSettingsCustom": "API Settings (Custom)",
-    "apiSettingsConnected": "API Settings (Connected)"
+    "apiSettingsConnected": "API Settings (Connected)",
+    "github": "GitHub"
   },
   "hero": {
     "title1": "Create Visual Dynamic Assets?",
@@ -49,7 +56,7 @@
         },
         "ratio": {
           "label": "Aspect Ratio",
-          "desc": "Choose 9:16 (portrait), 16:9 (landscape), or 1:1 (square)"
+          "desc": "Choose 9:16 (portrait) or 16:9 (landscape)"
         },
         "resolution": {
           "label": "Resolution",
@@ -159,6 +166,7 @@
       "title": "Drop images here",
       "subtitle": "or click to select files",
       "formats": "Supports JPG, PNG, WebP, HEIC",
+      "supportedFormats": "PNG, JPG, WEBP, AVIF",
       "limit": "Up to 3 images",
       "processing": "Processing...",
       "drop": "Drop to upload",
@@ -186,10 +194,9 @@
         "name": "16:9 Landscape",
         "description": "YouTube"
       },
-      "1:1": {
-        "name": "1:1 Square",
-        "description": "Instagram Posts"
-      }
+      "imageOnly": "Only",
+      "imageOnlyHorizontal": "Reference mode only supports 16:9",
+      "imageOnlyHorizontalHint": "Veo's \"Style Reference\" mode only supports 16:9 landscape. Other modes (Single Image, Frame Animation) support 9:16 portrait."
     },
     "resolution": {
       "720p": "720p",
@@ -324,9 +331,6 @@
       },
       "horizontal": {
         "tip": "Horizontal videos are ideal for larger screens, showcasing more visual detail"
-      },
-      "square": {
-        "tip": "Square videos occupy maximum visual space in news feeds"
       }
     },
     "startButton": "Start Chilling",
@@ -395,6 +399,7 @@
     },
     "videoMode": {
       "label": "Video Generation Mode",
+      "apiNotAvailable": "API not yet available",
       "single_image": {
         "name": "Single Image",
         "description": "Animate one image",
@@ -461,10 +466,14 @@
     "subtitle": "AI has proposed the following creative directions based on your materials",
     "selectButton": "Select This",
     "selectedBadge": "Selected",
+    "unknown": "Unknown",
     "refineTitle": "Refine Direction",
-    "refinePlaceholder": "Describe your desired adjustments...",
+    "refinePlaceholder": "e.g., Make it more energetic, focus on product close-ups, add humor...",
     "refineButton": "Regenerate Suggestions",
     "generateScript": "Generate Script",
+    "adjustmentLabel": "Adjustment Direction",
+    "additionalNotes": "Additional Notes (Optional)",
+    "additionalNotesPlaceholder": "Additional info about brand, target audience, or special requirements...",
     "badges": {
       "safe": "Safe Choice",
       "creative": "Creative",
@@ -549,37 +558,69 @@
     "minutes": "minutes",
     "cancelGeneration": "Cancel Generation",
     "initial": "Initial",
+    "initialGeneration": "Initial",
     "extension": "Extension",
+    "extensionNumber": "Extension #{number}",
     "segment": "segment",
+    "segments": "Segments",
+    "segmentCount": "Segment Count",
     "target": "Target",
     "targetDuration": "Target {duration}s",
-    "seconds": "sec"
+    "targetLength": "Target Duration",
+    "seconds": "sec",
+    "elapsed": "Elapsed",
+    "jobId": "Job ID",
+    "using": "Using {provider}",
+    "usingProvider": "Using {provider} to generate {duration}s video"
   },
   "video": {
     "completed": "Video Complete!",
+    "ready": "Your Video is Ready!",
     "downloadVideo": "Download Video",
     "extendVideo": "Extend Video",
+    "extendVideoSeconds": "Extend Video (+7s)",
+    "extending": "Extending...",
     "extendTitle": "Extend Your Video",
     "extendDescription": "Describe what comes next, Veo will generate an additional 7 seconds seamlessly.",
     "extendPlaceholder": "e.g., Camera slowly pulls back to reveal the full landscape...",
     "extendButton": "Extend Video",
     "editScript": "Edit Script",
     "regenerate": "Edit Prompts",
-    "createNew": "Regenerate",
-    "retryGeneration": "Retry"
+    "createNew": "Create Another",
+    "retryGeneration": "Retry",
+    "share": "Share your creation",
+    "shareOn": "Share on {{platform}}",
+    "platform": "Platform",
+    "durationLabel": "Duration",
+    "style": "Style",
+    "disclaimer": "This video was generated using AI. Please review before publishing to ensure it meets your requirements and platform guidelines."
   },
   "errors": {
     "apiKeyRequired": "Please set up API key first",
     "apiKeyInvalid": "API key is invalid or expired",
     "uploadFailed": "Image upload failed",
     "analysisFailed": "Analysis failed, please retry",
+    "refineFailed": "Failed to refine suggestions. Please try again.",
     "scriptGenerationFailed": "Script generation failed",
+    "scriptFailed": "Failed to generate script. Please try again.",
+    "refineScriptFailed": "Failed to refine script. Please try again.",
     "videoGenerationFailed": "Video generation failed",
+    "videoExtensionFailed": "Failed to extend video",
+    "noSourceVideo": "No source video URI available for extension",
+    "segmentFailed": "Segment {number} failed to complete",
     "networkError": "Network connection error",
     "unknownError": "Unknown error occurred",
     "pleaseUploadImage": "Please upload at least one image",
+    "uploadRequired": "Please upload the required images",
     "quotaExceeded": "API quota exceeded. Please try again later or check your billing settings",
-    "rateLimited": "Too many requests. Please try again later"
+    "rateLimited": "Too many requests. Please try again later",
+    "failedToCheckStatus": "Failed to check video status",
+    "contentFiltered": "Content was blocked by safety filters. Please modify your image or prompt and try again",
+    "contentFilteredChildren": "Cannot generate videos from images containing photorealistic children. Please use a different image",
+    "contentFilteredViolence": "Content was blocked due to violent or harmful imagery. Please use a different image",
+    "contentFilteredAdult": "Content was blocked due to adult/NSFW content. Please use a different image",
+    "contentFilteredCopyright": "Content was blocked due to potential copyright issues. Please use a different image",
+    "videoGenerationUnknown": "Video generation completed but no video was produced. Please try again with different settings"
   },
   "warnings": {
     "consistencyWarning": "This video exceeds 8 seconds and will use AI extension. Visual consistency between segments may vary."

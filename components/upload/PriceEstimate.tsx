@@ -15,19 +15,14 @@ const PRICING: Record<VeoModel, number> = {
 };
 
 export function PriceEstimate({ veoModel, duration }: PriceEstimateProps) {
-  const { locale } = useLocale();
+  const { t } = useLocale();
 
   const priceUSD = PRICING[veoModel] * duration;
   const formattedPrice = `$${priceUSD.toFixed(2)}`;
 
-  const labelText =
-    locale === "zh"
-      ? `約 ${formattedPrice} 馬上不動`
-      : `~${formattedPrice} to chill`;
-
   return (
     <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-center">
-      <span className="text-purple-300 text-sm">{labelText}</span>
+      <span className="text-purple-300 text-sm">{t("upload.priceEstimate.label", { price: formattedPrice })}</span>
     </div>
   );
 }

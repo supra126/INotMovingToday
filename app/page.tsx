@@ -54,7 +54,7 @@ export default function Home() {
   const { session, startNewSession, resetSession, setPhase, setImages } =
     useCreationStore();
 
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
 
   // Custom hooks
   const videoSettings = useVideoSettings();
@@ -80,12 +80,15 @@ export default function Home() {
         const img = new window.Image();
         img.onload = () => {
           const aspectRatio = img.width / img.height;
-          if (aspectRatio < 0.75) {
+          // Veo only supports 9:16 and 16:9
+          // Note: image-to-video mode only supports 16:9
+          if (aspectRatio < 1) {
+            // Portrait or square images -> 9:16 (only if text_only mode)
+            // For image modes, useVideoSettings will force 16:9
             videoSettings.setVideoRatio("9:16");
-          } else if (aspectRatio > 1.33) {
-            videoSettings.setVideoRatio("16:9");
           } else {
-            videoSettings.setVideoRatio("1:1");
+            // Landscape images -> 16:9
+            videoSettings.setVideoRatio("16:9");
           }
         };
         img.src = image.previewUrl;
@@ -159,7 +162,7 @@ export default function Home() {
   // Handle analyze
   const handleAnalyze = async () => {
     if (videoSettings.videoMode !== "text_only" && !canAnalyze()) {
-      analysis.setError("Please upload the required images.");
+      analysis.setError(t("errors.uploadRequired"));
       return;
     }
 

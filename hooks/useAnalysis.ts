@@ -97,7 +97,7 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
     onRecommendedSettings?: (settings: RecommendedSettings) => void
   ): Promise<boolean> => {
     if (!session?.images.length) {
-      setError("Please upload at least one image.");
+      setError("errors.pleaseUploadImage");
       return false;
     }
 
@@ -139,7 +139,7 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
       setPhase("first-suggestions");
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to analyze images. Please try again.");
+      setError(err instanceof Error ? err.message : "errors.analysisFailed");
       setPhase("initial-upload");
       return false;
     } finally {
@@ -209,7 +209,7 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
       setPhase("first-suggestions");
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refine suggestions. Please try again.");
+      setError(err instanceof Error ? err.message : "errors.refineFailed");
       return false;
     } finally {
       setIsLoading(false);
@@ -278,7 +278,7 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
       if (cancelScriptRef.current) {
         return false;
       }
-      setError(err instanceof Error ? err.message : "Failed to generate script. Please try again.");
+      setError(err instanceof Error ? err.message : "errors.scriptFailed");
       setPhase("first-suggestions");
       return false;
     } finally {
@@ -305,7 +305,7 @@ export function useAnalysis(): AnalysisState & AnalysisActions {
       setGeneratedScript(refinedScript);
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to refine script. Please try again.");
+      setError(err instanceof Error ? err.message : "errors.refineScriptFailed");
       return false;
     } finally {
       setIsRefiningScript(false);

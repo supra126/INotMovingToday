@@ -29,7 +29,7 @@ export class MockVideoProvider implements VideoGenerationProvider {
     return {
       name: this.name,
       maxDuration: 60,
-      supportedRatios: ["9:16", "16:9", "1:1"],
+      supportedRatios: ["9:16", "16:9"],
       supportsReferenceImage: true,
       supportsTextOverlay: true,
       supportsExtension: false,

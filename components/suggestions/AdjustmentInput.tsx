@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/contexts/LocaleContext";
+
 interface AdjustmentInputProps {
   adjustment: string;
   onAdjustmentChange: (value: string) => void;
@@ -13,6 +15,8 @@ export function AdjustmentInput({
   additionalText,
   onAdditionalTextChange,
 }: AdjustmentInputProps) {
+  const { t } = useLocale();
+
   return (
     <div className="space-y-4">
       <div>
@@ -20,13 +24,13 @@ export function AdjustmentInput({
           htmlFor="adjustment"
           className="block text-sm font-medium text-gray-300 mb-2"
         >
-          調整方向
+          {t("suggestions.adjustmentLabel")}
         </label>
         <textarea
           id="adjustment"
           value={adjustment}
           onChange={(e) => onAdjustmentChange(e.target.value)}
-          placeholder="例如：更有活力一點、聚焦產品特寫、加入幽默元素..."
+          placeholder={t("suggestions.refinePlaceholder")}
           rows={3}
           className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
         />
@@ -37,13 +41,13 @@ export function AdjustmentInput({
           htmlFor="additionalText"
           className="block text-sm font-medium text-gray-300 mb-2"
         >
-          補充說明（選填）
+          {t("suggestions.additionalNotes")}
         </label>
         <textarea
           id="additionalText"
           value={additionalText}
           onChange={(e) => onAdditionalTextChange(e.target.value)}
-          placeholder="關於品牌、目標受眾或特殊需求的額外資訊..."
+          placeholder={t("suggestions.additionalNotesPlaceholder")}
           rows={2}
           className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
         />

@@ -1,6 +1,6 @@
 // ============ 基礎類型 ============
 
-export type VideoRatio = "9:16" | "16:9" | "1:1";
+export type VideoRatio = "9:16" | "16:9";
 
 export type VideoResolution = "720p" | "1080p";
 

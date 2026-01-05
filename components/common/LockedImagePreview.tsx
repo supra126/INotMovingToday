@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useLocale } from "@/contexts/LocaleContext";
 import type { UploadedImage, VideoRatio } from "@/types";
 
 interface LockedImagePreviewProps {
@@ -9,15 +10,15 @@ interface LockedImagePreviewProps {
 }
 
 export function LockedImagePreview({ images, videoRatio }: LockedImagePreviewProps) {
+  const { t } = useLocale();
   if (images.length === 0) return null;
 
   // Use same structure as UploadPhase for consistency
+  // Veo only supports 9:16 and 16:9
   const aspectClass =
     videoRatio === "9:16"
       ? "aspect-[9/16] lg:h-[75vh]"
-      : videoRatio === "1:1"
-        ? "aspect-square"
-        : "aspect-video";
+      : "aspect-video";
 
   return (
     <div>
@@ -27,7 +28,7 @@ export function LockedImagePreview({ images, videoRatio }: LockedImagePreviewPro
         {/* Main Image */}
         <Image
           src={images[0].previewUrl}
-          alt="Uploaded image"
+          alt={t("common.uploadedImage")}
           fill
           className="object-cover"
           priority
@@ -46,7 +47,7 @@ export function LockedImagePreview({ images, videoRatio }: LockedImagePreviewPro
               clipRule="evenodd"
             />
           </svg>
-          <span className="text-xs text-gray-400">Locked</span>
+          <span className="text-xs text-gray-400">{t("common.locked")}</span>
         </div>
       </div>
     </div>

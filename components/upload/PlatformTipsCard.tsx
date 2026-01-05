@@ -44,10 +44,6 @@ function getPlatformsByRatio(ratio: VideoRatio): { name: string; key: string }[]
       return [
         { name: "YouTube", key: "youtube" },
       ];
-    case "1:1":
-      return [
-        { name: "Instagram", key: "reels" },
-      ];
     default:
       return [];
   }
@@ -85,7 +81,7 @@ export function PlatformTipsCard({ ratio }: PlatformTipsCardProps) {
         </div>
 
         <p className="text-xs text-gray-400">
-          {t(`upload.platformTips.${ratio === "9:16" ? "vertical" : ratio === "16:9" ? "horizontal" : "square"}.tip`)}
+          {t(`upload.platformTips.${ratio === "9:16" ? "vertical" : "horizontal"}.tip`)}
         </p>
       </div>
     </div>

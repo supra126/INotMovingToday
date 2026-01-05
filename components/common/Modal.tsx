@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
 import { Button } from "./Button";
 
 interface ModalProps {
@@ -28,6 +29,7 @@ export function Modal({
   size = "md",
   showCloseButton = true,
 }: ModalProps) {
+  const { t } = useLocale();
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export function Modal({
                   <button
                     onClick={onClose}
                     className="text-gray-400 hover:text-white transition-colors"
-                    aria-label="Close modal"
+                    aria-label={t("common.closeModal")}
                   >
                     <svg
                       className="w-6 h-6"
@@ -128,15 +130,16 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
 }: ConfirmModalProps) {
+  const { t } = useLocale();
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <p className="text-gray-300 mb-6">{message}</p>
       <div className="flex gap-3 justify-end">
         <Button variant="ghost" onClick={onClose}>
-          {cancelText}
+          {cancelText || t("common.cancel")}
         </Button>
         <Button
           variant="primary"
@@ -145,7 +148,7 @@ export function ConfirmModal({
             onClose();
           }}
         >
-          {confirmText}
+          {confirmText || t("common.confirm")}
         </Button>
       </div>
     </Modal>

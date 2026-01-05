@@ -104,6 +104,11 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     resetImageState();
     // Sync imageUsageMode for backward compatibility
     setImageUsageMode(mode === "text_only" ? "none" : "start");
+    // Only "references" mode doesn't support 9:16
+    // Auto-switch to 16:9 when switching to references mode
+    if (mode === "references") {
+      setVideoRatio("16:9");
+    }
   }, [resetImageState]);
 
   const resetSettings = useCallback(() => {

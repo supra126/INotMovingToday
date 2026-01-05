@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Button } from "../common/Button";
+import { useLocale } from "@/contexts/LocaleContext";
 import type { ContinuousGenerationState, SegmentInfo } from "@/services/videoService";
 
 interface ContinuousVideoProgressProps {
@@ -15,7 +16,20 @@ export function ContinuousVideoProgress({
   provider,
   onCancel,
 }: ContinuousVideoProgressProps) {
+  const { t } = useLocale();
   const { segments, currentSegmentIndex, overallProgress, phase, totalDuration, error } = state;
+
+  /**
+   * Translate error message if it's an i18n key, otherwise return as-is
+   */
+  const getTranslatedError = (errorMsg: string | undefined): string => {
+    if (!errorMsg) return t("generation.failed");
+    // Check if it's an i18n key (starts with "errors.")
+    if (errorMsg.startsWith("errors.")) {
+      return t(errorMsg);
+    }
+    return errorMsg;
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -26,17 +40,17 @@ export function ContinuousVideoProgress({
   const getPhaseMessage = () => {
     switch (phase) {
       case "initial":
-        return "準備生成...";
+        return t("generation.preparing");
       case "generating":
-        return `正在生成初始片段 (${segments[0]?.duration || 8}秒)...`;
+        return t("generation.generatingInitialWithDuration", { duration: segments[0]?.duration || 8 });
       case "extending":
-        return `正在延展影片 (第 ${currentSegmentIndex + 1}/${segments.length} 段)...`;
+        return t("generation.extendingWithSegment", { current: currentSegmentIndex + 1, total: segments.length });
       case "completed":
-        return "影片生成完成！";
+        return t("generation.completed");
       case "failed":
-        return error || "生成失敗";
+        return getTranslatedError(error);
       default:
-        return "處理中...";
+        return t("generation.processing");
     }
   };
 
@@ -85,14 +99,14 @@ export function ContinuousVideoProgress({
         {getPhaseMessage()}
       </h3>
       <p className="text-gray-400 text-sm text-center mb-6">
-        使用 {provider} 生成 {totalDuration} 秒影片
+        {t("generation.usingProvider", { provider, duration: totalDuration })}
       </p>
 
       {/* Overall Progress Bar */}
       {!isFailed && (
         <div className="mb-6">
           <div className="flex justify-between text-sm text-gray-400 mb-2">
-            <span>總體進度</span>
+            <span>{t("generation.progress")}</span>
             <span>{overallProgress}%</span>
           </div>
           <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -108,7 +122,7 @@ export function ContinuousVideoProgress({
 
       {/* Segment Progress */}
       <div className="mb-6">
-        <div className="text-sm text-gray-400 mb-3">生成片段</div>
+        <div className="text-sm text-gray-400 mb-3">{t("generation.segments")}</div>
         <div className="space-y-2">
           {segments.map((segment, index) => {
             const { icon, color, bg } = getSegmentStatus(segment);
@@ -145,10 +159,10 @@ export function ContinuousVideoProgress({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-white">
-                      {index === 0 ? "初始生成" : `延展 #${index}`}
+                      {index === 0 ? t("generation.initialGeneration") : t("generation.extensionNumber", { number: index })}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {segment.duration}秒
+                      {segment.duration}{t("generation.seconds")}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 truncate mt-0.5">
@@ -164,11 +178,11 @@ export function ContinuousVideoProgress({
       {/* Time Info */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-400 text-xs mb-1">目標時長</div>
+          <div className="text-gray-400 text-xs mb-1">{t("generation.targetLength")}</div>
           <div className="text-white font-mono">{formatTime(totalDuration)}</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-          <div className="text-gray-400 text-xs mb-1">片段數</div>
+          <div className="text-gray-400 text-xs mb-1">{t("generation.segmentCount")}</div>
           <div className="text-white font-mono">{segments.length}</div>
         </div>
       </div>
@@ -180,14 +194,14 @@ export function ContinuousVideoProgress({
           onClick={onCancel}
           className="w-full"
         >
-          取消生成
+          {t("generation.cancelGeneration")}
         </Button>
       )}
 
       {/* Error Message */}
       {error && isFailed && (
         <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
-          {error}
+          {getTranslatedError(error)}
         </div>
       )}
     </motion.div>

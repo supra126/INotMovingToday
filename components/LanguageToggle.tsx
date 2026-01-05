@@ -9,7 +9,7 @@ export function LanguageToggle() {
     <button
       onClick={toggleLocale}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
-      title={locale === "zh" ? "Switch to English" : "切換至繁體中文"}
+      title={t("language.switchTo")}
     >
       <svg
         className="w-4 h-4 text-gray-400"

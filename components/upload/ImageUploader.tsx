@@ -96,12 +96,11 @@ export function ImageUploader({
   const [isConverting, setIsConverting] = useState(false);
 
   // Get aspect ratio class for image preview crop
+  // Veo only supports 9:16 and 16:9
   const getPreviewAspectClass = () => {
     switch (videoRatio) {
       case "16:9":
         return "aspect-video"; // 16:9
-      case "1:1":
-        return "aspect-square"; // 1:1
       case "9:16":
       default:
         return "aspect-[9/16]"; // 9:16
@@ -205,7 +204,7 @@ export function ImageUploader({
             <div className={`w-full ${getPreviewAspectClass()} relative group overflow-hidden`}>
               <img
                 src={images[0].previewUrl}
-                alt="Preview"
+                alt={t("common.preview")}
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
@@ -232,7 +231,7 @@ export function ImageUploader({
               <p className="mb-2 text-sm text-gray-300 font-medium">
                 {isConverting ? t("upload.dropzone.processing") : isDragOver ? t("upload.dropzone.drop") : t("upload.dropzone.upload")}
               </p>
-              <p className="text-xs text-gray-400">PNG, JPG, WEBP, AVIF</p>
+              <p className="text-xs text-gray-400">{t("upload.dropzone.supportedFormats")}</p>
             </div>
           )}
           <input

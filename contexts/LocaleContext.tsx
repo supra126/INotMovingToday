@@ -8,11 +8,13 @@ export type Locale = "zh" | "en";
 
 type Messages = typeof zhMessages;
 
+type InterpolationParams = Record<string, string | number>;
+
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   toggleLocale: () => void;
-  t: (key: string) => string;
+  t: (key: string, params?: InterpolationParams) => string;
   tRaw: <T = unknown>(key: string) => T;
   messages: Messages;
 }
@@ -113,10 +115,20 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     setLocale(newLocale);
   }, [locale, setLocale]);
 
-  // Translation function
+  // Translation function with interpolation support
   const t = useCallback(
-    (key: string): string => {
-      return getNestedValue(messages as unknown as Record<string, unknown>, key);
+    (key: string, params?: InterpolationParams): string => {
+      let result = getNestedValue(messages as unknown as Record<string, unknown>, key);
+
+      // Handle interpolation: replace {key} with corresponding value
+      if (params) {
+        Object.entries(params).forEach(([paramKey, paramValue]) => {
+          // Support both {key} and {{key}} formats
+          result = result.replace(new RegExp(`\\{\\{?${paramKey}\\}\\}?`, 'g'), String(paramValue));
+        });
+      }
+
+      return result;
     },
     [messages]
   );

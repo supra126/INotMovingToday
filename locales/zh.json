@@ -13,18 +13,25 @@
     "download": "下載",
     "hide": "隱藏",
     "show": "顯示",
-    "done": "完成"
+    "done": "完成",
+    "locked": "鎖定",
+    "soon": "即將推出",
+    "uploadedImage": "上傳的圖片",
+    "preview": "預覽",
+    "closeModal": "關閉視窗"
   },
   "language": {
     "zh": "繁中",
-    "en": "EN"
+    "en": "EN",
+    "switchTo": "Switch to English"
   },
   "header": {
     "guide": "使用方式",
     "apiSettings": "API 設定",
     "apiSettingsFree": "API 設定 (免費)",
     "apiSettingsCustom": "API 設定 (自訂)",
-    "apiSettingsConnected": "API 設定 (已連線)"
+    "apiSettingsConnected": "API 設定 (已連線)",
+    "github": "GitHub"
   },
   "hero": {
     "title1": "打造視覺動態資產？",
@@ -49,7 +56,7 @@
         },
         "ratio": {
           "label": "畫面比例",
-          "desc": "選擇 9:16（直式）、16:9（橫式）或 1:1（方形）"
+          "desc": "選擇 9:16（直式）或 16:9（橫式）"
         },
         "resolution": {
           "label": "解析度",
@@ -159,6 +166,7 @@
       "title": "拖放圖片到這裡",
       "subtitle": "或點擊選擇檔案",
       "formats": "支援 JPG、PNG、WebP、HEIC",
+      "supportedFormats": "PNG、JPG、WEBP、AVIF",
       "limit": "最多 3 張圖片",
       "processing": "處理中...",
       "drop": "放開以上傳",
@@ -186,10 +194,9 @@
         "name": "16:9 橫式",
         "description": "YouTube"
       },
-      "1:1": {
-        "name": "1:1 方形",
-        "description": "Instagram 貼文"
-      }
+      "imageOnly": "僅限",
+      "imageOnlyHorizontal": "參考圖模式僅支援 16:9 橫式",
+      "imageOnlyHorizontalHint": "Veo 的「參考風格」模式僅支援 16:9 橫式比例。其他模式（單張圖片、首尾幀）都支援 9:16 直式。"
     },
     "resolution": {
       "720p": "720p",
@@ -324,9 +331,6 @@
       },
       "horizontal": {
         "tip": "橫式影片適合大螢幕觀看，可呈現更多畫面細節"
-      },
-      "square": {
-        "tip": "方形影片在動態消息中佔據最大視覺空間"
       }
     },
     "startButton": "開始躺平",
@@ -395,6 +399,7 @@
     },
     "videoMode": {
       "label": "影片生成模式",
+      "apiNotAvailable": "API 尚未開放此功能",
       "single_image": {
         "name": "單張圖片",
         "description": "用一張圖片生成影片",
@@ -461,10 +466,14 @@
     "subtitle": "AI 根據您的素材提出了以下創意方向",
     "selectButton": "選擇此方向",
     "selectedBadge": "已選擇",
+    "unknown": "未知",
     "refineTitle": "調整方向",
-    "refinePlaceholder": "描述你想要的調整...",
+    "refinePlaceholder": "例如：更有活力一點、聚焦產品特寫、加入幽默元素...",
     "refineButton": "重新生成建議",
     "generateScript": "生成腳本",
+    "adjustmentLabel": "調整方向",
+    "additionalNotes": "補充說明（選填）",
+    "additionalNotesPlaceholder": "關於品牌、目標受眾或特殊需求的額外資訊...",
     "badges": {
       "safe": "安全牌",
       "creative": "創意牌",
@@ -549,37 +558,69 @@
     "minutes": "分鐘",
     "cancelGeneration": "取消生成",
     "initial": "初始",
+    "initialGeneration": "初始生成",
     "extension": "延展",
+    "extensionNumber": "延展 #{number}",
     "segment": "段",
+    "segments": "生成片段",
+    "segmentCount": "片段數",
     "target": "目標",
     "targetDuration": "目標 {duration}秒",
-    "seconds": "秒"
+    "targetLength": "目標時長",
+    "seconds": "秒",
+    "elapsed": "已用時間",
+    "jobId": "任務 ID",
+    "using": "使用 {provider}",
+    "usingProvider": "使用 {provider} 生成 {duration} 秒影片"
   },
   "video": {
     "completed": "影片已完成！",
+    "ready": "您的影片已完成！",
     "downloadVideo": "下載影片",
     "extendVideo": "延展影片",
+    "extendVideoSeconds": "延展影片 (+7秒)",
+    "extending": "延展中...",
     "extendTitle": "延展您的影片",
     "extendDescription": "描述影片接下來的內容，Veo 將生成額外 7 秒無縫銜接的畫面。",
     "extendPlaceholder": "例如：鏡頭緩緩拉遠，展現完整的風景...",
     "extendButton": "延展影片",
     "editScript": "修改劇本",
     "regenerate": "重新修改提詞",
-    "createNew": "重新生成",
-    "retryGeneration": "重新嘗試"
+    "createNew": "再創建一個",
+    "retryGeneration": "重新嘗試",
+    "share": "分享您的作品",
+    "shareOn": "分享到 {{platform}}",
+    "platform": "平台",
+    "durationLabel": "時長",
+    "style": "風格",
+    "disclaimer": "此影片由 AI 生成。發布前請先檢查，確保符合您的需求與平台規範。"
   },
   "errors": {
     "apiKeyRequired": "請先設定 API 金鑰",
     "apiKeyInvalid": "API 金鑰無效或已過期",
     "uploadFailed": "圖片上傳失敗",
     "analysisFailed": "分析失敗，請重試",
+    "refineFailed": "建議優化失敗，請重試",
     "scriptGenerationFailed": "腳本生成失敗",
+    "scriptFailed": "腳本生成失敗，請重試",
+    "refineScriptFailed": "腳本優化失敗，請重試",
     "videoGenerationFailed": "影片生成失敗",
+    "videoExtensionFailed": "影片延展失敗",
+    "noSourceVideo": "無來源影片可供延展",
+    "segmentFailed": "片段 {number} 生成失敗",
     "networkError": "網路連線錯誤",
     "unknownError": "發生未知錯誤",
     "pleaseUploadImage": "請上傳至少一張圖片",
+    "uploadRequired": "請上傳所需的圖片",
     "quotaExceeded": "API 配額已用完，請稍後再試或檢查您的帳單設定",
-    "rateLimited": "請求太頻繁，請稍後再試"
+    "rateLimited": "請求太頻繁，請稍後再試",
+    "failedToCheckStatus": "檢查影片狀態失敗",
+    "contentFiltered": "內容被安全過濾器攔截，請修改圖片或提示詞後重試",
+    "contentFilteredChildren": "無法從包含真實兒童的圖片生成影片，請使用其他圖片",
+    "contentFilteredViolence": "內容因含有暴力或有害影像而被攔截，請使用其他圖片",
+    "contentFilteredAdult": "內容因含有成人/不雅內容而被攔截，請使用其他圖片",
+    "contentFilteredCopyright": "內容因潛在版權問題而被攔截，請使用其他圖片",
+    "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定"
   },
   "warnings": {
     "consistencyWarning": "此影片超過 8 秒，將使用 AI 延展功能。片段之間的視覺一致性可能會有所不同。"

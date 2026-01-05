@@ -294,12 +294,11 @@ export function ScriptPreview({
   const isReview = phase === "review";
 
   // Get aspect ratio class based on video ratio
+  // Veo only supports 9:16 and 16:9
   const getAspectRatioClass = () => {
     switch (videoRatio) {
       case "16:9":
         return "aspect-video"; // 16:9
-      case "1:1":
-        return "aspect-square"; // 1:1
       case "9:16":
       default:
         return "aspect-[9/16]"; // 9:16
@@ -311,8 +310,6 @@ export function ScriptPreview({
     switch (videoRatio) {
       case "16:9":
         return "max-w-2xl"; // wider for landscape
-      case "1:1":
-        return "max-w-md"; // medium for square
       case "9:16":
       default:
         return "max-w-xs"; // narrow for portrait

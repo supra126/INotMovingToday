@@ -29,7 +29,7 @@ export class RunwayProvider implements VideoGenerationProvider {
     return {
       name: this.name,
       maxDuration: 10, // Runway Gen-3 supports up to 10 seconds per generation
-      supportedRatios: ["9:16", "16:9", "1:1"],
+      supportedRatios: ["9:16", "16:9"],
       supportsReferenceImage: true,
       supportsTextOverlay: false,
       supportsExtension: false,

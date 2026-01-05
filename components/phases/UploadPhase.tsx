@@ -188,6 +188,7 @@ export function UploadPhase({
             value={videoRatio}
             onChange={onVideoRatioChange}
             disabled={isLoading}
+            videoMode={videoMode}
           />
 
           {/* 5. Resolution */}
@@ -303,9 +304,7 @@ export function UploadPhase({
               className={`upload-preview-inner relative shadow-2xl rounded-2xl overflow-hidden border border-white/10 bg-[#15151a] ${
                 videoRatio === "9:16"
                   ? "aspect-[9/16] lg:h-[75vh]"
-                  : videoRatio === "1:1"
-                    ? "aspect-square"
-                    : "aspect-video"
+                  : "aspect-video"
               }`}
             >
               {previewImage ? (

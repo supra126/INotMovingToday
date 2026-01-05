@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLocale } from "@/contexts/LocaleContext";
 import type { VideoSuggestion } from "@/types";
 
 interface SuggestionCardProps {
@@ -11,7 +12,7 @@ interface SuggestionCardProps {
   disabled?: boolean;
 }
 
-const cardLabels = ["Safe Choice", "Creative", "Viral"];
+const cardLabelKeys = ["suggestions.badges.safe", "suggestions.badges.creative", "suggestions.badges.viral"];
 const cardColors = [
   "from-blue-500/20 to-cyan-500/20 border-blue-500/30",
   "from-purple-500/20 to-pink-500/20 border-purple-500/30",
@@ -26,6 +27,7 @@ export function SuggestionCard({
   onSelect,
   disabled = false,
 }: SuggestionCardProps) {
+  const { t } = useLocale();
   return (
     <motion.button
       onClick={onSelect}
@@ -77,7 +79,7 @@ export function SuggestionCard({
             <span
               className={`text-[10px] font-semibold uppercase tracking-wider ${iconColors[index]}`}
             >
-              {cardLabels[index]}
+              {t(cardLabelKeys[index])}
             </span>
             <h3 className="text-base font-bold text-white truncate">
               {suggestion.title}

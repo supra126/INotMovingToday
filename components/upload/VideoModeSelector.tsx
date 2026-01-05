@@ -72,14 +72,14 @@ export function VideoModeSelector({
                   : "bg-black/30 border-white/10 text-gray-400 hover:bg-white/5 hover:border-white/20"
               } ${isButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
               title={isDisabledMode
-                ? (locale === "zh" ? "API 尚未開放此功能" : "API not yet available")
+                ? t("upload.videoMode.apiNotAvailable")
                 : t(`upload.videoMode.${mode}.description`)}
             >
               {icons[mode]}
               <span className="text-xs font-medium">{t(`upload.videoMode.${mode}.name`)}</span>
               {isDisabledMode && (
                 <span className="absolute top-1 right-1 text-[8px] bg-yellow-500/20 text-yellow-400 px-1 rounded">
-                  {locale === "zh" ? "即將推出" : "Soon"}
+                  {t("common.soon")}
                 </span>
               )}
             </button>

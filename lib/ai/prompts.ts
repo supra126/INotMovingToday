@@ -185,11 +185,6 @@ export const INITIAL_ANALYSIS_PROMPT = `
 - mainContent（發文內容）：可以更詳細、說明影片亮點
 - callToAction（Hashtag）：相關主題標籤
 
-**方形影片（1:1 比例 - Instagram 貼文）**
-- hookIdea（大標題）：美感導向、簡潔有力
-- mainContent（發文內容）：生活風格感、互動問句
-- callToAction（Hashtag）：5-10個精準標籤
-
 ## 建議設定選擇指南
 根據圖片分析結果，推薦以下設定：
 - consistencyMode: 產品為主→"product"，人物為主→"character"，兩者都有→"both"，風景/抽象→"none"
@@ -312,11 +307,6 @@ Create appropriate social post content based on video ratio and target platform:
 - hookIdea (Title): More descriptive, preview video value
 - mainContent (Caption): Can be more detailed, highlight video content
 - callToAction (Hashtags): Topic-relevant hashtags
-
-**Square Videos (1:1 ratio - Instagram Posts)**
-- hookIdea (Title): Aesthetic-focused, clean and impactful
-- mainContent (Caption): Lifestyle feel, interactive questions
-- callToAction (Hashtags): 5-10 precise hashtags
 
 ## Recommended Settings Guide
 Based on image analysis, recommend the following settings:
@@ -933,16 +923,6 @@ export function getPlatformInfoByRatio(ratio: VideoRatio, locale: Locale): {
       bestPractices: locale === "en"
         ? PLATFORM_BEST_PRACTICES.youtube.hook + ". " + PLATFORM_BEST_PRACTICES.youtube.style
         : "開頭5秒要強力吸引眼球，展示價值預覽，高製作質感，故事敘述，品牌一致性",
-    };
-  } else if (ratio === "1:1") {
-    return {
-      options: "instagram",
-      description: locale === "en"
-        ? "Instagram Posts (square 1:1 format)"
-        : "Instagram 貼文（方形 1:1 格式）",
-      bestPractices: locale === "en"
-        ? "Visual hook within first frame, aesthetic-forward, discovery-optimized, polished transitions"
-        : "首幀視覺吸引，美學優先，適合探索頁，精緻轉場",
     };
   } else {
     // 9:16

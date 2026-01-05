@@ -9,14 +9,21 @@ import {
   isStaticMode,
   createContinuousGenerationState,
   calculateOverallProgress,
+  cleanupVideoJob,
 } from "@/services/videoService";
 import type { ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, UploadedImage, CameraMotion, VideoGenerationMode } from "@/types";
 import type { ContinuousGenerationState, SegmentInfo } from "@/services/videoService";
 
 /**
  * Map API error messages to user-friendly error keys
+ * If the error message is already an i18n key (starts with "errors."), return it directly
  */
 function getErrorKey(errorMessage: string): string {
+  // If already an i18n key, return as-is (without the "errors." prefix since we add it later)
+  if (errorMessage.startsWith("errors.")) {
+    return errorMessage.replace("errors.", "");
+  }
+
   const msg = errorMessage.toLowerCase();
   if (msg.includes("quota") || msg.includes("exceeded your current quota")) {
     return "quotaExceeded";
@@ -29,6 +36,10 @@ function getErrorKey(errorMessage: string): string {
   }
   if (msg.includes("network") || msg.includes("fetch")) {
     return "networkError";
+  }
+  // Content filtering errors (fallback if not already i18n key)
+  if (msg.includes("content") && (msg.includes("filter") || msg.includes("block"))) {
+    return "contentFiltered";
   }
   return "videoGenerationFailed";
 }
@@ -164,6 +175,13 @@ const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
 
 /**
+ * Generate a unique generation ID for tracking each generation session
+ */
+function generateGenerationId(): string {
+  return `gen-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
  * Get camera motion instruction text for Veo prompts
  * Returns empty string for "auto" to let AI decide naturally
  */
@@ -193,14 +211,19 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
   const [isExtendingVideo, setIsExtendingVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cancelRef = useRef(false);
+  // Use generation ID to prevent race conditions with cancel
+  const currentGenerationIdRef = useRef<string | null>(null);
+  // Track all job IDs for cleanup
+  const jobIdsRef = useRef<string[]>([]);
 
   const pollForCompletion = useCallback(async (
     jobId: string,
+    generationId: string,
     apiKey?: string
   ): Promise<{ videoUrl: string; sourceVideoUri?: string } | null> => {
     for (let i = 0; i < MAX_POLLS; i++) {
-      if (cancelRef.current) {
+      // Check if this generation has been cancelled (new generation started or explicit cancel)
+      if (currentGenerationIdRef.current !== generationId) {
         return null;
       }
 
@@ -215,14 +238,31 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         }
 
         if (status.status === "failed") {
+          // This is a definitive failure, stop polling immediately
           throw new Error(status.error || "Video generation failed");
         }
 
         await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
       } catch (err) {
-        // Don't throw on transient errors, just continue polling
+        // Check if this is a definitive failure (from status.failed) vs transient network error
+        const errorMessage = err instanceof Error ? err.message : String(err);
+
+        // If error starts with "errors." it's an i18n key from our backend - definitive failure
+        // Also check for common definitive failure patterns
+        const isDefinitiveFailure =
+          errorMessage.startsWith("errors.") ||
+          errorMessage.includes("content") ||
+          errorMessage.includes("filtered") ||
+          errorMessage.includes("Video generation failed");
+
+        if (isDefinitiveFailure) {
+          // Re-throw definitive failures to stop polling
+          throw err;
+        }
+
+        // Only continue polling for transient errors (network issues, etc.)
         if (process.env.NODE_ENV === "development") {
-          console.error("[Poll] Error:", err);
+          console.error("[Poll] Transient error, continuing:", err);
         }
       }
     }
@@ -241,8 +281,13 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
   ): Promise<boolean> => {
     const geminiApiKey = isStaticMode() ? getApiKey("gemini") : undefined;
 
+    // Generate a unique ID for this generation session to prevent race conditions
+    const generationId = generateGenerationId();
+    currentGenerationIdRef.current = generationId;
+    // Reset job IDs for this generation
+    jobIdsRef.current = [];
+
     setError(null);
-    cancelRef.current = false;
 
     try {
       // Prepare images based on video mode
@@ -284,7 +329,8 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       let lastVideoUrl: string | undefined;
 
       for (let i = 0; i < initialState.segments.length; i++) {
-        if (cancelRef.current) {
+        // Check if this generation has been cancelled
+        if (currentGenerationIdRef.current !== generationId) {
           throw new Error("Generation cancelled by user");
         }
 
@@ -334,6 +380,9 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
           );
         }
 
+        // Track job ID for cleanup
+        jobIdsRef.current.push(result.jobId);
+
         setContinuousGenState((prev) => {
           if (!prev) return prev;
           return {
@@ -344,7 +393,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
           };
         });
 
-        const completed = await pollForCompletion(result.jobId, geminiApiKey);
+        const completed = await pollForCompletion(result.jobId, generationId, geminiApiKey);
 
         if (!completed) {
           throw new Error(`Segment ${i + 1} failed to complete`);
@@ -402,8 +451,17 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
   }, [pollForCompletion]);
 
   const cancelGeneration = useCallback(() => {
-    cancelRef.current = true;
+    // Invalidate current generation by setting ID to null
+    currentGenerationIdRef.current = null;
     setContinuousGenState(null);
+
+    // Cleanup tracked jobs
+    for (const jobId of jobIdsRef.current) {
+      cleanupVideoJob(jobId).catch(() => {
+        // Ignore cleanup errors
+      });
+    }
+    jobIdsRef.current = [];
   }, []);
 
   const extendCurrentVideo = useCallback(async (
@@ -412,11 +470,15 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     videoResolution: VideoResolution
   ) => {
     if (!sourceVideoUri) {
-      setError("No source video URI available for extension");
+      setError("errors.noSourceVideo");
       return;
     }
 
     const apiKey = isStaticMode() ? getApiKey("gemini") : undefined;
+
+    // Generate a unique ID for this extension session
+    const extensionId = generateGenerationId();
+    currentGenerationIdRef.current = extensionId;
 
     setIsExtendingVideo(true);
     setError(null);
@@ -430,9 +492,12 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         videoResolution
       );
 
+      // Track job ID for cleanup
+      jobIdsRef.current.push(result.jobId);
+
       setVideoProvider(result.provider);
 
-      const completed = await pollForCompletion(result.jobId, apiKey);
+      const completed = await pollForCompletion(result.jobId, extensionId, apiKey);
 
       if (completed) {
         setGeneratedVideoUrl(completed.videoUrl);
@@ -441,14 +506,25 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to extend video");
+      setError(err instanceof Error ? err.message : "errors.videoExtensionFailed");
     } finally {
       setIsExtendingVideo(false);
     }
   }, [sourceVideoUri, pollForCompletion]);
 
   const resetVideoState = useCallback(() => {
-    cancelRef.current = true;
+    // Invalidate current generation
+    currentGenerationIdRef.current = null;
+
+    // Cleanup tracked jobs to free memory
+    for (const jobId of jobIdsRef.current) {
+      cleanupVideoJob(jobId).catch(() => {
+        // Ignore cleanup errors
+      });
+    }
+    jobIdsRef.current = [];
+
+    // Reset all state
     setContinuousGenState(null);
     setGeneratedVideoUrl(null);
     setSourceVideoUri(null);

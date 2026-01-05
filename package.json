@@ -1,6 +1,6 @@
 {
   "name": "inotmovingtoday",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI Video Generator for Reels/TikTok/Shorts/Youtube - Generate viral short videos through AI-guided conversation",
   "keywords": [
     "ai",
@@ -38,25 +38,25 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "framer-motion": "^11.18.2",
-    "next": "16.0.6",
+    "next": "16.1.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "uuid": "^11.1.0",
-    "zod": "^4.1.13",
-    "zustand": "^5.0.5"
+    "zod": "^4.3.5",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
-    "baseline-browser-mapping": "^2.8.32",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.5",
-    "prettier": "^3.5.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "baseline-browser-mapping": "^2.9.11",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "16.1.1",
+    "prettier": "^3.7.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd",
   "browserslist": [

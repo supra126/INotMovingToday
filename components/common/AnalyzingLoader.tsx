@@ -9,6 +9,7 @@ interface PacManLoaderProps {
 }
 
 export function PacManLoader({ title, description }: PacManLoaderProps) {
+  const { t } = useLocale();
   return (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8 text-center animate-in fade-in zoom-in duration-500">
       {/* Pac-Man Track */}
@@ -34,7 +35,7 @@ export function PacManLoader({ title, description }: PacManLoaderProps) {
         >
           <Image
             src="/images/logo.svg"
-            alt="Loading"
+            alt={t("common.loading")}
             width={48}
             height={48}
             className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"

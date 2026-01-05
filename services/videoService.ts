@@ -232,6 +232,20 @@ export function isStaticMode(): boolean {
   return isStaticBuild;
 }
 
+/**
+ * Cleanup a video job from memory
+ * Call this when you're done with a video to free memory immediately
+ */
+export async function cleanupVideoJob(jobId: string): Promise<void> {
+  if (isStaticBuild) {
+    const { cleanupVideoJob: cleanupClient } = await import("./video-providers/veo");
+    cleanupClient(jobId);
+  } else {
+    // Server version: cleanup happens server-side automatically
+    // The TTL cleanup will handle it
+  }
+}
+
 // ============ 連續影片生成 ============
 
 export interface SegmentInfo {

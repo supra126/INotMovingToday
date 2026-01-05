@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "../common/Button";
+import { useLocale } from "@/contexts/LocaleContext";
 import type { VideoSuggestion } from "@/types";
 
 interface VideoPlayerProps {
@@ -29,6 +30,7 @@ export function VideoPlayer({
   canExtend = false,
   isExtending = false,
 }: VideoPlayerProps) {
+  const { t } = useLocale();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -125,7 +127,7 @@ export function VideoPlayer({
         >
           <span className="text-3xl">🎉</span>
         </motion.div>
-        <h2 className="text-2xl font-bold text-white mb-2">Your Video is Ready!</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t("video.ready")}</h2>
         <p className="text-gray-400">{suggestion.title}</p>
       </div>
 
@@ -182,15 +184,15 @@ export function VideoPlayer({
       {/* Video Info */}
       <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-400 text-xs mb-1">Platform</div>
+          <div className="text-gray-400 text-xs mb-1">{t("video.platform")}</div>
           <div className="text-white text-sm capitalize">{suggestion.targetPlatform}</div>
         </div>
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-400 text-xs mb-1">Duration</div>
+          <div className="text-gray-400 text-xs mb-1">{t("video.durationLabel")}</div>
           <div className="text-white text-sm">{suggestion.estimatedDuration}s</div>
         </div>
         <div className="bg-[#1e1e24] rounded-xl p-3 text-center border border-blue-500/20">
-          <div className="text-gray-400 text-xs mb-1">Style</div>
+          <div className="text-gray-400 text-xs mb-1">{t("video.style")}</div>
           <div className="text-white text-sm capitalize">{suggestion.style}</div>
         </div>
       </div>
@@ -207,14 +209,14 @@ export function VideoPlayer({
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Download Video
+            {t("video.downloadVideo")}
           </Button>
           <Button
             variant="outline"
             onClick={onStartOver}
             className="flex-1"
           >
-            Create Another
+            {t("video.createNew")}
           </Button>
         </div>
 
@@ -230,7 +232,7 @@ export function VideoPlayer({
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            {isExtending ? "Extending..." : "Extend Video (+7s)"}
+            {isExtending ? t("video.extending") : t("video.extendVideoSeconds")}
           </Button>
         )}
       </div>
@@ -243,15 +245,15 @@ export function VideoPlayer({
             animate={{ opacity: 1, scale: 1 }}
             className="bg-gray-900 rounded-2xl p-6 max-w-md w-full mx-4 border border-gray-800"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Extend Your Video</h3>
+            <h3 className="text-xl font-bold text-white mb-4">{t("video.extendTitle")}</h3>
             <p className="text-gray-400 text-sm mb-4">
-              Describe what happens next in your video. Veo will generate an additional 7 seconds that seamlessly continues from your current video.
+              {t("video.extendDescription")}
             </p>
 
             <textarea
               value={extensionPrompt}
               onChange={(e) => setExtensionPrompt(e.target.value)}
-              placeholder="e.g., The camera slowly zooms out to reveal the full landscape..."
+              placeholder={t("video.extendPlaceholder")}
               rows={4}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none mb-4"
             />
@@ -265,7 +267,7 @@ export function VideoPlayer({
                 }}
                 className="flex-1"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="primary"
@@ -273,7 +275,7 @@ export function VideoPlayer({
                 disabled={!extensionPrompt.trim()}
                 className="flex-1"
               >
-                Extend Video
+                {t("video.extendButton")}
               </Button>
             </div>
           </motion.div>
@@ -282,7 +284,7 @@ export function VideoPlayer({
 
       {/* Share Options */}
       <div className="text-center">
-        <p className="text-gray-400 text-sm mb-3">Share your creation</p>
+        <p className="text-gray-400 text-sm mb-3">{t("video.share")}</p>
         <div className="flex justify-center gap-3">
           {[
             { name: "Instagram", icon: "📸", color: "from-purple-500 to-pink-500" },
@@ -292,7 +294,7 @@ export function VideoPlayer({
             <button
               key={platform.name}
               className={`w-12 h-12 rounded-full bg-gradient-to-br ${platform.color} flex items-center justify-center hover:scale-110 transition-transform`}
-              title={`Share on ${platform.name}`}
+              title={t("video.shareOn", { platform: platform.name })}
             >
               <span className="text-lg">{platform.icon}</span>
             </button>
@@ -302,7 +304,7 @@ export function VideoPlayer({
 
       {/* Disclaimer */}
       <p className="text-center text-gray-600 text-xs max-w-md mx-auto">
-        This video was generated using AI. Please review before publishing to ensure it meets your requirements and platform guidelines.
+        {t("video.disclaimer")}
       </p>
     </motion.div>
   );
