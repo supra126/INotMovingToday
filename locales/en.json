@@ -200,7 +200,9 @@
     },
     "resolution": {
       "720p": "720p",
-      "1080p": "1080p"
+      "1080p": "1080p",
+      "4k": "4K",
+      "requires8s": "8s only"
     },
     "imageUsage": {
       "label": "Image Position",
@@ -348,7 +350,8 @@
     },
     "duration": {
       "label": "Video Duration",
-      "unit": "sec"
+      "unit": "sec",
+      "locked8s": "(locked to 8s by current settings)"
     },
     "cameraMotion": {
       "label": "Camera Motion",
@@ -399,21 +402,15 @@
     },
     "videoMode": {
       "label": "Video Generation Mode",
-      "apiNotAvailable": "API not yet available",
       "single_image": {
-        "name": "Single Image",
-        "description": "Animate one image",
-        "hint": "Upload one image, AI will generate motion from it"
+        "name": "Image to Video",
+        "description": "1-3 images to video",
+        "hint": "Upload 1 image as first frame; upload 2-3 images as style references for AI to generate video based on their visual style"
       },
       "frames_to_video": {
         "name": "Frame Animation",
-        "description": "Start to end frame transition",
-        "hint": "Upload start and end images, AI generates smooth transition animation between them"
-      },
-      "references": {
-        "name": "Style Reference",
-        "description": "1-3 reference images",
-        "hint": "Upload reference images to guide AI's visual style"
+        "description": "Start → end frame transition",
+        "hint": "Upload start and end images, AI generates smooth transition animation between them (8 seconds only)"
       },
       "text_only": {
         "name": "Text Only",
@@ -423,6 +420,7 @@
     },
     "modeUploader": {
       "startImage": "Start Image",
+      "image": "Image",
       "startFrame": "Start Frame",
       "endFrame": "End Frame",
       "reference": "Reference",
@@ -432,6 +430,10 @@
       "clickToUpload": "Click or drag to upload",
       "processing": "Processing...",
       "textOnlyHint": "Text-only mode: No image upload needed. Enter your video content in the Additional Notes field."
+    },
+    "negativePrompt": {
+      "label": "Exclude Content",
+      "placeholder": "Describe what you don't want in the video, e.g.: blur, text, watermark, distortion..."
     },
     "preview": {
       "textOnly": "Text-only mode - No preview image",

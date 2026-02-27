@@ -2,6 +2,8 @@ import type { VideoRatio, VideoResolution } from "@/types";
 
 export interface VideoGenerationParams {
   prompt: string;
+  /** Describes what NOT to include in the video */
+  negativePrompt?: string;
   duration: number;
   ratio: VideoRatio;
   resolution?: VideoResolution;

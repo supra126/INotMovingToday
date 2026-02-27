@@ -149,6 +149,7 @@ export async function startVideoGeneration(
     firstFrameImage?: string;
     lastFrameImage?: string;
     referenceImages?: string[];
+    negativePrompt?: string;
   }
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
   // Determine which image mode to use
@@ -166,6 +167,7 @@ export async function startVideoGeneration(
     const { generateVideoAction } = await import("@/app/actions/server/generate");
     return generateVideoAction({
       prompt,
+      negativePrompt: options?.negativePrompt,
       duration,
       ratio,
       resolution,

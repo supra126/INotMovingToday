@@ -271,17 +271,35 @@ export function ModeImageUploader({
     );
   }
 
-  // Single image mode - use same grid as frames_to_video for consistent sizing
+  // Single image mode - supports 1-3 images
+  // 1 image = image-to-video (first frame), 2-3 images = reference/ingredients mode
   if (mode === "single_image") {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <SingleUploadBox
-          label={t("upload.modeUploader.startImage")}
+          label={`${t("upload.modeUploader.image")} 1`}
+          hint={t("upload.modeUploader.required")}
           image={startFrame}
           onImageChange={onStartFrameChange}
           videoRatio={videoRatio}
           disabled={disabled}
           required
+        />
+        <SingleUploadBox
+          label={`${t("upload.modeUploader.image")} 2`}
+          hint={t("upload.modeUploader.optional")}
+          image={references[0]}
+          onImageChange={(img) => handleReferenceChange(0, img)}
+          videoRatio={videoRatio}
+          disabled={disabled || !startFrame}
+        />
+        <SingleUploadBox
+          label={`${t("upload.modeUploader.image")} 3`}
+          hint={t("upload.modeUploader.optional")}
+          image={references[1]}
+          onImageChange={(img) => handleReferenceChange(1, img)}
+          videoRatio={videoRatio}
+          disabled={disabled || !references[0]}
         />
       </div>
     );
@@ -311,38 +329,7 @@ export function ModeImageUploader({
     );
   }
 
-  // References mode (1-3 images)
-  if (mode === "references") {
-    return (
-      <div className="grid grid-cols-3 gap-3">
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.reference")} 1`}
-          hint={t("upload.modeUploader.required")}
-          image={references[0]}
-          onImageChange={(img) => handleReferenceChange(0, img)}
-          videoRatio={videoRatio}
-          disabled={disabled}
-          required
-        />
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.reference")} 2`}
-          hint={t("upload.modeUploader.optional")}
-          image={references[1]}
-          onImageChange={(img) => handleReferenceChange(1, img)}
-          videoRatio={videoRatio}
-          disabled={disabled || !references[0]}
-        />
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.reference")} 3`}
-          hint={t("upload.modeUploader.optional")}
-          image={references[2]}
-          onImageChange={(img) => handleReferenceChange(2, img)}
-          videoRatio={videoRatio}
-          disabled={disabled || !references[1]}
-        />
-      </div>
-    );
-  }
+  // References mode removed - merged into single_image
 
   return null;
 }

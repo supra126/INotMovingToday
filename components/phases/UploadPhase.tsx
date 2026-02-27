@@ -33,6 +33,7 @@ interface UploadPhaseProps {
   references: UploadedImage[];
   // Other settings
   description: string;
+  negativePrompt: string;
   videoRatio: VideoRatio;
   videoResolution: VideoResolution;
   veoModel: VeoModel;
@@ -48,6 +49,7 @@ interface UploadPhaseProps {
   onEndFrameChange: (image: UploadedImage | undefined) => void;
   onReferencesChange: (images: UploadedImage[]) => void;
   onDescriptionChange: (description: string) => void;
+  onNegativePromptChange: (prompt: string) => void;
   onVideoRatioChange: (ratio: VideoRatio) => void;
   onVideoResolutionChange: (resolution: VideoResolution) => void;
   onVeoModelChange: (model: VeoModel) => void;
@@ -64,6 +66,7 @@ export function UploadPhase({
   endFrame,
   references,
   description,
+  negativePrompt,
   videoRatio,
   videoResolution,
   veoModel,
@@ -78,6 +81,7 @@ export function UploadPhase({
   onEndFrameChange,
   onReferencesChange,
   onDescriptionChange,
+  onNegativePromptChange,
   onVideoRatioChange,
   onVideoResolutionChange,
   onVeoModelChange,
@@ -97,8 +101,6 @@ export function UploadPhase({
         return !!startFrame;
       case "frames_to_video":
         return !!startFrame && !!endFrame;
-      case "references":
-        return references.length > 0;
       case "text_only":
         return true;
     }
@@ -110,8 +112,6 @@ export function UploadPhase({
       case "single_image":
       case "frames_to_video":
         return startFrame;
-      case "references":
-        return references[0];
       default:
         return undefined;
     }
@@ -176,6 +176,21 @@ export function UploadPhase({
             />
           </div>
 
+          {/* 3.5. Negative Prompt */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="negativePrompt" className="block text-base font-bold text-gray-400 uppercase tracking-wider text-left">
+              {t("upload.negativePrompt.label")}
+            </label>
+            <textarea
+              id="negativePrompt"
+              value={negativePrompt}
+              onChange={(e) => onNegativePromptChange(e.target.value)}
+              placeholder={t("upload.negativePrompt.placeholder")}
+              disabled={isLoading}
+              className="w-full min-h-[100px] bg-[#15151a] border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none transition-colors resize-none text-sm leading-relaxed disabled:opacity-50"
+            />
+          </div>
+
           {/* 4. Video Model */}
           <VeoModelSelector
             value={veoModel}
@@ -204,8 +219,10 @@ export function UploadPhase({
               value={videoDuration}
               onChange={onVideoDurationChange}
               disabled={isLoading}
+              videoResolution={videoResolution}
+              videoMode={videoMode}
             />
-            <PriceEstimate veoModel={veoModel} duration={videoDuration} />
+            <PriceEstimate veoModel={veoModel} duration={videoDuration} resolution={videoResolution} />
           </div>
 
           {/* 7. Camera Motion */}

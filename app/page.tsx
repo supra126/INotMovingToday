@@ -152,8 +152,6 @@ export default function Home() {
         return !!videoSettings.startFrame;
       case "frames_to_video":
         return !!videoSettings.startFrame && !!videoSettings.endFrame;
-      case "references":
-        return videoSettings.references.length > 0;
       case "text_only":
         return true;
     }
@@ -243,7 +241,8 @@ export default function Home() {
       videoSettings.videoResolution,
       videoSettings.imageUsageMode,
       videoSettings.cameraMotion,
-      videoSettings.videoMode
+      videoSettings.videoMode,
+      videoSettings.negativePrompt || undefined
     );
 
     if (success) {
@@ -263,6 +262,7 @@ export default function Home() {
     videoSettings.imageUsageMode,
     videoSettings.cameraMotion,
     videoSettings.videoMode,
+    videoSettings.negativePrompt,
   ]);
 
   // Check if video is currently being generated
@@ -308,7 +308,8 @@ export default function Home() {
       videoSettings.videoResolution,
       videoSettings.imageUsageMode,
       videoSettings.cameraMotion,
-      videoSettings.videoMode
+      videoSettings.videoMode,
+      videoSettings.negativePrompt || undefined
     );
 
     if (success) {
@@ -343,7 +344,8 @@ export default function Home() {
         videoSettings.videoResolution,
         videoSettings.imageUsageMode,
         videoSettings.cameraMotion,
-        videoSettings.videoMode
+        videoSettings.videoMode,
+        videoSettings.negativePrompt || undefined
       ).then((success) => {
         if (success) {
           setPhase("completed");
@@ -415,6 +417,7 @@ export default function Home() {
               endFrame={videoSettings.endFrame}
               references={videoSettings.references}
               description={description}
+              negativePrompt={videoSettings.negativePrompt}
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
               veoModel={videoSettings.veoModel}
@@ -429,6 +432,7 @@ export default function Home() {
               onEndFrameChange={handleEndFrameChange}
               onReferencesChange={handleReferencesChange}
               onDescriptionChange={setDescription}
+              onNegativePromptChange={videoSettings.setNegativePrompt}
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
               onVeoModelChange={videoSettings.setVeoModel}

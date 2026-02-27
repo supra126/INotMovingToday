@@ -6,6 +6,8 @@ import type { VideoRatio, VideoResolution } from "@/types";
 
 export interface GenerateVideoParams {
   prompt: string;
+  /** Describes what NOT to include in the video */
+  negativePrompt?: string;
   duration: number;
   ratio: VideoRatio;
   resolution?: VideoResolution;
@@ -84,6 +86,7 @@ export async function generateVideoAction(
 
   const result = await provider.generateVideo({
     prompt: validatedParams.prompt,
+    negativePrompt: params.negativePrompt,
     duration: validatedParams.duration,
     ratio: validatedParams.ratio,
     resolution: validatedParams.resolution,

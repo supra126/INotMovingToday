@@ -32,6 +32,7 @@ export interface VideoSettings {
   veoModel: VeoModel;
   videoDuration: VideoDuration;
   cameraMotion: CameraMotion;
+  negativePrompt: string;
 }
 
 export interface VideoSettingsActions {
@@ -49,6 +50,7 @@ export interface VideoSettingsActions {
   setVeoModel: (model: VeoModel) => void;
   setVideoDuration: (duration: VideoDuration) => void;
   setCameraMotion: (motion: CameraMotion) => void;
+  setNegativePrompt: (prompt: string) => void;
   applyRecommendedSettings: (settings: RecommendedSettings) => void;
   resetSettings: () => void;
   resetImageState: () => void;
@@ -67,6 +69,7 @@ const DEFAULT_SETTINGS: Omit<VideoSettings, 'startFrame' | 'endFrame' | 'referen
   veoModel: "fast",
   videoDuration: 4,
   cameraMotion: "auto",
+  negativePrompt: "",
 };
 
 export function useVideoSettings(): VideoSettings & VideoSettingsActions {
@@ -84,6 +87,15 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
   const [veoModel, setVeoModel] = useState<VeoModel>(DEFAULT_SETTINGS.veoModel);
   const [videoDuration, setVideoDuration] = useState<VideoDuration>(DEFAULT_SETTINGS.videoDuration);
   const [cameraMotion, setCameraMotion] = useState<CameraMotion>(DEFAULT_SETTINGS.cameraMotion);
+  const [negativePrompt, setNegativePrompt] = useState<string>(DEFAULT_SETTINGS.negativePrompt);
+
+  // Handle resolution change - 1080p/4k require 8-second duration
+  const handleVideoResolutionChange = useCallback((resolution: VideoResolution) => {
+    setVideoResolution(resolution);
+    if (resolution === "1080p" || resolution === "4k") {
+      setVideoDuration(8);
+    }
+  }, []);
 
   const applyRecommendedSettings = useCallback((settings: RecommendedSettings) => {
     setConsistencyMode(settings.consistencyMode);
@@ -104,10 +116,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     resetImageState();
     // Sync imageUsageMode for backward compatibility
     setImageUsageMode(mode === "text_only" ? "none" : "start");
-    // Only "references" mode doesn't support 9:16
-    // Auto-switch to 16:9 when switching to references mode
-    if (mode === "references") {
-      setVideoRatio("16:9");
+    // frames_to_video requires 8-second duration
+    if (mode === "frames_to_video") {
+      setVideoDuration(8);
     }
   }, [resetImageState]);
 
@@ -126,6 +137,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setVeoModel(DEFAULT_SETTINGS.veoModel);
     setVideoDuration(DEFAULT_SETTINGS.videoDuration);
     setCameraMotion(DEFAULT_SETTINGS.cameraMotion);
+    setNegativePrompt(DEFAULT_SETTINGS.negativePrompt);
   }, []);
 
   return {
@@ -143,8 +155,9 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     veoModel,
     videoDuration,
     cameraMotion,
+    negativePrompt,
     setVideoRatio,
-    setVideoResolution,
+    setVideoResolution: handleVideoResolutionChange,
     setImageUsageMode,
     setVideoMode: handleVideoModeChange,
     setStartFrame,
@@ -157,6 +170,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setVeoModel,
     setVideoDuration,
     setCameraMotion,
+    setNegativePrompt,
     applyRecommendedSettings,
     resetSettings,
     resetImageState,
