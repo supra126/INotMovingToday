@@ -313,12 +313,10 @@ export class VeoProvider implements VideoGenerationProvider {
       return "image/jpeg";
     };
 
-    // Helper function to create image object for Gemini API (inlineData format)
+    // Helper function to create image object for Veo API (bytesBase64Encoded format)
     const createImageObject = (base64Data: string) => ({
-      inlineData: {
-        mimeType: detectMimeType(base64Data),
-        data: base64Data,
-      },
+      bytesBase64Encoded: base64Data,
+      mimeType: detectMimeType(base64Data),
     });
 
     const instance = requestBody.instances as Array<Record<string, unknown>>;
