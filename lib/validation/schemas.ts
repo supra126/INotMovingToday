@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Base schemas for common types
 export const VideoRatioSchema = z.enum(["9:16", "16:9"]);
-export const VideoResolutionSchema = z.enum(["720p", "1080p"]);
+export const VideoResolutionSchema = z.enum(["720p", "1080p", "4k"]);
 export const LocaleSchema = z.enum(["zh", "en"]);
 export const ImageUsageModeSchema = z.enum(["start", "end", "none"]);
 export const ConsistencyModeSchema = z.enum(["none", "product", "character", "both"]);

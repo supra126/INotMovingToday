@@ -1,23 +1,25 @@
 "use client";
 
-import type { VeoModel, VideoDuration } from "@/types";
+import type { VeoModel, VideoDuration, VideoResolution } from "@/types";
 import { useLocale } from "@/contexts/LocaleContext";
 
 interface PriceEstimateProps {
   veoModel: VeoModel;
   duration: VideoDuration;
+  resolution?: VideoResolution;
 }
 
-// Pricing per second in USD
-const PRICING: Record<VeoModel, number> = {
-  fast: 0.15,
-  standard: 0.4,
+// Pricing per second in USD: [model][resolution]
+const PRICING: Record<VeoModel, Record<VideoResolution, number>> = {
+  fast: { "720p": 0.15, "1080p": 0.15, "4k": 0.35 },
+  standard: { "720p": 0.40, "1080p": 0.40, "4k": 0.60 },
 };
 
-export function PriceEstimate({ veoModel, duration }: PriceEstimateProps) {
+export function PriceEstimate({ veoModel, duration, resolution = "720p" }: PriceEstimateProps) {
   const { t } = useLocale();
 
-  const priceUSD = PRICING[veoModel] * duration;
+  const pricePerSec = PRICING[veoModel][resolution];
+  const priceUSD = pricePerSec * duration;
   const formattedPrice = `$${priceUSD.toFixed(2)}`;
 
   return (

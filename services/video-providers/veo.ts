@@ -276,22 +276,13 @@ export class VeoProvider implements VideoGenerationProvider {
       seed: seed,
     });
 
-    // Determine if using reference images mode (the only mode that doesn't support 9:16)
-    const isReferencesMode = params.referenceImages && params.referenceImages.length > 0 &&
-      !params.firstFrameImage && !params.lastFrameImage;
-
     // Determine aspect ratio
-    // IMPORTANT: Only "references" mode doesn't support 9:16
-    // - text-to-video: supports 9:16 and 16:9
-    // - single image-to-video: supports 9:16 and 16:9
-    // - first+last frame: supports 9:16 and 16:9
-    // - reference images: only supports 16:9
-    let effectiveRatio: "9:16" | "16:9" = params.ratio === "9:16" ? "9:16" : "16:9";
+    // All modes support both 9:16 and 16:9
+    const effectiveRatio: "9:16" | "16:9" = params.ratio === "9:16" ? "9:16" : "16:9";
 
-    if (isReferencesMode && params.ratio === "9:16") {
-      logger.warn("Reference images mode only supports 16:9, forcing ratio change from 9:16 to 16:9");
-      effectiveRatio = "16:9";
-    }
+    // Determine if using image-based modes
+    const hasImages = !!(params.firstFrameImage || params.lastFrameImage ||
+      (params.referenceImages && params.referenceImages.length > 0));
 
     // Build request body using the correct Veo API format
     // Reference: https://ai.google.dev/gemini-api/docs/video
@@ -305,11 +296,11 @@ export class VeoProvider implements VideoGenerationProvider {
         aspectRatio: effectiveRatio,
         durationSeconds: duration,
         resolution: params.resolution || "720p",
-        seed: seed, // Add seed for reproducibility
-        // Safety settings - allow adult content generation
-        // Note: "allow_all" requires Google allowlist approval, so we use "allow_adult"
-        // Text-to-video theoretically supports "allow_all" but requires special approval
-        personGeneration: "allow_adult",
+        seed: seed,
+        // personGeneration: text-to-video & extension → "allow_all", image modes → "allow_adult"
+        personGeneration: hasImages ? "allow_adult" : "allow_all",
+        // negativePrompt: describe what NOT to include
+        ...(params.negativePrompt ? { negativePrompt: params.negativePrompt } : {}),
       },
     };
 
@@ -322,35 +313,41 @@ export class VeoProvider implements VideoGenerationProvider {
       return "image/jpeg";
     };
 
-    // Helper function to create image object for Veo API
+    // Helper function to create image object for Gemini API (inlineData format)
     const createImageObject = (base64Data: string) => ({
-      bytesBase64Encoded: base64Data,
-      mimeType: detectMimeType(base64Data),
+      inlineData: {
+        mimeType: detectMimeType(base64Data),
+        data: base64Data,
+      },
     });
 
     const instance = requestBody.instances as Array<Record<string, unknown>>;
 
-    // Veo 3.1 supports first frame (image) and last frame (lastFrame) in instance
-    // Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos-from-first-and-last-frames
-    // Note: Gemini API (generativelanguage.googleapis.com) may have different support than Vertex AI
+    const parameters = requestBody.parameters as Record<string, unknown>;
 
-    // Mode 1: First + Last frame (frames-to-video transition)
+    // Veo 3.1 supports multiple image modes via Gemini API
+    // Reference: https://ai.google.dev/gemini-api/docs/video
+
+    // Mode 1: First + Last frame (frames-to-video transition, requires duration=8)
     if (params.firstFrameImage && params.lastFrameImage) {
       logger.debug("Using frames-to-video mode with first and last frame");
-      // Both image and lastFrame go in the instance (same level)
       instance[0].image = createImageObject(params.firstFrameImage);
-      instance[0].lastFrame = createImageObject(params.lastFrameImage);
+      // lastFrame goes in parameters (Gemini API format)
+      parameters.lastFrame = createImageObject(params.lastFrameImage);
     }
     // Mode 2: First frame only (image-to-video)
     else if (params.firstFrameImage) {
       logger.debug("Using image-to-video mode with first frame");
       instance[0].image = createImageObject(params.firstFrameImage);
     }
-    // Mode 3: Reference images for style (legacy support)
+    // Mode 3: Reference images / Ingredients to Video (up to 3 images)
     else if (params.referenceImages && params.referenceImages.length > 0) {
-      logger.debug("Using reference images for style guidance");
-      // Veo currently supports one reference image for style
-      instance[0].image = createImageObject(params.referenceImages[0]);
+      logger.debug(`Using reference images mode with ${params.referenceImages.length} image(s)`);
+      // referenceImages goes in parameters as array with referenceType
+      parameters.referenceImages = params.referenceImages.slice(0, 3).map(imgData => ({
+        image: createImageObject(imgData),
+        referenceType: "asset",
+      }));
     }
 
     // Use retry wrapper for API call

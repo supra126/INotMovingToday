@@ -2,7 +2,7 @@
 
 export type VideoRatio = "9:16" | "16:9";
 
-export type VideoResolution = "720p" | "1080p";
+export type VideoResolution = "720p" | "1080p" | "4k";
 
 // Veo 模型選擇
 export type VeoModel = "fast" | "standard";
@@ -23,9 +23,8 @@ export type CameraMotion =
 
 // 影片生成模式
 export type VideoGenerationMode =
-  | "single_image"      // 單張圖片 → 影片
-  | "frames_to_video"   // 首尾幀動畫（起始圖 + 結束圖）
-  | "references"        // 參考風格生成（1-3 張參考圖）
+  | "single_image"      // 圖片生成（1 張=起始幀，2-3 張=參考風格）
+  | "frames_to_video"   // 首尾幀動畫（起始圖 + 結束圖，需 8 秒）
   | "text_only";        // 純文字生成（不使用圖片）
 
 // 圖片使用位置 (保留向後相容，但已被 VideoGenerationMode 取代)

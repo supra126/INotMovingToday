@@ -164,7 +164,8 @@ export interface VideoGenerationActions {
     videoResolution: VideoResolution,
     imageUsageMode: ImageUsageMode,
     cameraMotion: CameraMotion,
-    videoMode?: VideoGenerationMode
+    videoMode?: VideoGenerationMode,
+    negativePrompt?: string
   ) => Promise<boolean>;
   cancelGeneration: () => void;
   extendCurrentVideo: (prompt: string, videoRatio: VideoRatio, videoResolution: VideoResolution) => Promise<void>;
@@ -277,7 +278,8 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     videoResolution: VideoResolution,
     imageUsageMode: ImageUsageMode,
     cameraMotion: CameraMotion,
-    videoMode?: VideoGenerationMode
+    videoMode?: VideoGenerationMode,
+    negativePrompt?: string
   ): Promise<boolean> => {
     const geminiApiKey = isStaticMode() ? getApiKey("gemini") : undefined;
 
@@ -302,14 +304,16 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         // Frames to video mode: first image is start frame, second is end frame
         firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
         lastFrameImage = await cropImageToRatio(images[1].file, videoRatio);
-      } else if (effectiveMode === "references" && images.length > 0) {
-        // References mode: use all images as style references
-        referenceImages = await Promise.all(
-          images.slice(0, 3).map(img => cropImageToRatio(img.file, videoRatio))
-        );
       } else if (effectiveMode === "single_image" && images.length > 0) {
-        // Single image mode: use first image as start frame
-        firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
+        if (images.length === 1) {
+          // 1 image: image-to-video (first frame)
+          firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
+        } else {
+          // 2-3 images: reference/ingredients mode
+          referenceImages = await Promise.all(
+            images.slice(0, 3).map(img => cropImageToRatio(img.file, videoRatio))
+          );
+        }
       }
       // text_only mode: no images
 
@@ -376,6 +380,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
               firstFrameImage,
               lastFrameImage,
               referenceImages,
+              negativePrompt: negativePrompt || undefined,
             }
           );
         }
