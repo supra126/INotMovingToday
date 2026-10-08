@@ -2,9 +2,6 @@ const API_KEY_STORAGE_KEY = "video-gen-api-keys";
 
 export interface StoredApiKeys {
   gemini?: string;
-  runway?: string;
-  pika?: string;
-  kling?: string;
 }
 
 /**

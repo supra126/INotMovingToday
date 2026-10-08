@@ -1,22 +1,77 @@
-import { GoogleGenerativeAI, Part } from "@google/generative-ai";
-import type { AnalysisResponse, Locale, ScriptResponse, VideoSuggestion, VideoRatio, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
-import { buildInitialPrompt, buildRefinementPrompt, buildFinalScriptPrompt, buildScriptRefinementPrompt, getImageUsageInstruction, getConsistencyPromptSection, getSceneModeInstruction, getMotionDynamicsInstruction, getQualityBoosterInstruction, getCameraMotionInstruction } from "./prompts";
+import { GoogleGenAI, ThinkingLevel, type Part } from "@google/genai";
+import type { PromptDraft, PromptFields } from "@/types";
+import {
+  PROMPT_FIELD_KEYS,
+  buildPromptDraftPrompt,
+  buildPromptComposePrompt,
+  type PromptContext,
+  type PromptDraftInput,
+} from "./prompts";
 import { geminiLogger as logger } from "@/lib/logger";
 
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemini-3.8-flash";
+
+// Thinking tokens count toward this limit, so leave headroom for the JSON output
+const MAX_OUTPUT_TOKENS = 32768;
+
+export type GeminiThinkingLevel = "low" | "medium" | "high";
+
+const THINKING_LEVELS: Record<GeminiThinkingLevel, ThinkingLevel> = {
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
+};
+
+/**
+ * Parse a thinking level from env / user input, falling back to the model default (undefined)
+ */
+export function parseThinkingLevel(value: string | undefined): GeminiThinkingLevel | undefined {
+  const level = value?.trim().toLowerCase();
+  return level === "low" || level === "medium" || level === "high" ? level : undefined;
+}
 
 export interface GeminiClientOptions {
   apiKey: string;
-  thinkingBudget?: number;
+  /** Gemini 3 thinking level; omitted = model default (medium) */
+  thinkingLevel?: GeminiThinkingLevel;
 }
 
 export class GeminiClient {
-  private genAI: GoogleGenerativeAI;
-  private thinkingBudget: number;
+  private ai: GoogleGenAI;
+  private thinkingLevel?: GeminiThinkingLevel;
 
   constructor(options: GeminiClientOptions) {
-    this.genAI = new GoogleGenerativeAI(options.apiKey);
-    this.thinkingBudget = options.thinkingBudget ?? 2048;
+    this.ai = new GoogleGenAI({ apiKey: options.apiKey });
+    this.thinkingLevel = options.thinkingLevel;
+  }
+
+  /**
+   * Run a JSON-mode generation and return the raw response text.
+   * Gemini 3 recommends the default temperature, so sampling params are not overridden.
+   */
+  private async generateJson(
+    prompt: string,
+    imageParts: Part[] = [],
+    thinkingLevel: GeminiThinkingLevel | undefined = this.thinkingLevel
+  ): Promise<string> {
+    const response = await this.ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: [{ role: "user", parts: [{ text: prompt }, ...imageParts] }],
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        ...(thinkingLevel && {
+          thinkingConfig: { thinkingLevel: THINKING_LEVELS[thinkingLevel] },
+        }),
+      },
+    });
+
+    const text = response.text;
+    if (!text) {
+      const reason = response.candidates?.[0]?.finishReason ?? response.promptFeedback?.blockReason;
+      throw new Error(`Empty response from Gemini${reason ? ` (${reason})` : ""}`);
+    }
+    return text;
   }
 
   // Supported MIME types by Gemini API
@@ -96,374 +151,69 @@ export class GeminiClient {
     };
   }
 
-  async analyzeImages(
-    images: File[],
-    description: string,
-    locale: Locale = "zh",
-    ratio: VideoRatio = "9:16"
-  ): Promise<AnalysisResponse> {
-    const model = this.genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: {
-        temperature: 0.9,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      },
-    });
+  /**
+   * Suggest editable shot fields (subject, setting, camera, lighting, sound) from the user's idea and images
+   */
+  async draftPrompt(images: File[], input: Omit<PromptDraftInput, "imageCount">): Promise<PromptDraft> {
+    const prompt = buildPromptDraftPrompt({ ...input, imageCount: images.length });
+    const imageParts = await Promise.all(images.map((img) => this.fileToGenerativePart(img)));
+    const text = await this.generateJson(prompt, imageParts);
 
-    const prompt = buildInitialPrompt(images.length, description, locale, ratio);
-
-    const imageParts = await Promise.all(
-      images.map((img) => this.fileToGenerativePart(img))
-    );
-
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const response = result.response;
-    const text = response.text();
-
-    // Parse JSON from response
-    return this.parseAnalysisResponse(text, "analysis");
+    const parsed = this.parse<{ summary?: string; fields?: Partial<Record<string, { value?: string; options?: unknown }>> }>(text);
+    const fields = {} as PromptDraft["fields"];
+    for (const key of PROMPT_FIELD_KEYS) {
+      const field = parsed.fields?.[key];
+      fields[key] = {
+        value: field?.value?.trim() ?? "",
+        options: Array.isArray(field?.options)
+          ? field.options.filter((o): o is string => typeof o === "string" && o.trim() !== "").slice(0, 3)
+          : [],
+      };
+    }
+    if (!fields.subject.value) {
+      throw new Error("Failed to parse AI response: missing subject");
+    }
+    return { summary: parsed.summary?.trim() ?? "", fields };
   }
 
-  async refineWithSelection(
-    images: File[],
-    iterationNumber: number,
-    previousSelection: {
-      title: string;
-      concept: string;
-    },
-    userAdjustment: string,
-    newImageCount: number,
-    additionalText: string,
-    locale: Locale = "zh",
-    ratio: VideoRatio = "9:16"
-  ): Promise<AnalysisResponse> {
-    const model = this.genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: {
-        temperature: 0.9,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      },
-    });
-
-    const prompt = buildRefinementPrompt(
-      iterationNumber,
-      previousSelection,
-      userAdjustment,
-      newImageCount,
-      additionalText,
-      images.length,
-      locale,
-      ratio
-    );
-
-    const imageParts = await Promise.all(
-      images.map((img) => this.fileToGenerativePart(img))
-    );
-
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const response = result.response;
-    const text = response.text();
-
-    return this.parseAnalysisResponse(text, "refinement");
+  /**
+   * Compose edited fields into the final English prompt for Omni (fast, low thinking)
+   */
+  async composePrompt(fields: PromptFields, ctx: PromptContext): Promise<string> {
+    const text = await this.generateJson(buildPromptComposePrompt(fields, ctx), [], "low");
+    const prompt = this.parse<{ prompt?: string }>(text).prompt?.trim();
+    if (!prompt) {
+      throw new Error("Failed to parse AI response: missing prompt");
+    }
+    return prompt;
   }
 
-  async generateScript(
-    images: File[],
-    suggestion: VideoSuggestion,
-    ratio: VideoRatio = "9:16",
-    locale: Locale = "zh",
-    imageUsageMode: ImageUsageMode = "start",
-    consistencyMode: ConsistencyMode = "none",
-    sceneMode: SceneMode = "auto",
-    motionDynamics: MotionDynamics = "moderate",
-    qualityBooster: QualityBooster = "none",
-    videoDuration: VideoDuration = 4,
-    cameraMotion: CameraMotion = "auto"
-  ): Promise<ScriptResponse> {
-    const model = this.genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.9,
-        maxOutputTokens: 8192,
-      },
-    });
-
-    // Build image descriptions from analysis context
-    const imageDescriptions = images.length > 0
-      ? `${images.length} image(s) provided for reference`
-      : "No reference images";
-
-    // Get image usage instruction
-    const imageUsageInstruction = getImageUsageInstruction(imageUsageMode, locale);
-
-    // Get consistency prompt section
-    const consistencySection = getConsistencyPromptSection(consistencyMode, locale);
-
-    // Use user-selected duration instead of suggestion's estimated duration
-    const targetDuration = videoDuration;
-
-    // Get scene mode instruction
-    const sceneModeInstruction = getSceneModeInstruction(sceneMode, targetDuration, locale);
-
-    // Get motion dynamics instruction
-    const motionDynamicsInstruction = getMotionDynamicsInstruction(motionDynamics, locale);
-
-    // Get quality booster instruction
-    const qualityBoosterInstruction = getQualityBoosterInstruction(qualityBooster, locale);
-
-    // Get camera motion instruction (IMPORTANT: constrains all visualPrompts)
-    const cameraMotionInstruction = getCameraMotionInstruction(cameraMotion, locale);
-
-    const basePrompt = buildFinalScriptPrompt(
-      suggestion.title,
-      suggestion.concept,
-      suggestion.style,
-      targetDuration,
-      ratio,
-      images.length,
-      imageDescriptions,
-      locale
-    );
-
-    // Combine prompts with additional instructions
-    let prompt = basePrompt;
-    if (imageUsageInstruction) {
-      prompt += `\n\n${imageUsageInstruction}`;
-    }
-    if (consistencySection) {
-      prompt += `\n\n${consistencySection}`;
-    }
-    if (sceneModeInstruction) {
-      prompt += `\n\n${sceneModeInstruction}`;
-    }
-    if (motionDynamicsInstruction) {
-      prompt += `\n\n${motionDynamicsInstruction}`;
-    }
-    if (qualityBoosterInstruction) {
-      prompt += `\n\n${qualityBoosterInstruction}`;
-    }
-    if (cameraMotionInstruction) {
-      prompt += `\n\n${cameraMotionInstruction}`;
-    }
-
-    const imageParts = await Promise.all(
-      images.map((img) => this.fileToGenerativePart(img))
-    );
-
-    const result = await model.generateContent([prompt, ...imageParts]);
-    const response = result.response;
-    const text = response.text();
-
-    return this.parseScriptResponse(text);
-  }
-
-  private parseAnalysisResponse(text: string, context: string): AnalysisResponse {
+  private parse<T>(text: string): T {
     try {
-      // Remove markdown code blocks if present
-      let cleanedText = text;
-
-      // Remove ```json ... ``` or ``` ... ```
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        cleanedText = codeBlockMatch[1].trim();
-      }
-
-      // Try to extract JSON object
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-
-      let jsonStr = jsonMatch[0];
-
-      // Fix common JSON issues from AI responses
-      // 1. Remove trailing commas before } or ]
-      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
-      // 2. Fix unquoted property names (simple cases)
-      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
-      // 3. Remove any control characters that might break JSON
-      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === "\n" || char === "\r" || char === "\t") return char;
-        return "";
-      });
-
-      // Try to parse, if it fails try to fix common structural issues
-      let parsed: AnalysisResponse;
-      try {
-        parsed = JSON.parse(jsonStr) as AnalysisResponse;
-      } catch (parseError) {
-        // Try to fix missing closing braces in nested objects
-        // Count opening and closing braces
-        const openBraces = (jsonStr.match(/\{/g) || []).length;
-        const closeBraces = (jsonStr.match(/\}/g) || []).length;
-        const openBrackets = (jsonStr.match(/\[/g) || []).length;
-        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-
-        // Add missing closing braces/brackets
-        let fixedJson = jsonStr;
-        for (let i = 0; i < openBrackets - closeBrackets; i++) {
-          fixedJson += "]";
-        }
-        for (let i = 0; i < openBraces - closeBraces; i++) {
-          fixedJson += "}";
-        }
-
-        // Remove trailing commas again after fixes
-        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
-
-        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
-        parsed = JSON.parse(fixedJson) as AnalysisResponse;
-      }
-
-      // Validate required fields
-      if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
-        throw new Error("Missing suggestions array in response");
-      }
-
-      // Ensure we have exactly 3 suggestions
-      if (parsed.suggestions.length < 3) {
-        throw new Error(`Expected 3 suggestions, got ${parsed.suggestions.length}`);
-      }
-
-      // Add IDs to suggestions if not present
-      parsed.suggestions = parsed.suggestions.slice(0, 3).map((s, i) => ({
-        ...s,
-        id: s.id || `suggestion-${Date.now()}-${i}`,
-      })) as [typeof parsed.suggestions[0], typeof parsed.suggestions[1], typeof parsed.suggestions[2]];
-
-      // Ensure imageAnalysis exists
-      if (!parsed.imageAnalysis) {
-        parsed.imageAnalysis = {
-          subjects: [],
-          mood: "",
-          colors: [],
-          setting: "",
-          suggestedThemes: [],
-        };
-      }
-
-      return parsed;
+      return GeminiClient.extractJson<T>(text);
     } catch (err) {
-      logger.error(`Failed to parse AI ${context} response:`, text);
-      logger.error("Parse error:", err);
-      throw new Error(`Failed to parse AI ${context} response: ${err instanceof Error ? err.message : "Unknown error"}`);
-    }
-  }
-
-  private parseScriptResponse(text: string): ScriptResponse {
-    try {
-      // Remove markdown code blocks if present
-      let cleanedText = text;
-
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        cleanedText = codeBlockMatch[1].trim();
-      }
-
-      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-
-      let jsonStr = jsonMatch[0];
-
-      // Fix common JSON issues from AI responses
-      // 1. Remove trailing commas before } or ]
-      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, "$1");
-      // 2. Fix unquoted property names (simple cases)
-      jsonStr = jsonStr.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
-      // 3. Remove any control characters that might break JSON
-      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        if (char === "\n" || char === "\r" || char === "\t") return char;
-        return "";
-      });
-
-      // Try to parse, if it fails try to fix common structural issues
-      let parsed: ScriptResponse;
-      try {
-        parsed = JSON.parse(jsonStr) as ScriptResponse;
-      } catch (parseError) {
-        // Try to fix missing closing braces in nested objects
-        const openBraces = (jsonStr.match(/\{/g) || []).length;
-        const closeBraces = (jsonStr.match(/\}/g) || []).length;
-        const openBrackets = (jsonStr.match(/\[/g) || []).length;
-        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-
-        let fixedJson = jsonStr;
-        for (let i = 0; i < openBrackets - closeBrackets; i++) {
-          fixedJson += "]";
-        }
-        for (let i = 0; i < openBraces - closeBraces; i++) {
-          fixedJson += "}";
-        }
-
-        fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
-
-        logger.info(`Attempting to fix JSON structure: added ${openBraces - closeBraces} braces, ${openBrackets - closeBrackets} brackets`);
-        parsed = JSON.parse(fixedJson) as ScriptResponse;
-      }
-
-      // Validate required fields
-      if (!parsed.script || !parsed.script.scenes) {
-        throw new Error("Missing script or scenes in response");
-      }
-
-      // Ensure musicRecommendation exists
-      if (!parsed.musicRecommendation) {
-        parsed.musicRecommendation = {
-          style: "upbeat",
-          tempo: "120-140 BPM",
-          mood: "energetic",
-        };
-      }
-
-      // Ensure colorGrading exists
-      if (!parsed.colorGrading) {
-        parsed.colorGrading = "Natural with slight contrast boost";
-      }
-
-      return parsed;
-    } catch (err) {
-      logger.error("Failed to parse AI script response:", text);
-      logger.error("Parse error:", err);
-      throw new Error(`Failed to parse AI script response: ${err instanceof Error ? err.message : "Unknown error"}`);
+      logger.error("Failed to parse AI response:", text);
+      throw new Error(`Failed to parse AI response: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   }
 
   /**
-   * Refine an existing script based on user's adjustment instructions
+   * Parse JSON from a JSON-mode response.
+   * Falls back to extracting a fenced or embedded object in case the model wraps it.
    */
-  async refineScript(
-    currentScript: ScriptResponse,
-    userAdjustment: string,
-    locale: Locale = "zh"
-  ): Promise<ScriptResponse> {
-    const model = this.genAI.getGenerativeModel({
-      model: MODEL_NAME,
-      generationConfig: {
-        responseMimeType: "application/json",
-        // @ts-expect-error - thinkingConfig is not in types yet
-        thinkingConfig: {
-          thinkingBudget: this.thinkingBudget,
-        },
-      },
-    });
-
-    const prompt = buildScriptRefinementPrompt(
-      JSON.stringify(currentScript, null, 2),
-      userAdjustment,
-      locale
-    );
-
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-
-    return this.parseScriptResponse(text);
+  private static extractJson<T>(text: string): T {
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1];
+      const candidate = (fenced ?? text).match(/\{[\s\S]*\}/)?.[0];
+      if (!candidate) {
+        throw new Error("No JSON found in response");
+      }
+      return JSON.parse(candidate) as T;
+    }
   }
+
 }
 
 // Singleton for client-side usage with user-provided API key

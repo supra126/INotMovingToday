@@ -1,14 +1,12 @@
 export * from "./types";
 export * from "./mock";
-export * from "./runway";
-export * from "./veo";
+export * from "./omni";
 
 import type { VideoGenerationProvider } from "./types";
 import { getMockProvider } from "./mock";
-import { createRunwayProvider } from "./runway";
-import { createVeoProvider } from "./veo";
+import { createOmniProvider } from "./omni";
 
-export type VideoProviderType = "mock" | "runway" | "veo";
+export type VideoProviderType = "mock" | "omni";
 
 export interface GetProviderOptions {
   type: VideoProviderType;
@@ -16,20 +14,23 @@ export interface GetProviderOptions {
 }
 
 /**
+ * Resolve the provider type from VIDEO_PROVIDER.
+ * "veo" is accepted as a legacy alias: the Veo 3.1 preview models were replaced by Omni.
+ */
+export function resolveProviderType(value: string | undefined): VideoProviderType {
+  return value === "omni" || value === "veo" ? "omni" : "mock";
+}
+
+/**
  * Get a video generation provider instance
  */
 export function getVideoProvider(options: GetProviderOptions): VideoGenerationProvider {
   switch (options.type) {
-    case "runway":
+    case "omni":
       if (!options.apiKey) {
-        throw new Error("Runway API key is required");
+        throw new Error("Gemini API key is required for Omni");
       }
-      return createRunwayProvider(options.apiKey);
-    case "veo":
-      if (!options.apiKey) {
-        throw new Error("Gemini API key is required for Veo");
-      }
-      return createVeoProvider(options.apiKey);
+      return createOmniProvider(options.apiKey);
     case "mock":
     default:
       return getMockProvider();

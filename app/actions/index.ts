@@ -19,7 +19,7 @@ export async function hasServerApiKey(): Promise<boolean> {
 
   // Dynamic import to avoid loading server code in static build
   try {
-    const { hasServerApiKey: serverHasApiKey } = await import("./server/script");
+    const { hasServerApiKey: serverHasApiKey } = await import("./server/prompt");
     return serverHasApiKey();
   } catch {
     return false;

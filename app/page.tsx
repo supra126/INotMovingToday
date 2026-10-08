@@ -1,30 +1,21 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  AnalyzingLoader,
-  RefiningLoader,
-} from "@/components/common/AnalyzingLoader";
 import { Header } from "@/components/layout/Header";
-import { UploadPhase } from "@/components/phases/UploadPhase";
-import { useCreationStore } from "@/lib/storage/session-store";
+import { InputPanel } from "@/components/workspace/InputPanel";
+import { PromptEditor } from "@/components/workspace/PromptEditor";
+import { ResultPanel } from "@/components/workspace/ResultPanel";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { isStaticMode } from "@/services/videoService";
 import { useLocale } from "@/contexts/LocaleContext";
-import {
-  useVideoSettings,
-  useApiKeyStatus,
-  useVideoGeneration,
-  useAnalysis,
-} from "@/hooks";
-import type { UploadedImage, VideoSuggestion } from "@/types";
+import { useVideoSettings, useApiKeyStatus, useVideoGeneration, usePromptDraft } from "@/hooks";
+import { getOrderedImages } from "@/hooks/useVideoSettings";
+import type { UploadedImage } from "@/types";
 
 // Dynamic imports for non-critical components
 const ApiKeyModal = dynamic(
-  () =>
-    import("@/components/settings/ApiKeyModal").then((mod) => mod.ApiKeyModal),
+  () => import("@/components/settings/ApiKeyModal").then((mod) => mod.ApiKeyModal),
   { ssr: false }
 );
 
@@ -33,374 +24,103 @@ const GuideModal = dynamic(
   { ssr: false }
 );
 
-const SuggestionsPhase = dynamic(
-  () =>
-    import("@/components/phases/SuggestionsPhase").then(
-      (mod) => mod.SuggestionsPhase
-    ),
-  { ssr: false }
-);
-
-// ScriptPreview is no longer used - functionality moved to SuggestionsPhase
-// const ScriptPreview = dynamic(
-//   () =>
-//     import("@/components/preview/ScriptPreview").then(
-//       (mod) => mod.ScriptPreview
-//     ),
-//   { ssr: false }
-// );
-
 export default function Home() {
-  const { session, startNewSession, resetSession, setPhase, setImages } =
-    useCreationStore();
-
   const { locale, t } = useLocale();
 
-  // Custom hooks
   const videoSettings = useVideoSettings();
   const apiKeyStatus = useApiKeyStatus();
-  const videoGeneration = useVideoGeneration();
-  const analysis = useAnalysis();
+  const promptDraft = usePromptDraft();
+  const video = useVideoGeneration();
 
-  // Local state
   const [description, setDescription] = useState("");
   const [showGuideModal, setShowGuideModal] = useState(false);
+  // Which button produced the current video, so "Regenerate" repeats it
+  const [lastSource, setLastSource] = useState<"draft" | "direct">("draft");
 
-  // Initialize session on mount
-  useEffect(() => {
-    if (!session) {
-      startNewSession();
+  const images = getOrderedImages(videoSettings.startFrame, videoSettings.endFrame, videoSettings.references);
+  const isGenerating = video.status === "composing" || video.status === "generating" || video.isExtending;
+  const isBusy = promptDraft.isDrafting || isGenerating;
+
+  // Static builds need the user's own key before any AI call
+  const ensureApiKey = () => {
+    if (isStaticMode() && !getApiKey("gemini")) {
+      apiKeyStatus.openApiKeyModal();
+      return false;
     }
-  }, [session, startNewSession]);
+    return true;
+  };
 
-  // Auto-detect ratio from image
+  // Match the ratio to the main image's orientation
+  const { setVideoRatio } = videoSettings;
   const autoDetectRatio = useCallback(
     (image: UploadedImage) => {
-      if (image.previewUrl) {
-        const img = new window.Image();
-        img.onload = () => {
-          const aspectRatio = img.width / img.height;
-          // Veo only supports 9:16 and 16:9
-          // Note: image-to-video mode only supports 16:9
-          if (aspectRatio < 1) {
-            // Portrait or square images -> 9:16 (only if text_only mode)
-            // For image modes, useVideoSettings will force 16:9
-            videoSettings.setVideoRatio("9:16");
-          } else {
-            // Landscape images -> 16:9
-            videoSettings.setVideoRatio("16:9");
-          }
-        };
-        img.src = image.previewUrl;
-      }
+      const img = new window.Image();
+      img.onload = () => setVideoRatio(img.width / img.height < 1 ? "9:16" : "16:9");
+      img.src = image.previewUrl;
     },
-    [videoSettings]
+    [setVideoRatio]
   );
 
-  // Sync all images to session based on current mode
-  const syncImagesToSession = useCallback(
-    (startFrame?: UploadedImage, endFrame?: UploadedImage, refs?: UploadedImage[]) => {
-      const images: UploadedImage[] = [];
-      if (startFrame) images.push(startFrame);
-      if (endFrame) images.push(endFrame);
-      if (refs && refs.length > 0) images.push(...refs);
-      setImages(images);
-    },
-    [setImages]
-  );
-
-  // Handle start frame change with auto-detect ratio
-  const handleStartFrameChange = useCallback(
-    (image: UploadedImage | undefined) => {
-      videoSettings.setStartFrame(image);
-      if (image) {
-        autoDetectRatio(image);
-      }
-      // Sync all images including endFrame for frames_to_video mode
-      syncImagesToSession(image, videoSettings.endFrame, undefined);
-    },
-    [videoSettings, autoDetectRatio, syncImagesToSession]
-  );
-
-  // Handle end frame change (for frames_to_video mode)
-  const handleEndFrameChange = useCallback(
-    (image: UploadedImage | undefined) => {
-      videoSettings.setEndFrame(image);
-      // Sync both frames to session for analysis
-      syncImagesToSession(videoSettings.startFrame, image, undefined);
-    },
-    [videoSettings, syncImagesToSession]
-  );
-
-  // Handle references change with auto-detect ratio
-  const handleReferencesChange = useCallback(
-    (images: UploadedImage[]) => {
-      videoSettings.setReferences(images);
-      if (images.length > 0) {
-        autoDetectRatio(images[0]);
-      }
-      // Sync references to session for analysis
-      syncImagesToSession(undefined, undefined, images);
-    },
-    [videoSettings, autoDetectRatio, syncImagesToSession]
-  );
-
-  // Check if can analyze based on video mode
-  const canAnalyze = useCallback(() => {
-    switch (videoSettings.videoMode) {
-      case "single_image":
-        return !!videoSettings.startFrame;
-      case "frames_to_video":
-        return !!videoSettings.startFrame && !!videoSettings.endFrame;
-      case "text_only":
-        return true;
+  // Removing the main image also clears the images that depend on it
+  const handleStartFrameChange = (image: UploadedImage | undefined) => {
+    videoSettings.setStartFrame(image);
+    if (image) {
+      autoDetectRatio(image);
+    } else {
+      videoSettings.setEndFrame(undefined);
+      videoSettings.setReferences([]);
     }
-  }, [videoSettings.videoMode, videoSettings.startFrame, videoSettings.endFrame, videoSettings.references]);
+  };
 
-  // Handle analyze
-  const handleAnalyze = async () => {
-    if (videoSettings.videoMode !== "text_only" && !canAnalyze()) {
-      analysis.setError(t("errors.uploadRequired"));
-      return;
-    }
-
-    if (isStaticMode() && !getApiKey("gemini")) {
-      apiKeyStatus.openApiKeyModal();
-      return;
-    }
-
-    await analysis.analyze(
+  const handleRequestDraft = async () => {
+    if (!ensureApiKey()) return;
+    await promptDraft.requestDraft(images, {
       description,
+      mode: videoSettings.videoMode,
+      ratio: videoSettings.videoRatio,
+      duration: videoSettings.videoDuration,
       locale,
-      videoSettings.videoRatio,
-      videoSettings.applyRecommendedSettings
-    );
+    });
   };
 
-  // Handle refine
-  const handleRefine = async (
-    selectedId: string,
-    adjustment?: string,
-    additionalText?: string
-  ) => {
-    if (isStaticMode() && !getApiKey("gemini")) {
-      apiKeyStatus.openApiKeyModal();
-      return;
-    }
-
-    await analysis.refine(
-      selectedId,
-      adjustment,
-      additionalText,
+  const handleGenerate = () => {
+    if (!promptDraft.fields || !ensureApiKey()) return;
+    setLastSource("draft");
+    video.generate({
+      fields: promptDraft.fields,
+      images,
+      mode: videoSettings.videoMode,
+      ratio: videoSettings.videoRatio,
+      resolution: videoSettings.videoResolution,
+      duration: videoSettings.videoDuration,
+      negativePrompt: videoSettings.negativePrompt,
       locale,
-      videoSettings.videoRatio
-    );
+    });
   };
 
-  // Handle finalize - now triggers video generation directly after script generation
-  const handleFinalize = async (selectedId: string, editedSuggestion?: VideoSuggestion) => {
-    if (isStaticMode() && !getApiKey("gemini")) {
-      apiKeyStatus.openApiKeyModal();
-      return;
-    }
-
-    // First generate the script
-    await analysis.finalize(
-      selectedId,
-      videoSettings.videoRatio,
+  const handleGenerateDirect = () => {
+    if (!description.trim() || !ensureApiKey()) return;
+    setLastSource("direct");
+    video.generate({
+      rawPrompt: description,
+      images,
+      mode: videoSettings.videoMode,
+      ratio: videoSettings.videoRatio,
+      resolution: videoSettings.videoResolution,
+      duration: videoSettings.videoDuration,
+      negativePrompt: videoSettings.negativePrompt,
       locale,
-      videoSettings.imageUsageMode,
-      videoSettings.consistencyMode,
-      videoSettings.sceneMode,
-      videoSettings.motionDynamics,
-      videoSettings.qualityBooster,
-      videoSettings.videoDuration,
-      videoSettings.cameraMotion,
-      editedSuggestion
-    );
-
-    // Note: Video generation will be triggered after script is ready
-    // This is handled in handleGenerateVideoAfterScript
+    });
   };
 
-  // Handle video generation after script is ready (called from useEffect)
-  const handleGenerateVideoAfterScript = useCallback(async () => {
-    if (
-      !analysis.generatedScript ||
-      !analysis.selectedSuggestionForScript ||
-      !session
-    )
-      return;
-
-    setPhase("generating");
-
-    const success = await videoGeneration.generateVideo(
-      analysis.generatedScript,
-      session.images,
-      videoSettings.videoRatio,
-      videoSettings.videoResolution,
-      videoSettings.imageUsageMode,
-      videoSettings.cameraMotion,
-      videoSettings.videoMode,
-      videoSettings.negativePrompt || undefined
-    );
-
-    if (success) {
-      setPhase("completed");
-    } else {
-      // Stay in generating phase but show error in SuggestionsPhase
-      // Don't go back to final-review since we removed that step
-    }
-  }, [
-    analysis.generatedScript,
-    analysis.selectedSuggestionForScript,
-    session,
-    setPhase,
-    videoGeneration,
-    videoSettings.videoRatio,
-    videoSettings.videoResolution,
-    videoSettings.imageUsageMode,
-    videoSettings.cameraMotion,
-    videoSettings.videoMode,
-    videoSettings.negativePrompt,
-  ]);
-
-  // Check if video is currently being generated
-  const isVideoGenerating = videoGeneration.continuousGenState !== null &&
-    videoGeneration.continuousGenState.phase !== "completed" &&
-    videoGeneration.continuousGenState.phase !== "failed";
-
-  // Auto-trigger video generation when script is ready
-  useEffect(() => {
-    if (
-      session?.phase === "final-review" &&
-      analysis.generatedScript &&
-      analysis.selectedSuggestionForScript &&
-      !isVideoGenerating &&
-      !videoGeneration.generatedVideoUrl
-    ) {
-      handleGenerateVideoAfterScript();
-    }
-  }, [
-    session?.phase,
-    analysis.generatedScript,
-    analysis.selectedSuggestionForScript,
-    isVideoGenerating,
-    videoGeneration.generatedVideoUrl,
-    handleGenerateVideoAfterScript,
-  ]);
-
-  // Handle video generation
-  const handleGenerateVideo = async () => {
-    if (
-      !analysis.generatedScript ||
-      !analysis.selectedSuggestionForScript ||
-      !session
-    )
-      return;
-
-    setPhase("generating");
-
-    const success = await videoGeneration.generateVideo(
-      analysis.generatedScript,
-      session.images,
-      videoSettings.videoRatio,
-      videoSettings.videoResolution,
-      videoSettings.imageUsageMode,
-      videoSettings.cameraMotion,
-      videoSettings.videoMode,
-      videoSettings.negativePrompt || undefined
-    );
-
-    if (success) {
-      setPhase("completed");
-    } else {
-      setPhase("final-review");
-    }
+  const handleExtend = (prompt: string, seconds: number) => {
+    if (ensureApiKey()) video.extend(prompt, seconds);
   };
 
-  // Handle cancel video generation
-  const handleCancelVideoGeneration = () => {
-    videoGeneration.cancelGeneration();
-    analysis.backToSuggestions(); // Reset script and go back to suggestions
-  };
-
-  // Handle edit prompts - go back to step 2 to modify the suggestion
-  const handleEditPrompts = () => {
-    videoGeneration.resetVideoState();
-    analysis.backToSuggestions(); // Go back to suggestions phase to edit
-  };
-
-  // Handle regenerate video - regenerate with same settings
-  const handleRegenerateVideo = () => {
-    videoGeneration.resetVideoState();
-    // Keep the script and suggestion, just regenerate the video
-    if (analysis.generatedScript && analysis.selectedSuggestionForScript && session) {
-      setPhase("generating");
-      videoGeneration.generateVideo(
-        analysis.generatedScript,
-        session.images,
-        videoSettings.videoRatio,
-        videoSettings.videoResolution,
-        videoSettings.imageUsageMode,
-        videoSettings.cameraMotion,
-        videoSettings.videoMode,
-        videoSettings.negativePrompt || undefined
-      ).then((success) => {
-        if (success) {
-          setPhase("completed");
-        }
-      });
-    }
-  };
-
-  // Handle extend video
-  const handleExtendVideo = async (prompt: string) => {
-    await videoGeneration.extendCurrentVideo(
-      prompt,
-      videoSettings.videoRatio,
-      videoSettings.videoResolution
-    );
-  };
-
-  // Handle start over - completely reset and start fresh
-  const handleStartOver = () => {
-    videoGeneration.resetVideoState();
-    analysis.resetAnalysisState();
-    resetSession();
-    startNewSession();
-    setDescription("");
-    videoSettings.resetSettings();
-  };
-
-  // Determine current phase
-  const phase = session?.phase || "initial-upload";
-  const showUpload = phase === "initial-upload";
-  const showAnalyzing = phase === "analyzing";
-  const showRefining = phase === "refining";
-
-  // Show suggestions phase for selecting, generating-script, generating, and completed states
-  // generating-script is now handled within SuggestionsPhase (no separate loader page)
-  const showSuggestions =
-    phase === "first-suggestions" ||
-    phase === "generating-script" ||
-    phase === "final-review" ||
-    phase === "generating" ||
-    phase === "completed";
-
-  // Determine generation phase for SuggestionsPhase
-  const getGenerationPhase = (): "selecting" | "generating" | "completed" => {
-    if (phase === "completed" && videoGeneration.generatedVideoUrl) return "completed";
-    // generating-script, final-review, and generating all show the generating UI
-    if (phase === "generating-script" || phase === "generating" || phase === "final-review") return "generating";
-    return "selecting";
-  };
-
-  // Combine errors
-  const displayError = analysis.error || videoGeneration.error;
+  const draftError = promptDraft.error;
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Header
         hasApiKey={apiKeyStatus.hasApiKey}
         serverHasKey={apiKeyStatus.serverHasKey}
@@ -408,11 +128,10 @@ export default function Home() {
         onApiSettingsClick={apiKeyStatus.openApiKeyModal}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        <AnimatePresence mode="wait">
-          {showUpload && (
-            <UploadPhase
-              videoMode={videoSettings.videoMode}
+      <main className="container mx-auto w-full flex-1 px-4 lg:px-6 py-8 lg:py-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
+          <div className="order-2 lg:order-1 flex flex-col gap-6">
+            <InputPanel
               startFrame={videoSettings.startFrame}
               endFrame={videoSettings.endFrame}
               references={videoSettings.references}
@@ -420,95 +139,59 @@ export default function Home() {
               negativePrompt={videoSettings.negativePrompt}
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
-              veoModel={videoSettings.veoModel}
               videoDuration={videoSettings.videoDuration}
-              cameraMotion={videoSettings.cameraMotion}
-              motionDynamics={videoSettings.motionDynamics}
-              qualityBooster={videoSettings.qualityBooster}
-              isLoading={analysis.isLoading}
-              error={displayError}
-              onVideoModeChange={videoSettings.setVideoMode}
+              isBusy={isBusy}
+              isDrafting={promptDraft.isDrafting}
+              hasDraft={!!promptDraft.draft}
               onStartFrameChange={handleStartFrameChange}
-              onEndFrameChange={handleEndFrameChange}
-              onReferencesChange={handleReferencesChange}
+              onEndFrameChange={videoSettings.setEndFrame}
+              onReferencesChange={videoSettings.setReferences}
               onDescriptionChange={setDescription}
               onNegativePromptChange={videoSettings.setNegativePrompt}
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
-              onVeoModelChange={videoSettings.setVeoModel}
               onVideoDurationChange={videoSettings.setVideoDuration}
-              onCameraMotionChange={videoSettings.setCameraMotion}
-              onMotionDynamicsChange={videoSettings.setMotionDynamics}
-              onQualityBoosterChange={videoSettings.setQualityBooster}
-              onAnalyze={handleAnalyze}
+              onRequestDraft={handleRequestDraft}
+              onGenerateDirect={handleGenerateDirect}
             />
-          )}
 
-          {showAnalyzing && (
-            <motion.div
-              key="analyzing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 flex items-center justify-center min-h-[400px]"
-            >
-              <AnalyzingLoader />
-            </motion.div>
-          )}
+            {draftError && (
+              <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+                {draftError.startsWith("errors.") ? t(draftError) : draftError}
+              </p>
+            )}
 
-          {showRefining && (
-            <motion.div
-              key="refining"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex-1 flex items-center justify-center min-h-[400px]"
-            >
-              <RefiningLoader />
-            </motion.div>
-          )}
+            {promptDraft.draft && promptDraft.fields && (
+              <PromptEditor
+                draft={promptDraft.draft}
+                fields={promptDraft.fields}
+                isBusy={isBusy}
+                onFieldChange={promptDraft.setField}
+                onGenerate={handleGenerate}
+              />
+            )}
+          </div>
 
-          {showSuggestions && session?.currentSuggestions && (
-            <SuggestionsPhase
-              currentSuggestions={session.currentSuggestions}
-              iterations={session.iterations}
-              cameraMotion={videoSettings.cameraMotion}
-              qualityBooster={videoSettings.qualityBooster}
-              isLoading={analysis.isLoading}
-              images={session.images}
-              videoRatio={videoSettings.videoRatio}
-              onRefine={handleRefine}
-              onFinalize={handleFinalize}
-              // New props for integrated generation
-              generationPhase={getGenerationPhase()}
-              continuousGenState={videoGeneration.continuousGenState || undefined}
-              provider={videoGeneration.videoProvider}
-              videoUrl={videoGeneration.generatedVideoUrl || undefined}
-              sourceVideoUri={videoGeneration.sourceVideoUri || undefined}
-              generatedScript={analysis.generatedScript || undefined}
-              selectedSuggestion={analysis.selectedSuggestionForScript || undefined}
-              consistencyMode={videoSettings.consistencyMode}
-              motionDynamics={videoSettings.motionDynamics}
-              onCancelGeneration={handleCancelVideoGeneration}
-              onExtendVideo={handleExtendVideo}
-              canExtend={
-                videoGeneration.videoProvider.startsWith("Google Veo") &&
-                !!videoGeneration.sourceVideoUri
-              }
-              isExtending={videoGeneration.isExtendingVideo}
-              onStartOver={handleRegenerateVideo}
-              onRegenerate={handleEditPrompts}
+          <div className="order-1 lg:order-2">
+            <ResultPanel
+              ratio={videoSettings.videoRatio}
+              previewImage={videoSettings.startFrame}
+              status={video.status}
+              progress={video.progress}
+              videoUrl={video.videoUrl}
+              finalPrompt={video.finalPrompt}
+              totalDuration={video.totalDuration}
+              isExtending={video.isExtending}
+              error={video.error}
+              onCancel={video.cancel}
+              onRegenerate={lastSource === "direct" ? handleGenerateDirect : handleGenerate}
+              onExtend={handleExtend}
             />
-          )}
-
-          {/* ScriptPreview removed - functionality now integrated into SuggestionsPhase */}
-        </AnimatePresence>
+          </div>
+        </div>
       </main>
 
-      <GuideModal
-        isOpen={showGuideModal}
-        onClose={() => setShowGuideModal(false)}
-      />
+      <GuideModal isOpen={showGuideModal} onClose={() => setShowGuideModal(false)} />
 
       <ApiKeyModal
         isOpen={apiKeyStatus.showApiKeyModal}

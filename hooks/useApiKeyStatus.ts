@@ -18,7 +18,8 @@ export interface ApiKeyStatusActions {
 }
 
 export function useApiKeyStatus(): ApiKeyStatus & ApiKeyStatusActions {
-  const [hasApiKey, setHasApiKey] = useState(false);
+  // Safe to read storage on first render: LocaleProvider renders children client-side only
+  const [hasApiKey, setHasApiKey] = useState(() => !!getApiKey("gemini"));
   const [serverHasKey, setServerHasKey] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +31,6 @@ export function useApiKeyStatus(): ApiKeyStatus & ApiKeyStatusActions {
 
   useEffect(() => {
     const userApiKey = getApiKey("gemini");
-    setHasApiKey(!!userApiKey);
 
     hasServerApiKey().then((hasKey) => {
       setServerHasKey(hasKey);
