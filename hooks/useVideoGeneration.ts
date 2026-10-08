@@ -217,11 +217,16 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
   // Settings of the current video, reused for extension
   const lastRequestRef = useRef<{ sourceVideoUri: string; ratio: VideoRatio; resolution: VideoResolution } | null>(null);
 
-  const releaseJobs = useCallback(() => {
+  // Job that produced the video currently on screen; its blob URL must outlive a cancelled extension
+  const shownJobIdRef = useRef<string | null>(null);
+
+  const releaseJobs = useCallback((keepShown = false) => {
+    const keep = keepShown ? shownJobIdRef.current : null;
     for (const jobId of jobIdsRef.current) {
-      cleanupVideoJob(jobId).catch(() => {});
+      if (jobId !== keep) cleanupVideoJob(jobId).catch(() => {});
     }
-    jobIdsRef.current = [];
+    jobIdsRef.current = keep ? [keep] : [];
+    if (!keep) shownJobIdRef.current = null;
   }, []);
 
   const pollUntilDone = useCallback(async (jobId: string, runId: number) => {
@@ -297,6 +302,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       const done = await pollUntilDone(job.jobId, runId);
       if (!done) return false;
 
+      shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
       setTotalDuration(request.duration);
       lastRequestRef.current = done.sourceVideoUri
@@ -333,6 +339,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       const done = await pollUntilDone(job.jobId, runId);
       if (!done) return false;
 
+      shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
       setTotalDuration((d) => d + seconds);
       if (done.sourceVideoUri) {
@@ -351,8 +358,9 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
 
   const cancel = useCallback(() => {
     runIdRef.current++;
-    releaseJobs();
-    setStatus("idle");
+    releaseJobs(true);
+    // A cancelled extension leaves the previous video on screen
+    setStatus(shownJobIdRef.current ? "completed" : "idle");
     setIsExtending(false);
     setProgress(0);
   }, [releaseJobs]);
