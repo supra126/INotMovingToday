@@ -69,7 +69,7 @@ class Logger {
 
 // Pre-configured loggers for different modules
 export const logger = new Logger();
-export const veoLogger = new Logger({ prefix: "Veo" });
+export const omniLogger = new Logger({ prefix: "Omni" });
 export const geminiLogger = new Logger({ prefix: "Gemini" });
 export const videoGenLogger = new Logger({ prefix: "VideoGen" });
 

@@ -3,26 +3,37 @@
 import { useState, useRef, useCallback } from "react";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import {
+  composePrompt,
   startVideoGeneration,
   checkVideoStatus,
   extendVideo,
   isStaticMode,
-  createContinuousGenerationState,
-  calculateOverallProgress,
   cleanupVideoJob,
 } from "@/services/videoService";
-import type { ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, UploadedImage, CameraMotion, VideoGenerationMode } from "@/types";
-import type { ContinuousGenerationState, SegmentInfo } from "@/services/videoService";
+import type { PromptContext } from "@/lib/ai/prompts";
+import type { VideoGenerationParams } from "@/services/video-providers/types";
+import type {
+  PromptFields,
+  UploadedImage,
+  VideoDuration,
+  VideoGenerationMode,
+  VideoRatio,
+  VideoResolution,
+} from "@/types";
 
 /**
- * Map API error messages to user-friendly error keys
- * If the error message is already an i18n key (starts with "errors."), return it directly
+ * Map API error messages to an i18n key ("errors.xxx").
+ * Unrecognized messages are returned as-is so the real cause is shown to the user.
  */
-function getErrorKey(errorMessage: string): string {
-  // If already an i18n key, return as-is (without the "errors." prefix since we add it later)
+function toDisplayError(errorMessage: string): string {
   if (errorMessage.startsWith("errors.")) {
-    return errorMessage.replace("errors.", "");
+    return errorMessage;
   }
+  const key = matchErrorKey(errorMessage);
+  return key ? `errors.${key}` : errorMessage || "errors.videoGenerationFailed";
+}
+
+function matchErrorKey(errorMessage: string): string | null {
 
   const msg = errorMessage.toLowerCase();
   if (msg.includes("quota") || msg.includes("exceeded your current quota")) {
@@ -41,7 +52,7 @@ function getErrorKey(errorMessage: string): string {
   if (msg.includes("content") && (msg.includes("filter") || msg.includes("block"))) {
     return "contentFiltered";
   }
-  return "videoGenerationFailed";
+  return null;
 }
 
 /**
@@ -147,407 +158,225 @@ async function cropImageToRatio(file: File, targetRatio: VideoRatio): Promise<st
   });
 }
 
+export type GenerationStatus = "idle" | "composing" | "generating" | "completed" | "failed";
+
+export interface GenerateRequest {
+  /** AI-suggested fields to compose into the final prompt */
+  fields?: PromptFields;
+  /** Send this text as the prompt as-is (skips composing) */
+  rawPrompt?: string;
+  images: UploadedImage[];
+  mode: VideoGenerationMode;
+  ratio: VideoRatio;
+  resolution: VideoResolution;
+  duration: VideoDuration;
+  negativePrompt?: string;
+  locale: PromptContext["locale"];
+}
+
 export interface VideoGenerationState {
-  continuousGenState: ContinuousGenerationState | null;
-  generatedVideoUrl: string | null;
-  sourceVideoUri: string | null;
-  videoProvider: string;
-  isExtendingVideo: boolean;
+  status: GenerationStatus;
+  progress: number;
+  videoUrl: string | null;
+  /** English prompt actually sent to Omni */
+  finalPrompt: string | null;
+  /** Total length of the current video, including extensions */
+  totalDuration: number;
+  isExtending: boolean;
   error: string | null;
 }
 
 export interface VideoGenerationActions {
-  generateVideo: (
-    script: ScriptResponse,
-    images: UploadedImage[],
-    videoRatio: VideoRatio,
-    videoResolution: VideoResolution,
-    imageUsageMode: ImageUsageMode,
-    cameraMotion: CameraMotion,
-    videoMode?: VideoGenerationMode,
-    negativePrompt?: string
-  ) => Promise<boolean>;
-  cancelGeneration: () => void;
-  extendCurrentVideo: (prompt: string, videoRatio: VideoRatio, videoResolution: VideoResolution) => Promise<void>;
-  resetVideoState: () => void;
+  generate: (request: GenerateRequest) => Promise<boolean>;
+  extend: (prompt: string, seconds: number) => Promise<boolean>;
+  cancel: () => void;
+  resetVideo: () => void;
 }
 
 const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
+export const MAX_TOTAL_DURATION = 40;
 
-/**
- * Generate a unique generation ID for tracking each generation session
- */
-function generateGenerationId(): string {
-  return `gen-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/**
- * Get camera motion instruction text for Veo prompts
- * Returns empty string for "auto" to let AI decide naturally
- */
-function getCameraMotionInstruction(motion: CameraMotion): string {
-  if (motion === "auto") {
-    // Let AI choose the best camera motion based on content
-    return "";
-  }
-
-  const instructions: Record<Exclude<CameraMotion, "auto">, string> = {
-    static: "Completely static camera, absolutely no camera movement, no zoom, no pan, no tilt, only subtle ambient motion like light particles floating in the air.",
-    push: "Very slow dolly in, gentle push towards the focal point.",
-    pull: "Very slow dolly out, gradually revealing more of the scene.",
-    pan_right: "Slow horizontal pan from left to right, smoothly moving across the scene.",
-    pan_left: "Slow horizontal pan from right to left, smoothly moving across the scene.",
-    tilt_up: "Slow vertical tilt from bottom to top, revealing height and spatial grandeur.",
-    tilt_down: "Slow vertical tilt from top to bottom, gradually revealing the scene below.",
-  };
-  return instructions[motion];
+// Static builds call Gemini from the browser with the user's own key
+function apiKey(): string | undefined {
+  return isStaticMode() ? getApiKey("gemini") : undefined;
 }
 
 export function useVideoGeneration(): VideoGenerationState & VideoGenerationActions {
-  const [continuousGenState, setContinuousGenState] = useState<ContinuousGenerationState | null>(null);
-  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
-  const [sourceVideoUri, setSourceVideoUri] = useState<string | null>(null);
-  const [videoProvider, setVideoProvider] = useState("");
-  const [isExtendingVideo, setIsExtendingVideo] = useState(false);
+  const [status, setStatus] = useState<GenerationStatus>("idle");
+  const [progress, setProgress] = useState(0);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [finalPrompt, setFinalPrompt] = useState<string | null>(null);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [isExtending, setIsExtending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use generation ID to prevent race conditions with cancel
-  const currentGenerationIdRef = useRef<string | null>(null);
-  // Track all job IDs for cleanup
+  // Incremented on every start/cancel so stale polls stop
+  const runIdRef = useRef(0);
   const jobIdsRef = useRef<string[]>([]);
+  // Settings of the current video, reused for extension
+  const lastRequestRef = useRef<{ sourceVideoUri: string; ratio: VideoRatio; resolution: VideoResolution } | null>(null);
 
-  const pollForCompletion = useCallback(async (
-    jobId: string,
-    generationId: string,
-    apiKey?: string
-  ): Promise<{ videoUrl: string; sourceVideoUri?: string } | null> => {
+  // Job that produced the video currently on screen; its blob URL must outlive a cancelled extension
+  const shownJobIdRef = useRef<string | null>(null);
+
+  const releaseJobs = useCallback((keepShown = false) => {
+    const keep = keepShown ? shownJobIdRef.current : null;
+    for (const jobId of jobIdsRef.current) {
+      if (jobId !== keep) cleanupVideoJob(jobId).catch(() => {});
+    }
+    jobIdsRef.current = keep ? [keep] : [];
+    if (!keep) shownJobIdRef.current = null;
+  }, []);
+
+  const pollUntilDone = useCallback(async (jobId: string, runId: number) => {
     for (let i = 0; i < MAX_POLLS; i++) {
-      // Check if this generation has been cancelled (new generation started or explicit cancel)
-      if (currentGenerationIdRef.current !== generationId) {
-        return null;
-      }
+      if (runIdRef.current !== runId) return null;
 
+      let result: Awaited<ReturnType<typeof checkVideoStatus>>;
       try {
-        const status = await checkVideoStatus(jobId, apiKey);
-
-        if (status.status === "completed" && status.videoUrl) {
-          return {
-            videoUrl: status.videoUrl,
-            sourceVideoUri: status.sourceVideoUri,
-          };
-        }
-
-        if (status.status === "failed") {
-          // This is a definitive failure, stop polling immediately
-          throw new Error(status.error || "Video generation failed");
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+        result = await checkVideoStatus(jobId, apiKey());
       } catch (err) {
-        // Check if this is a definitive failure (from status.failed) vs transient network error
-        const errorMessage = err instanceof Error ? err.message : String(err);
-
-        // If error starts with "errors." it's an i18n key from our backend - definitive failure
-        // Also check for common definitive failure patterns
-        const isDefinitiveFailure =
-          errorMessage.startsWith("errors.") ||
-          errorMessage.includes("content") ||
-          errorMessage.includes("filtered") ||
-          errorMessage.includes("Video generation failed");
-
-        if (isDefinitiveFailure) {
-          // Re-throw definitive failures to stop polling
-          throw err;
-        }
-
-        // Only continue polling for transient errors (network issues, etc.)
+        // Request itself failed (network etc.) - transient, keep polling
         if (process.env.NODE_ENV === "development") {
           console.error("[Poll] Transient error, continuing:", err);
         }
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+        continue;
       }
-    }
 
+      if (result.status === "completed" && result.videoUrl) {
+        return { videoUrl: result.videoUrl, sourceVideoUri: result.sourceVideoUri };
+      }
+      if (result.status === "failed") {
+        throw new Error(result.error || "errors.videoGenerationFailed");
+      }
+      if (runIdRef.current === runId) setProgress(result.progress ?? 0);
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+    }
     throw new Error("Video generation timed out");
   }, []);
 
-  const generateVideo = useCallback(async (
-    script: ScriptResponse,
-    images: UploadedImage[],
-    videoRatio: VideoRatio,
-    videoResolution: VideoResolution,
-    imageUsageMode: ImageUsageMode,
-    cameraMotion: CameraMotion,
-    videoMode?: VideoGenerationMode,
-    negativePrompt?: string
-  ): Promise<boolean> => {
-    const geminiApiKey = isStaticMode() ? getApiKey("gemini") : undefined;
-
-    // Generate a unique ID for this generation session to prevent race conditions
-    const generationId = generateGenerationId();
-    currentGenerationIdRef.current = generationId;
-    // Reset job IDs for this generation
-    jobIdsRef.current = [];
-
+  const generate = useCallback(async (request: GenerateRequest) => {
+    const runId = ++runIdRef.current;
+    releaseJobs();
     setError(null);
+    setVideoUrl(null);
+    setProgress(0);
+    setStatus("composing");
 
     try {
-      // Prepare images based on video mode
-      let firstFrameImage: string | undefined;
-      let lastFrameImage: string | undefined;
-      let referenceImages: string[] | undefined;
+      const ctx: PromptContext = {
+        imageCount: request.images.length,
+        mode: request.mode,
+        ratio: request.ratio,
+        duration: request.duration,
+        locale: request.locale,
+      };
+      const prompt = request.rawPrompt?.trim() || (request.fields ? await composePrompt(request.fields, ctx, apiKey()) : "");
+      if (!prompt) throw new Error("errors.promptRequired");
+      if (runIdRef.current !== runId) return false;
+      setFinalPrompt(prompt);
+      setStatus("generating");
 
-      // Determine the effective video mode
-      const effectiveMode = videoMode ?? (imageUsageMode === "start" ? "single_image" : "text_only");
-
-      if (effectiveMode === "frames_to_video" && images.length >= 2) {
-        // Frames to video mode: first image is start frame, second is end frame
-        firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
-        lastFrameImage = await cropImageToRatio(images[1].file, videoRatio);
-      } else if (effectiveMode === "single_image" && images.length > 0) {
-        if (images.length === 1) {
-          // 1 image: image-to-video (first frame)
-          firstFrameImage = await cropImageToRatio(images[0].file, videoRatio);
-        } else {
-          // 2-3 images: reference/ingredients mode
-          referenceImages = await Promise.all(
-            images.slice(0, 3).map(img => cropImageToRatio(img.file, videoRatio))
-          );
-        }
-      }
-      // text_only mode: no images
-
-      // Legacy support
-      const referenceImageBase64 = firstFrameImage;
-
-      const scenes = script.script.scenes;
-      const initialState = createContinuousGenerationState(
-        scenes.map((s) => ({ visualPrompt: s.visualPrompt, duration: s.duration })),
-        script.script.totalDuration
-      );
-
-      setContinuousGenState(initialState);
-      setVideoProvider("Google Veo 3.1");
-
-      let lastSourceVideoUri: string | undefined;
-      let lastVideoUrl: string | undefined;
-
-      for (let i = 0; i < initialState.segments.length; i++) {
-        // Check if this generation has been cancelled
-        if (currentGenerationIdRef.current !== generationId) {
-          throw new Error("Generation cancelled by user");
-        }
-
-        const segment = initialState.segments[i];
-        const isExtension = i > 0;
-
-        setContinuousGenState((prev) => {
-          if (!prev) return prev;
-          const newStatus: SegmentInfo["status"] = isExtension ? "extending" : "generating";
-          const newSegments: SegmentInfo[] = prev.segments.map((s, idx) =>
-            idx === i ? { ...s, status: newStatus } : s
-          );
-          const newPhase: ContinuousGenerationState["phase"] = isExtension ? "extending" : "generating";
-          const newState: ContinuousGenerationState = {
-            ...prev,
-            segments: newSegments,
-            currentSegmentIndex: i,
-            phase: newPhase,
-          };
-          newState.overallProgress = calculateOverallProgress(newState);
-          return newState;
-        });
-
-        let result: { jobId: string; estimatedTime: number; provider: string };
-
-        // Append camera motion instruction to the prompt (if not auto)
-        const cameraInstruction = getCameraMotionInstruction(cameraMotion);
-        const promptWithCamera = cameraInstruction
-          ? `${segment.prompt} ${cameraInstruction}`
-          : segment.prompt;
-
-        if (isExtension && lastSourceVideoUri) {
-          result = await extendVideo(promptWithCamera, lastSourceVideoUri, videoRatio, geminiApiKey, videoResolution);
-        } else {
-          result = await startVideoGeneration(
-            promptWithCamera,
-            segment.duration,
-            videoRatio,
-            referenceImageBase64,
-            geminiApiKey,
-            videoResolution,
-            {
-              firstFrameImage,
-              lastFrameImage,
-              referenceImages,
-              negativePrompt: negativePrompt || undefined,
-            }
-          );
-        }
-
-        // Track job ID for cleanup
-        jobIdsRef.current.push(result.jobId);
-
-        setContinuousGenState((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            segments: prev.segments.map((s, idx) =>
-              idx === i ? { ...s, jobId: result.jobId } : s
-            ),
-          };
-        });
-
-        const completed = await pollForCompletion(result.jobId, generationId, geminiApiKey);
-
-        if (!completed) {
-          throw new Error(`Segment ${i + 1} failed to complete`);
-        }
-
-        lastVideoUrl = completed.videoUrl;
-        lastSourceVideoUri = completed.sourceVideoUri;
-
-        setContinuousGenState((prev) => {
-          if (!prev) return prev;
-          const newSegments: SegmentInfo[] = prev.segments.map((s, idx) =>
-            idx === i
-              ? { ...s, status: "completed" as SegmentInfo["status"], videoUrl: completed.videoUrl, sourceVideoUri: completed.sourceVideoUri }
-              : s
-          );
-          const newState: ContinuousGenerationState = { ...prev, segments: newSegments };
-          newState.overallProgress = calculateOverallProgress(newState);
-          return newState;
-        });
-      }
-
-      setContinuousGenState((prev): ContinuousGenerationState | null => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          phase: "completed" as ContinuousGenerationState["phase"],
-          finalVideoUrl: lastVideoUrl,
-          finalSourceVideoUri: lastSourceVideoUri,
-          overallProgress: 100,
-        };
-      });
-
-      if (lastVideoUrl) {
-        setGeneratedVideoUrl(lastVideoUrl);
-        if (lastSourceVideoUri) {
-          setSourceVideoUri(lastSourceVideoUri);
-        }
-        return true;
-      }
-      return false;
-    } catch (err) {
-      const rawError = err instanceof Error ? err.message : "Failed to generate video";
-      // Use error key for i18n lookup (format: errors.{key})
-      const errorKey = getErrorKey(rawError);
-      const errorMessage = `errors.${errorKey}`;
-      setError(errorMessage);
-
-      setContinuousGenState((prev): ContinuousGenerationState | null => {
-        if (!prev) return prev;
-        return { ...prev, phase: "failed" as ContinuousGenerationState["phase"], error: errorMessage };
-      });
-
-      return false;
-    }
-  }, [pollForCompletion]);
-
-  const cancelGeneration = useCallback(() => {
-    // Invalidate current generation by setting ID to null
-    currentGenerationIdRef.current = null;
-    setContinuousGenState(null);
-
-    // Cleanup tracked jobs
-    for (const jobId of jobIdsRef.current) {
-      cleanupVideoJob(jobId).catch(() => {
-        // Ignore cleanup errors
-      });
-    }
-    jobIdsRef.current = [];
-  }, []);
-
-  const extendCurrentVideo = useCallback(async (
-    prompt: string,
-    videoRatio: VideoRatio,
-    videoResolution: VideoResolution
-  ) => {
-    if (!sourceVideoUri) {
-      setError("errors.noSourceVideo");
-      return;
-    }
-
-    const apiKey = isStaticMode() ? getApiKey("gemini") : undefined;
-
-    // Generate a unique ID for this extension session
-    const extensionId = generateGenerationId();
-    currentGenerationIdRef.current = extensionId;
-
-    setIsExtendingVideo(true);
-    setError(null);
-
-    try {
-      const result = await extendVideo(
+      const images = await Promise.all(request.images.map((img) => cropImageToRatio(img.file, request.ratio)));
+      const params: VideoGenerationParams = {
         prompt,
-        sourceVideoUri,
-        videoRatio,
-        apiKey,
-        videoResolution
-      );
-
-      // Track job ID for cleanup
-      jobIdsRef.current.push(result.jobId);
-
-      setVideoProvider(result.provider);
-
-      const completed = await pollForCompletion(result.jobId, extensionId, apiKey);
-
-      if (completed) {
-        setGeneratedVideoUrl(completed.videoUrl);
-        if (completed.sourceVideoUri) {
-          setSourceVideoUri(completed.sourceVideoUri);
-        }
+        negativePrompt: request.negativePrompt || undefined,
+        duration: request.duration,
+        ratio: request.ratio,
+        resolution: request.resolution,
+      };
+      if (request.mode === "frames_to_video") {
+        params.firstFrameImage = images[0];
+        params.lastFrameImage = images[1];
+      } else if (images.length === 1) {
+        params.firstFrameImage = images[0];
+      } else if (images.length > 1) {
+        params.referenceImages = images;
       }
+
+      const job = await startVideoGeneration(params, apiKey());
+      jobIdsRef.current.push(job.jobId);
+
+      const done = await pollUntilDone(job.jobId, runId);
+      if (!done) return false;
+
+      shownJobIdRef.current = job.jobId;
+      setVideoUrl(done.videoUrl);
+      setTotalDuration(request.duration);
+      lastRequestRef.current = done.sourceVideoUri
+        ? { sourceVideoUri: done.sourceVideoUri, ratio: request.ratio, resolution: request.resolution }
+        : null;
+      setProgress(100);
+      setStatus("completed");
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "errors.videoExtensionFailed");
-    } finally {
-      setIsExtendingVideo(false);
+      if (runIdRef.current !== runId) return false;
+      setError(toDisplayError(err instanceof Error ? err.message : ""));
+      setStatus("failed");
+      return false;
     }
-  }, [sourceVideoUri, pollForCompletion]);
+  }, [pollUntilDone, releaseJobs]);
 
-  const resetVideoState = useCallback(() => {
-    // Invalidate current generation
-    currentGenerationIdRef.current = null;
-
-    // Cleanup tracked jobs to free memory
-    for (const jobId of jobIdsRef.current) {
-      cleanupVideoJob(jobId).catch(() => {
-        // Ignore cleanup errors
-      });
+  const extend = useCallback(async (prompt: string, seconds: number) => {
+    const last = lastRequestRef.current;
+    if (!last) {
+      setError("errors.noSourceVideo");
+      return false;
     }
-    jobIdsRef.current = [];
-
-    // Reset all state
-    setContinuousGenState(null);
-    setGeneratedVideoUrl(null);
-    setSourceVideoUri(null);
-    setVideoProvider("");
-    setIsExtendingVideo(false);
+    const runId = ++runIdRef.current;
+    setIsExtending(true);
     setError(null);
-  }, []);
+    setProgress(0);
 
-  return {
-    continuousGenState,
-    generatedVideoUrl,
-    sourceVideoUri,
-    videoProvider,
-    isExtendingVideo,
-    error,
-    generateVideo,
-    cancelGeneration,
-    extendCurrentVideo,
-    resetVideoState,
-  };
+    try {
+      const job = await extendVideo(
+        { prompt, sourceVideoUri: last.sourceVideoUri, ratio: last.ratio, resolution: last.resolution, extensionDuration: seconds },
+        apiKey()
+      );
+      jobIdsRef.current.push(job.jobId);
+      const done = await pollUntilDone(job.jobId, runId);
+      if (!done) return false;
+
+      shownJobIdRef.current = job.jobId;
+      setVideoUrl(done.videoUrl);
+      setTotalDuration((d) => d + seconds);
+      if (done.sourceVideoUri) {
+        lastRequestRef.current = { ...last, sourceVideoUri: done.sourceVideoUri };
+      }
+      return true;
+    } catch (err) {
+      if (runIdRef.current === runId) {
+        setError(toDisplayError(err instanceof Error ? err.message : "errors.videoExtensionFailed"));
+      }
+      return false;
+    } finally {
+      if (runIdRef.current === runId) setIsExtending(false);
+    }
+  }, [pollUntilDone]);
+
+  const cancel = useCallback(() => {
+    runIdRef.current++;
+    releaseJobs(true);
+    // A cancelled extension leaves the previous video on screen
+    setStatus(shownJobIdRef.current ? "completed" : "idle");
+    setIsExtending(false);
+    setProgress(0);
+  }, [releaseJobs]);
+
+  const resetVideo = useCallback(() => {
+    runIdRef.current++;
+    releaseJobs();
+    lastRequestRef.current = null;
+    setStatus("idle");
+    setProgress(0);
+    setVideoUrl(null);
+    setFinalPrompt(null);
+    setTotalDuration(0);
+    setIsExtending(false);
+    setError(null);
+  }, [releaseJobs]);
+
+  return { status, progress, videoUrl, finalPrompt, totalDuration, isExtending, error, generate, extend, cancel, resetVideo };
 }

@@ -1,144 +1,41 @@
 import { createGeminiClient } from "@/lib/ai/gemini-client";
-import type { AnalysisResponse, Locale, VideoSuggestion, ScriptResponse, VideoRatio, VideoResolution, ImageUsageMode, ConsistencyMode, SceneMode, MotionDynamics, QualityBooster, VideoDuration, CameraMotion } from "@/types";
+import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
+import type { PromptDraft, PromptFields } from "@/types";
+import { createOmniProvider } from "./video-providers/omni";
+import type { VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
 
-/**
- * Client-side image analysis (for static build)
- */
-export async function analyzeImagesClient(
+// Client-side implementations for the static build: the browser calls Gemini directly with the user's key
+
+export async function draftPromptClient(
   images: File[],
-  description: string,
-  apiKey: string,
-  locale: Locale = "zh",
-  ratio: VideoRatio = "9:16"
-): Promise<AnalysisResponse> {
-  const client = createGeminiClient(apiKey);
-  return client.analyzeImages(images, description, locale, ratio);
+  input: Omit<PromptDraftInput, "imageCount">,
+  apiKey: string
+): Promise<PromptDraft> {
+  return createGeminiClient(apiKey).draftPrompt(images, input);
 }
 
-/**
- * Client-side refinement (for static build)
- */
-export async function refineSuggestionsClient(
-  images: File[],
-  iterationNumber: number,
-  previousSelection: VideoSuggestion,
-  userAdjustment: string,
-  newImageCount: number,
-  additionalText: string,
-  apiKey: string,
-  locale: Locale = "zh",
-  ratio: VideoRatio = "9:16"
-): Promise<AnalysisResponse> {
-  const client = createGeminiClient(apiKey);
-  return client.refineWithSelection(
-    images,
-    iterationNumber,
-    {
-      title: previousSelection.title,
-      concept: previousSelection.concept,
-    },
-    userAdjustment,
-    newImageCount,
-    additionalText,
-    locale,
-    ratio
-  );
+export async function composePromptClient(fields: PromptFields, ctx: PromptContext, apiKey: string): Promise<string> {
+  return createGeminiClient(apiKey).composePrompt(fields, ctx);
 }
 
-/**
- * Client-side script generation (for static build)
- */
-export async function generateScriptClient(
-  images: File[],
-  suggestion: VideoSuggestion,
-  ratio: VideoRatio,
-  apiKey: string,
-  locale: Locale = "zh",
-  imageUsageMode: ImageUsageMode = "start",
-  consistencyMode: ConsistencyMode = "none",
-  sceneMode: SceneMode = "auto",
-  motionDynamics: MotionDynamics = "moderate",
-  qualityBooster: QualityBooster = "none",
-  videoDuration: VideoDuration = 4,
-  cameraMotion: CameraMotion = "auto"
-): Promise<ScriptResponse> {
-  const client = createGeminiClient(apiKey);
-  return client.generateScript(images, suggestion, ratio, locale, imageUsageMode, consistencyMode, sceneMode, motionDynamics, qualityBooster, videoDuration, cameraMotion);
-}
-
-/**
- * Client-side script refinement (for static build)
- */
-export async function refineScriptClient(
-  currentScript: ScriptResponse,
-  userAdjustment: string,
-  apiKey: string,
-  locale: Locale = "zh"
-): Promise<ScriptResponse> {
-  const client = createGeminiClient(apiKey);
-  return client.refineScript(currentScript, userAdjustment, locale);
-}
-
-/**
- * Client-side video generation start (for static build)
- * Note: Uses mock provider for static builds since Runway requires server-side API
- */
 export async function startVideoGenerationClient(
-  prompt: string,
-  duration: number,
-  ratio: VideoRatio,
-  _referenceImageBase64?: string,
-  _apiKey?: string,
-  resolution?: VideoResolution
+  params: VideoGenerationParams,
+  apiKey: string
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
-  // For static builds, use mock provider (Runway requires server-side API key)
-  const { getMockProvider } = await import("./video-providers/mock");
-  const provider = getMockProvider();
-
-  const result = await provider.generateVideo({
-    prompt,
-    duration,
-    ratio,
-    resolution,
-  });
-
-  return {
-    jobId: result.jobId,
-    estimatedTime: result.estimatedTime,
-    provider: provider.name,
-  };
+  const provider = createOmniProvider(apiKey);
+  const result = await provider.generateVideo(params);
+  return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
 }
 
-/**
- * Client-side video status check (for static build)
- */
-export async function checkVideoStatusClient(
-  jobId: string,
-  _apiKey?: string
-): Promise<{
-  status: "pending" | "processing" | "completed" | "failed";
-  progress?: number;
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  error?: string;
-  sourceVideoUri?: string;
-}> {
-  const { getMockProvider } = await import("./video-providers/mock");
-  const provider = getMockProvider();
-  return provider.checkStatus(jobId);
+export async function checkVideoStatusClient(jobId: string, apiKey: string): Promise<VideoJobStatus> {
+  return createOmniProvider(apiKey).checkStatus(jobId);
 }
 
-/**
- * Client-side video extension (for static build)
- * Note: Only mock provider for static builds
- */
 export async function extendVideoClient(
-  _prompt: string,
-  _sourceVideoUri: string,
-  _ratio: VideoRatio,
-  _apiKey?: string,
-  _resolution?: VideoResolution
+  params: VideoExtensionParams,
+  apiKey: string
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
-  // For static builds, video extension is not supported
-  throw new Error("Video extension is not supported in static build mode. Please use server mode with Veo provider.");
+  const provider = createOmniProvider(apiKey);
+  const result = await provider.extendVideo(params);
+  return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
 }

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "不想動了",
+    "appName": "Jola Omni",
     "loading": "載入中...",
     "error": "錯誤",
     "cancel": "取消",
@@ -33,11 +33,6 @@
     "apiSettingsConnected": "API 設定 (已連線)",
     "github": "GitHub"
   },
-  "hero": {
-    "title1": "打造視覺動態資產？",
-    "title2": "不用，我不想動了。",
-    "subtitle": "讓 小GG 成為你的專屬影像導演。上傳照片，我會把它動得跟你毫無關係。"
-  },
   "guide": {
     "title": "使用方式",
     "apiNotice": {
@@ -47,74 +42,59 @@
       "descriptionSuffix": "免費申請 API Key，並在右上角「API 設定」中輸入。"
     },
     "step1": {
-      "title": "上傳與資訊輸入｜一次填完所有資訊",
-      "description": "上傳產品圖或任意圖片後，可以選填以下資訊（填越多，AI 越懂你）：",
+      "title": "上傳主圖、描述動態",
+      "description": "需要的只有：",
       "items": {
-        "supplement": {
-          "label": "補充說明",
-          "desc": "告訴 AI 你的目標受眾、品牌風格、想傳達的訊息"
+        "mainImage": {
+          "label": "主圖",
+          "desc": "1 張讓它動起來，2-3 張加入參考元素；不上傳就用文字生成"
+        },
+        "idea": {
+          "label": "想要什麼動態",
+          "desc": "一句話就好，例如「產品緩慢旋轉、柔光」"
         },
         "ratio": {
-          "label": "畫面比例",
-          "desc": "選擇 9:16（直式）或 16:9（橫式）"
+          "label": "比例",
+          "desc": "9:16 或 16:9，會依主圖自動判斷"
         },
-        "resolution": {
-          "label": "解析度",
-          "desc": "選擇 720p 或 1080p"
-        },
-        "startFrame": {
-          "label": "起始畫面",
-          "desc": "選擇是否使用上傳的圖片作為影片開頭"
+        "advanced": {
+          "label": "進階設定",
+          "desc": "解析度、秒數、排除內容、結束畫面（選填）"
         }
       },
-      "tip": "💡 小提示：所有設定一次填完，就不用在流程中重複調整了"
+      "tip": "按「AI 建議提示詞」就會進入下一步"
     },
     "step2": {
-      "title": "策略選擇｜秒速決定影片方向",
-      "description": "AI 會分析圖片後，立即提供",
-      "descHighlight": "三個截然不同的影片策略",
-      "descSuffix": "，每個方案包含：",
-      "items": ["影片主題與核心概念", "視覺風格描述（氛圍、運鏡、特效）", "目標受眾定位"],
-      "tip": "👉 選擇一個你喜歡的方案，或是根據需求調整後繼續優化"
+      "title": "確認提示詞",
+      "description": "AI 會依圖片和描述建議",
+      "descHighlight": "主體與動作、場景、鏡頭、光影、聲音",
+      "descSuffix": "：",
+      "items": [
+        "每一項都可以直接修改",
+        "點下方的替代選項可以快速替換",
+        "改完描述也可以「重新建議」"
+      ],
+      "tip": "確認後按「生成影片」"
     },
     "step3": {
-      "title": "腳本生成｜自動生成完整腳本",
-      "description": "確認方案後，系統會自動生成完整影片腳本，包含：",
+      "title": "生成影片",
+      "description": "系統會：",
       "items": {
-        "storyboard": {
-          "label": "分鏡設計",
-          "desc": "每個場景的視覺描述與時長"
+        "script": {
+          "label": "組成提示詞",
+          "desc": "把各欄位整理成 Gemini Omni 最懂的英文描述"
         },
-        "camera": {
-          "label": "運鏡指示",
-          "desc": "攝影機移動與轉場效果"
+        "generate": {
+          "label": "生成",
+          "desc": "Gemini Omni 生成畫面與聲音，約 30 秒到 1 分鐘"
         },
-        "duration": {
-          "label": "整體時長",
-          "desc": "根據場景自動計算總時長"
+        "extend": {
+          "label": "延伸",
+          "desc": "需要更長就描述接下來發生什麼，最長 40 秒"
         }
       },
-      "tip": "你可以在這裡微調腳本內容，或直接進入影片生成"
-    },
-    "step4": {
-      "title": "影片生成｜一鍵產出影片",
-      "description": "確認腳本後，點擊生成按鈕：",
-      "items": {
-        "generate": {
-          "label": "🎬 連續生成",
-          "desc": "系統會依序生成每個場景並自動串接"
-        },
-        "progress": {
-          "label": "⏱️ 即時進度",
-          "desc": "可以看到每個場景的生成狀態"
-        },
-        "download": {
-          "label": "📥 完成下載",
-          "desc": "生成完成後可直接下載影片"
-        }
-      }
-    },
-    "apiNote": "💡 提示：需要 Gemini API Key 才能使用完整功能"
+      "tip": "右側可以下載影片，或查看實際送出的英文提示詞"
+    }
   },
   "apiKeyModal": {
     "title": "API 設定",
@@ -140,14 +120,6 @@
       "placeholder": "AIzaSy...",
       "getKeyLink": "前往 Google AI Studio 取得 API Key"
     },
-    "runwayKey": {
-      "label": "Runway API Key",
-      "optional": "（選填）",
-      "placeholder": "輸入你的 Runway API Key",
-      "getKeyLink": "前往 Runway ML 取得 API Key",
-      "comingSoonHint": "Runway 整合功能開發中"
-    },
-    "comingSoon": "即將推出",
     "showKeys": "顯示金鑰",
     "hideKeys": "隱藏金鑰",
     "useFreeMode": "使用免費模式",
@@ -160,442 +132,59 @@
     "clearButton": "清除金鑰"
   },
   "upload": {
-    "title": "創建您的 AI 短影片",
-    "subtitle": "上傳圖片，讓 AI 幫您生成專業的短影片腳本",
-    "dropzone": {
-      "title": "拖放圖片到這裡",
-      "subtitle": "或點擊選擇檔案",
-      "formats": "支援 JPG、PNG、WebP、HEIC",
-      "supportedFormats": "PNG、JPG、WEBP、AVIF",
-      "limit": "最多 3 張圖片",
-      "processing": "處理中...",
-      "drop": "放開以上傳",
-      "upload": "上傳產品圖片",
-      "clickToChange": "點擊更換圖片"
+    "mainImage": {
+      "label": "上傳主圖",
+      "hint": "1 張 = 讓主圖動起來；2-3 張 = 參考圖組合成新畫面；不上傳 = 只用文字生成"
     },
     "description": {
-      "label": "補充說明",
-      "placeholder": "告訴我你的目標受眾、品牌風格、想傳達的訊息...或什麼都不說也行",
-      "hint": "例如：一支展示新款運動鞋的活力廣告，適合 Instagram Reels"
+      "label": "想要什麼動態？",
+      "placeholder": "例如：香水瓶緩慢旋轉，水珠滑落，柔和的晨光"
     },
     "settings": {
       "ratio": "影片長寬比",
-      "resolution": "解析度",
-      "imageUsage": "圖片出現位置",
-      "consistency": "視覺一致性",
-      "sceneMode": "場景模式"
+      "resolution": "解析度"
     },
     "ratio": {
       "9:16": {
-        "name": "9:16 直式",
-        "description": "Reels / Shorts / TikTok"
+        "name": "9:16 直式"
       },
       "16:9": {
-        "name": "16:9 橫式",
-        "description": "YouTube"
-      },
-      "imageOnly": "僅限",
-      "imageOnlyHorizontal": "參考圖模式僅支援 16:9 橫式",
-      "imageOnlyHorizontalHint": "Veo 的「參考風格」模式僅支援 16:9 橫式比例。其他模式（單張圖片、首尾幀）都支援 9:16 直式。"
+        "name": "16:9 橫式"
+      }
     },
     "resolution": {
       "720p": "720p",
       "1080p": "1080p",
-      "4k": "4K",
-      "requires8s": "限 8 秒"
-    },
-    "imageUsage": {
-      "label": "圖片出現位置",
-      "start": {
-        "name": "使用圖片",
-        "description": "用上傳的圖片作為影片起點",
-        "hint": "圖片將作為影片的第一個畫面，AI 從此開始生成動態內容"
-      },
-      "none": {
-        "name": "不使用",
-        "description": "純粹根據描述生成",
-        "hint": "不使用參考圖片，完全由 AI 根據文字描述創作"
-      }
-    },
-    "consistency": {
-      "label": "視覺一致性",
-      "none": {
-        "name": "標準",
-        "description": "讓 AI 自由發揮創意",
-        "hint": "AI 可自由變化視覺元素，追求創意多樣性"
-      },
-      "product": {
-        "name": "產品一致",
-        "description": "保持產品外觀不變",
-        "hint": "強調產品的顏色、形狀、設計細節在每個畫面保持一致"
-      },
-      "character": {
-        "name": "人物一致",
-        "description": "保持人物外貌不變",
-        "hint": "強調人物的外貌特徵、服裝、髮型在影片中保持一致"
-      },
-      "both": {
-        "name": "完全一致",
-        "description": "產品和人物都保持一致",
-        "hint": "同時確保產品和人物的視覺特徵在整部影片中保持高度一致"
-      }
-    },
-    "sceneMode": {
-      "label": "場景模式",
-      "auto": {
-        "name": "自動",
-        "sublabel": "推薦",
-        "description": "根據時長智慧決定場景數量",
-        "hint": "系統會根據影片時長自動決定最佳場景配置"
-      },
-      "single": {
-        "name": "單場景",
-        "sublabel": "8秒內",
-        "description": "單一連續鏡頭，最佳視覺一致性",
-        "hint": "單一連續鏡頭，適合產品展示，保持最佳視覺一致性"
-      },
-      "multi": {
-        "name": "多場景",
-        "sublabel": "故事敘述",
-        "description": "多個鏡頭組合，適合完整廣告",
-        "hint": "多個場景組合，適合故事敘述和完整廣告內容"
-      }
-    },
-    "motionDynamics": {
-      "label": "動態速度",
-      "subtle": {
-        "name": "慢",
-        "sublabel": "精品質感",
-        "description": "緩慢優雅的動態",
-        "hint": "緩慢優雅，像高級廣告的質感，適合產品特寫、氛圍營造"
-      },
-      "moderate": {
-        "name": "自然",
-        "sublabel": "日常節奏",
-        "description": "自然流暢的動態",
-        "hint": "日常生活的自然節奏，適合 vlog、人物互動、生活場景"
-      },
-      "dramatic": {
-        "name": "快",
-        "sublabel": "動感活力",
-        "description": "快速動感的動態",
-        "hint": "動感有活力，適合運動、舞蹈、動作場景"
-      }
-    },
-    "qualityBooster": {
-      "label": "品質增強",
-      "auto": {
-        "name": "智慧",
-        "description": "AI 根據圖片內容自動選擇最適合的風格",
-        "hint": "AI 會分析你的圖片，自動套用最合適的視覺風格"
-      },
-      "none": {
-        "name": "標準",
-        "description": "不加任何風格濾鏡，保持原始 AI 生成效果",
-        "hint": "保留原始 AI 生成效果，不做任何額外調整"
-      },
-      "commercial": {
-        "name": "商業級",
-        "description": "高對比、飽和色彩、銳利畫面",
-        "hint": "鮮豔飽和的色彩、高對比度、清晰銳利的邊緣細節"
-      },
-      "cinematic": {
-        "name": "電影級",
-        "description": "淺景深、電影調色、氛圍感光影",
-        "hint": "柔和的背景模糊、溫暖的色調漸變、戲劇性的明暗對比"
-      },
-      "luxury": {
-        "name": "奢侈品",
-        "description": "黑金質感、慢動作、微光閃爍",
-        "hint": "深邃的黑色背景、金屬光澤反射、緩慢優雅的動態"
-      },
-      "editorial": {
-        "name": "時尚編輯",
-        "description": "雜誌風格調色、模特兒級打光",
-        "hint": "柔和均勻的打光、淡雅的膚色調整、時尚雜誌風格構圖"
-      },
-      "documentary": {
-        "name": "紀錄片",
-        "description": "自然色調、手持感、真實紋理",
-        "hint": "自然光線、輕微的畫面晃動、真實的環境色彩"
-      },
-      "artistic": {
-        "name": "藝術感",
-        "description": "抽象構圖、非常規調色、視覺實驗",
-        "hint": "大膽的色彩組合、創意構圖、意想不到的視覺效果"
-      }
-    },
-    "platformTips": {
-      "title": "平台建議",
-      "bestFor": "最適合",
-      "vertical": {
-        "tip": "直式影片最適合行動裝置觀看，開頭 3 秒是關鍵吸睛時刻"
-      },
-      "horizontal": {
-        "tip": "橫式影片適合大螢幕觀看，可呈現更多畫面細節"
-      }
-    },
-    "startButton": "開始躺平",
-    "analyzing": "分析中...",
-    "veoModel": {
-      "label": "影像模型",
-      "fast": {
-        "name": "Veo 3.1 Fast 影片",
-        "price": "$0.15 美元/秒"
-      },
-      "standard": {
-        "name": "Veo 3.1 標準影片",
-        "price": "$0.40 美元/秒"
-      }
+      "4k": "4K"
     },
     "duration": {
       "label": "影片長度",
-      "unit": "秒",
-      "locked8s": "（目前設定限 8 秒）"
-    },
-    "cameraMotion": {
-      "label": "運鏡效果",
-      "auto": {
-        "name": "智慧",
-        "description": "AI 自動選擇最佳運鏡",
-        "hint": "讓 AI 根據圖片內容和影片風格，自動選擇最適合的運鏡方式。適合不確定要用什麼運鏡的情況。"
-      },
-      "static": {
-        "name": "靜止",
-        "description": "固定鏡頭，無任何移動",
-        "hint": "鏡頭完全固定不動。適合專注展示單一主體，讓觀眾把注意力集中在畫面內容上。"
-      },
-      "push": {
-        "name": "推進",
-        "description": "向主體推近",
-        "hint": "鏡頭緩緩向中心推近。這種微動會讓觀眾有被邀請進入畫面的感覺，適合強調重點或營造親密感。"
-      },
-      "pull": {
-        "name": "拉遠",
-        "description": "遠離主體拉遠",
-        "hint": "鏡頭緩緩往後拉遠。會讓觀眾覺得場景在展開，適合營造空間感或作為結束畫面。"
-      },
-      "pan_right": {
-        "name": "右平移",
-        "description": "從左到右水平移動",
-        "hint": "鏡頭從左到右水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向右。"
-      },
-      "pan_left": {
-        "name": "左平移",
-        "description": "從右到左水平移動",
-        "hint": "鏡頭從右到左水平緩緩移動。適合展示寬廣的環境或引導觀眾視線向左。"
-      },
-      "tilt_up": {
-        "name": "由下往上",
-        "description": "鏡頭向上傾斜",
-        "hint": "鏡頭從下往上緩緩移動。適合展示高聳的物件、建築，或從腳到頭的人物全身展示。"
-      },
-      "tilt_down": {
-        "name": "由上往下",
-        "description": "鏡頭向下傾斜",
-        "hint": "鏡頭從上往下緩緩移動。適合俯瞰場景、從頭到腳的人物展示，或營造揭示效果。"
-      }
-    },
-    "priceEstimate": {
-      "label": "約 {{price}} 馬上不動",
-      "hint": "提示：每次生成結果皆為隨機，調整參數後可能產生不同結果"
-    },
-    "videoMode": {
-      "label": "影片生成模式",
-      "single_image": {
-        "name": "圖片生成",
-        "description": "1-3 張圖片生成影片",
-        "hint": "上傳 1 張圖片作為影片起點；上傳 2-3 張則作為風格參考，AI 會依據圖片風格生成影片"
-      },
-      "frames_to_video": {
-        "name": "首尾幀動畫",
-        "description": "起始圖 → 結束圖過渡",
-        "hint": "上傳起始圖和結束圖，AI 會生成兩張圖之間的平滑過渡動畫（限 8 秒）"
-      },
-      "text_only": {
-        "name": "純文字",
-        "description": "不使用圖片，純文字描述",
-        "hint": "不使用任何參考圖片，完全根據文字描述生成影片"
-      }
+      "unit": "秒"
     },
     "modeUploader": {
-      "startImage": "起始圖片",
-      "image": "圖片",
-      "startFrame": "起始幀",
-      "endFrame": "結束幀",
+      "endFrame": "結束畫面",
       "reference": "參考圖",
-      "required": "必填",
       "optional": "選填",
       "remove": "移除",
       "clickToUpload": "點擊上傳",
       "processing": "處理中...",
-      "textOnlyHint": "純文字模式：不需要上傳圖片，直接在補充說明輸入你想要的影片內容"
+      "mainImage": "主圖",
+      "endFrameHint": "選填，影片會從主圖轉場到這張"
     },
     "negativePrompt": {
       "label": "排除內容",
       "placeholder": "描述不想出現在影片中的元素，例如：模糊、文字、水印、變形..."
     },
     "preview": {
-      "textOnly": "純文字模式：不使用圖片",
-      "uploadHint": "請在左側上傳圖片"
+      "uploadHint": "上傳主圖後會顯示在這裡，也可以不上傳、只用文字描述"
+    },
+    "advanced": {
+      "label": "進階設定"
+    },
+    "priceEstimate": {
+      "label": "預估費用約 {{price}}",
+      "labelUpscaled": "預估費用約 {{price}} 起（1080p / 4K 為升頻，可能較高）"
     }
-  },
-  "loader": {
-    "analyzing": {
-      "title": "小GG出動中，你躺著就好",
-      "description": "（正在假裝很專業地分析你的圖片）"
-    },
-    "refining": {
-      "title": "小GG 正在重新思考人生",
-      "description": "（根據你的回饋調整方向中）"
-    },
-    "generatingScript": {
-      "title": "小GG 正在努力的路上",
-      "description": "（你不要努力了，我努力）"
-    }
-  },
-  "analysis": {
-    "title": "分析報告",
-    "originalImage": "原始圖片",
-    "defaultSubject": "你的創意素材",
-    "noDescription": "（沒有提供補充說明）",
-    "moodAndStyle": "氛圍與風格",
-    "suggestedThemes": "建議主題",
-    "additionalImages": "+ {count} 張額外素材"
-  },
-  "suggestions": {
-    "title": "選擇影片方向",
-    "subtitle": "AI 根據您的素材提出了以下創意方向",
-    "selectButton": "選擇此方向",
-    "selectedBadge": "已選擇",
-    "unknown": "未知",
-    "refineTitle": "調整方向",
-    "refinePlaceholder": "例如：更有活力一點、聚焦產品特寫、加入幽默元素...",
-    "refineButton": "重新生成建議",
-    "generateScript": "生成腳本",
-    "adjustmentLabel": "調整方向",
-    "additionalNotes": "補充說明（選填）",
-    "additionalNotesPlaceholder": "關於品牌、目標受眾或特殊需求的額外資訊...",
-    "badges": {
-      "safe": "安全牌",
-      "creative": "創意牌",
-      "viral": "爆款牌"
-    },
-    "fields": {
-      "concept": "概念",
-      "hook": "開場吸睛點",
-      "mainContent": "主要內容",
-      "cta": "行動呼籲",
-      "title": "大標題",
-      "postContent": "發文內容",
-      "hashtag": "Hashtag",
-      "duration": "時長",
-      "platform": "平台",
-      "music": "配樂風格"
-    },
-    "visualDirection": "視覺方向",
-    "subjectAction": "主體與動作",
-    "environment": "環境一致性",
-    "cameraStyle": "運鏡風格",
-    "cameraMotion": "運鏡效果",
-    "lighting": "光影氛圍",
-    "videoQuality": "影片質感",
-    "qualityBooster": "品質增強",
-    "suggestedMusic": "建議音樂",
-    "addAdjustments": "新增調整",
-    "refineMore": "繼續調整",
-    "finalizeScript": "確認並生成影片",
-    "iterationHistory": "迭代紀錄"
-  },
-  "recommendedSettings": {
-    "title": "AI 建議設定",
-    "subtitle": "根據您的圖片分析自動推薦的設定"
-  },
-  "script": {
-    "title": "腳本預覽",
-    "storyboard": "分鏡腳本",
-    "scene": "場景",
-    "duration": "時長",
-    "camera": "運鏡",
-    "lighting": "光影",
-    "transition": "轉場",
-    "music": "配樂",
-    "colorGrading": "調色",
-    "prepareGeneration": "準備生成影片",
-    "prepareDescription": "確認劇本內容後，點擊下方按鈕開始生成您的影片",
-    "consistencyWarning": "一致性提醒",
-    "exportPrompt": "匯出 Prompt",
-    "exportDescription": "將劇本 Prompt 匯出，可用於 Runway、Pika、Kling 等其他 AI 影片生成平台。",
-    "exportFormats": {
-      "text": "純文字",
-      "textDesc": "通用格式",
-      "markdown": "Markdown",
-      "markdownDesc": "適合 Notion",
-      "prompts": "僅 Prompt",
-      "promptsDesc": "快速複製"
-    },
-    "copyToClipboard": "複製到剪貼簿",
-    "copied": "已複製！",
-    "downloadFile": "下載檔案",
-    "adjustScript": "想要調整劇本？",
-    "adjustPlaceholder": "例如：第二場景改成慢動作、結尾加產品特寫...",
-    "adjustButton": "調整劇本",
-    "backToSuggestions": "← 返回建議",
-    "generateVideo": "生成影片"
-  },
-  "generation": {
-    "preparing": "準備生成...",
-    "generatingInitial": "正在生成初始片段",
-    "generatingInitialWithDuration": "正在生成初始片段 ({duration}秒)...",
-    "extending": "正在延展影片",
-    "extendingWithSegment": "正在延展影片 (第 {current}/{total} 段)...",
-    "completed": "影片生成完成！",
-    "failed": "生成失敗",
-    "processing": "處理中...",
-    "progress": "總體進度",
-    "estimated": "預估剩餘時間",
-    "estimatedTime": "預估剩餘時間：{time}",
-    "about": "約",
-    "minute": "分鐘",
-    "minutes": "分鐘",
-    "cancelGeneration": "取消生成",
-    "initial": "初始",
-    "initialGeneration": "初始生成",
-    "extension": "延展",
-    "extensionNumber": "延展 #{number}",
-    "segment": "段",
-    "segments": "生成片段",
-    "segmentCount": "片段數",
-    "target": "目標",
-    "targetDuration": "目標 {duration}秒",
-    "targetLength": "目標時長",
-    "seconds": "秒",
-    "elapsed": "已用時間",
-    "jobId": "任務 ID",
-    "using": "使用 {provider}",
-    "usingProvider": "使用 {provider} 生成 {duration} 秒影片"
-  },
-  "video": {
-    "completed": "影片已完成！",
-    "ready": "您的影片已完成！",
-    "downloadVideo": "下載影片",
-    "extendVideo": "延展影片",
-    "extendVideoSeconds": "延展影片 (+7秒)",
-    "extending": "延展中...",
-    "extendTitle": "延展您的影片",
-    "extendDescription": "描述影片接下來的內容，Veo 將生成額外 7 秒無縫銜接的畫面。",
-    "extendPlaceholder": "例如：鏡頭緩緩拉遠，展現完整的風景...",
-    "extendButton": "延展影片",
-    "editScript": "修改劇本",
-    "regenerate": "重新修改提詞",
-    "createNew": "再創建一個",
-    "retryGeneration": "重新嘗試",
-    "share": "分享您的作品",
-    "shareOn": "分享到 {{platform}}",
-    "platform": "平台",
-    "durationLabel": "時長",
-    "style": "風格",
-    "disclaimer": "此影片由 AI 生成。發布前請先檢查，確保符合您的需求與平台規範。"
   },
   "errors": {
     "apiKeyRequired": "請先設定 API 金鑰",
@@ -622,9 +211,41 @@
     "contentFilteredViolence": "內容因含有暴力或有害影像而被攔截，請使用其他圖片",
     "contentFilteredAdult": "內容因含有成人/不雅內容而被攔截，請使用其他圖片",
     "contentFilteredCopyright": "內容因潛在版權問題而被攔截，請使用其他圖片",
-    "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定"
+    "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定",
+    "promptRequired": "請先輸入描述或取得 AI 建議"
   },
-  "warnings": {
-    "consistencyWarning": "此影片超過 8 秒，將使用 AI 延展功能。片段之間的視覺一致性可能會有所不同。"
+  "workspace": {
+    "draftButton": "AI 建議提示詞",
+    "redraftButton": "重新建議",
+    "drafting": "AI 建議中...",
+    "directButton": "直接生成",
+    "directHint": "不經過 AI 建議，直接把描述送給 Omni（英文效果最好）"
+  },
+  "prompt": {
+    "title": "提示詞",
+    "useOption": "套用這個建議",
+    "generate": "生成影片",
+    "fields": {
+      "subject": "主體與動作",
+      "setting": "場景",
+      "camera": "鏡頭",
+      "lighting": "光影",
+      "sound": "聲音／音樂"
+    }
+  },
+  "result": {
+    "composing": "整理提示詞中",
+    "generating": "Gemini Omni 生成中",
+    "extending": "延伸中",
+    "cancel": "取消",
+    "download": "下載",
+    "regenerate": "重新生成",
+    "extendLabel": "延伸影片（目前 {{total}} 秒，最長 {{max}} 秒）",
+    "extendPlaceholder": "接下來發生什麼？",
+    "extendButton": "延伸",
+    "maxReached": "已達 40 秒上限",
+    "finalPrompt": "送出的英文提示詞",
+    "copy": "複製",
+    "copied": "已複製"
   }
 }

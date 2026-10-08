@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "I'm Not Moving Today",
+    "appName": "Jola Omni",
     "loading": "Loading...",
     "error": "Error",
     "cancel": "Cancel",
@@ -33,13 +33,8 @@
     "apiSettingsConnected": "API Settings (Connected)",
     "github": "GitHub"
   },
-  "hero": {
-    "title1": "Create Visual Dynamic Assets?",
-    "title2": "Nah, I'm Not Moving Today.",
-    "subtitle": "Let AI be your personal video director. Upload a photo, I'll make it move in ways you never imagined."
-  },
   "guide": {
-    "title": "How to Use",
+    "title": "How to use",
     "apiNotice": {
       "title": "API Key Required",
       "description": "This tool requires a Google Gemini API Key. Visit",
@@ -47,74 +42,59 @@
       "descriptionSuffix": "to get a free API Key, then enter it in 'API Settings' at the top right."
     },
     "step1": {
-      "title": "Upload & Input | Fill Everything at Once",
-      "description": "After uploading product images or any images, you can fill in the following info (the more you fill, the better AI understands):",
+      "title": "Upload a main image, describe the motion",
+      "description": "All you need:",
       "items": {
-        "supplement": {
-          "label": "Additional Notes",
-          "desc": "Tell AI your target audience, brand style, message to convey"
+        "mainImage": {
+          "label": "Main image",
+          "desc": "1 image to animate it, 2-3 to add reference elements; none for text only"
+        },
+        "idea": {
+          "label": "Motion",
+          "desc": "One sentence, e.g. \"the product slowly rotates, soft light\""
         },
         "ratio": {
-          "label": "Aspect Ratio",
-          "desc": "Choose 9:16 (portrait) or 16:9 (landscape)"
+          "label": "Aspect ratio",
+          "desc": "9:16 or 16:9, detected from the image"
         },
-        "resolution": {
-          "label": "Resolution",
-          "desc": "Choose 720p or 1080p"
-        },
-        "startFrame": {
-          "label": "Start Frame",
-          "desc": "Choose whether to use uploaded image as video opening"
+        "advanced": {
+          "label": "Advanced",
+          "desc": "Resolution, length, things to avoid, end frame (optional)"
         }
       },
-      "tip": "💡 Tip: Fill all settings at once so you don't need to adjust during the process"
+      "tip": "Click \"Suggest prompt\" to continue"
     },
     "step2": {
-      "title": "Strategy Selection | Decide Direction Instantly",
-      "description": "After analyzing images, AI will provide",
-      "descHighlight": "three distinct video strategies",
-      "descSuffix": ", each including:",
-      "items": ["Video theme and core concept", "Visual style description (mood, camera work, effects)", "Target audience positioning"],
-      "tip": "👉 Choose your favorite option, or refine based on your needs"
+      "title": "Review the prompt",
+      "description": "AI suggests",
+      "descHighlight": "subject & motion, setting, camera, lighting and sound",
+      "descSuffix": " from your input:",
+      "items": [
+        "Edit any field directly",
+        "Click an alternative below a field to swap it in",
+        "Changed your description? \"Suggest again\""
+      ],
+      "tip": "Then click \"Generate video\""
     },
     "step3": {
-      "title": "Script Generation | Auto-Generate Complete Script",
-      "description": "After confirming the strategy, system will auto-generate complete video script, including:",
+      "title": "Generate",
+      "description": "The app will:",
       "items": {
-        "storyboard": {
-          "label": "Storyboard Design",
-          "desc": "Visual description and duration for each scene"
+        "script": {
+          "label": "Compose the prompt",
+          "desc": "Turn the fields into an English description Gemini Omni understands best"
         },
-        "camera": {
-          "label": "Camera Direction",
-          "desc": "Camera movement and transition effects"
+        "generate": {
+          "label": "Generate",
+          "desc": "Gemini Omni creates visuals and sound in about 30 s to 1 min"
         },
-        "duration": {
-          "label": "Total Duration",
-          "desc": "Auto-calculated based on scenes"
+        "extend": {
+          "label": "Extend",
+          "desc": "Describe what happens next to make it longer, up to 40 s"
         }
       },
-      "tip": "You can fine-tune the script here, or proceed directly to video generation"
-    },
-    "step4": {
-      "title": "Video Generation | One-Click Video Creation",
-      "description": "After confirming the script, click generate:",
-      "items": {
-        "generate": {
-          "label": "🎬 Sequential Generation",
-          "desc": "System generates each scene and auto-concatenates"
-        },
-        "progress": {
-          "label": "⏱️ Real-time Progress",
-          "desc": "View generation status for each scene"
-        },
-        "download": {
-          "label": "📥 Download Ready",
-          "desc": "Download video directly when complete"
-        }
-      }
-    },
-    "apiNote": "💡 Tip: Gemini API Key is required for full functionality"
+      "tip": "Download the video or check the exact English prompt on the right"
+    }
   },
   "apiKeyModal": {
     "title": "API Settings",
@@ -140,14 +120,6 @@
       "placeholder": "AIzaSy...",
       "getKeyLink": "Get API Key from Google AI Studio"
     },
-    "runwayKey": {
-      "label": "Runway API Key",
-      "optional": "(Optional)",
-      "placeholder": "Enter your Runway API Key",
-      "getKeyLink": "Get API Key from Runway ML",
-      "comingSoonHint": "Runway integration is under development"
-    },
-    "comingSoon": "Coming Soon",
     "showKeys": "Show keys",
     "hideKeys": "Hide keys",
     "useFreeMode": "Use Free Mode",
@@ -160,442 +132,59 @@
     "clearButton": "Clear Key"
   },
   "upload": {
-    "title": "Create Your AI Short Video",
-    "subtitle": "Upload images, let AI generate professional short video scripts for you",
-    "dropzone": {
-      "title": "Drop images here",
-      "subtitle": "or click to select files",
-      "formats": "Supports JPG, PNG, WebP, HEIC",
-      "supportedFormats": "PNG, JPG, WEBP, AVIF",
-      "limit": "Up to 3 images",
-      "processing": "Processing...",
-      "drop": "Drop to upload",
-      "upload": "Upload product image",
-      "clickToChange": "Click to change image"
+    "mainImage": {
+      "label": "Main image",
+      "hint": "1 image = animate it; 2-3 images = combine them into a new shot; none = text only"
     },
     "description": {
-      "label": "Additional Notes",
-      "placeholder": "Tell me your target audience, brand style, message to convey... or say nothing at all",
-      "hint": "e.g., An energetic ad showcasing new sneakers, suitable for Instagram Reels"
+      "label": "What motion do you want?",
+      "placeholder": "e.g. the perfume bottle slowly rotates, water drops slide down, soft morning light"
     },
     "settings": {
       "ratio": "Aspect Ratio",
-      "resolution": "Resolution",
-      "imageUsage": "Image Position",
-      "consistency": "Visual Consistency",
-      "sceneMode": "Scene Mode"
+      "resolution": "Resolution"
     },
     "ratio": {
       "9:16": {
-        "name": "9:16 Portrait",
-        "description": "Reels / Shorts / TikTok"
+        "name": "9:16 Portrait"
       },
       "16:9": {
-        "name": "16:9 Landscape",
-        "description": "YouTube"
-      },
-      "imageOnly": "Only",
-      "imageOnlyHorizontal": "Reference mode only supports 16:9",
-      "imageOnlyHorizontalHint": "Veo's \"Style Reference\" mode only supports 16:9 landscape. Other modes (Single Image, Frame Animation) support 9:16 portrait."
+        "name": "16:9 Landscape"
+      }
     },
     "resolution": {
       "720p": "720p",
       "1080p": "1080p",
-      "4k": "4K",
-      "requires8s": "8s only"
-    },
-    "imageUsage": {
-      "label": "Image Position",
-      "start": {
-        "name": "Use Image",
-        "description": "Use uploaded image as video starting point",
-        "hint": "Image will be the first frame, AI generates motion from there"
-      },
-      "none": {
-        "name": "Don't Use",
-        "description": "Generate purely from description",
-        "hint": "No reference image, AI creates entirely from text description"
-      }
-    },
-    "consistency": {
-      "label": "Visual Consistency",
-      "none": {
-        "name": "Standard",
-        "description": "Let AI be creative freely",
-        "hint": "AI can vary visual elements, pursuing creative diversity"
-      },
-      "product": {
-        "name": "Product",
-        "description": "Keep product appearance consistent",
-        "hint": "Emphasize product color, shape, design details remain consistent"
-      },
-      "character": {
-        "name": "Character",
-        "description": "Keep character appearance consistent",
-        "hint": "Emphasize character features, clothing, hairstyle remain consistent"
-      },
-      "both": {
-        "name": "Full",
-        "description": "Both product and character consistent",
-        "hint": "Ensure both product and character visuals stay highly consistent"
-      }
-    },
-    "sceneMode": {
-      "label": "Scene Mode",
-      "auto": {
-        "name": "Auto",
-        "sublabel": "Recommended",
-        "description": "Smart decision based on duration",
-        "hint": "System automatically decides optimal scene configuration"
-      },
-      "single": {
-        "name": "Single",
-        "sublabel": "Under 8s",
-        "description": "Single continuous shot, best consistency",
-        "hint": "Single continuous shot, ideal for product showcase"
-      },
-      "multi": {
-        "name": "Multi",
-        "sublabel": "Storytelling",
-        "description": "Multiple shots combined, for complete ads",
-        "hint": "Multiple scene combinations, ideal for storytelling"
-      }
-    },
-    "motionDynamics": {
-      "label": "Motion Speed",
-      "subtle": {
-        "name": "Slow",
-        "sublabel": "Premium",
-        "description": "Slow, elegant motion",
-        "hint": "Slow and elegant, like premium ads. Great for product close-ups, atmosphere"
-      },
-      "moderate": {
-        "name": "Natural",
-        "sublabel": "Everyday",
-        "description": "Natural, smooth motion",
-        "hint": "Natural everyday rhythm. Great for vlogs, interactions, lifestyle scenes"
-      },
-      "dramatic": {
-        "name": "Fast",
-        "sublabel": "Dynamic",
-        "description": "Fast, energetic motion",
-        "hint": "Dynamic and energetic. Great for sports, dance, action scenes"
-      }
-    },
-    "qualityBooster": {
-      "label": "Quality Boost",
-      "auto": {
-        "name": "Smart",
-        "description": "AI picks the best style based on your image",
-        "hint": "AI analyzes your image and applies the most suitable visual style"
-      },
-      "none": {
-        "name": "Standard",
-        "description": "No style filter, raw AI output",
-        "hint": "Keeps original AI output without any additional adjustments"
-      },
-      "commercial": {
-        "name": "Commercial",
-        "description": "High contrast, saturated colors, sharp imagery",
-        "hint": "Vivid saturated colors, high contrast, crisp sharp edge details"
-      },
-      "cinematic": {
-        "name": "Cinematic",
-        "description": "Shallow depth of field, film grading, moody lighting",
-        "hint": "Soft background blur, warm color gradients, dramatic light and shadow"
-      },
-      "luxury": {
-        "name": "Luxury",
-        "description": "Black & gold tones, slow motion, subtle shimmer",
-        "hint": "Deep black backgrounds, metallic reflections, slow elegant motion"
-      },
-      "editorial": {
-        "name": "Editorial",
-        "description": "Magazine-style grading, model lighting",
-        "hint": "Soft even lighting, subtle skin tones, fashion magazine composition"
-      },
-      "documentary": {
-        "name": "Documentary",
-        "description": "Natural tones, handheld feel, real textures",
-        "hint": "Natural lighting, slight camera shake, authentic environmental colors"
-      },
-      "artistic": {
-        "name": "Artistic",
-        "description": "Abstract framing, unconventional grading, visual experiments",
-        "hint": "Bold color combinations, creative composition, unexpected visual effects"
-      }
-    },
-    "platformTips": {
-      "title": "Platform Tips",
-      "bestFor": "Best for",
-      "vertical": {
-        "tip": "Vertical videos are optimal for mobile viewing. The first 3 seconds are crucial for engagement"
-      },
-      "horizontal": {
-        "tip": "Horizontal videos are ideal for larger screens, showcasing more visual detail"
-      }
-    },
-    "startButton": "Start Chilling",
-    "analyzing": "Analyzing...",
-    "veoModel": {
-      "label": "Video Model",
-      "fast": {
-        "name": "Veo 3.1 Fast Video",
-        "price": "$0.15/sec"
-      },
-      "standard": {
-        "name": "Veo 3.1 Standard Video",
-        "price": "$0.40/sec"
-      }
+      "4k": "4K"
     },
     "duration": {
       "label": "Video Duration",
-      "unit": "sec",
-      "locked8s": "(locked to 8s by current settings)"
-    },
-    "cameraMotion": {
-      "label": "Camera Motion",
-      "auto": {
-        "name": "Smart",
-        "description": "AI chooses best camera motion",
-        "hint": "Let AI automatically select the most suitable camera motion based on image content and video style. Great when you're unsure which motion to use."
-      },
-      "static": {
-        "name": "Static",
-        "description": "Fixed camera, no movement",
-        "hint": "The camera stays completely still. Perfect for showcasing a single subject with full attention."
-      },
-      "push": {
-        "name": "Push",
-        "description": "Move towards subject",
-        "hint": "Camera subtly moves closer to the center. This micro-motion invites viewers into the frame, great for emphasis or creating intimacy."
-      },
-      "pull": {
-        "name": "Pull",
-        "description": "Move away from subject",
-        "hint": "Camera subtly moves backward. Creates a sense of space opening up, perfect for revealing scenes or ending shots."
-      },
-      "pan_right": {
-        "name": "Pan Right",
-        "description": "Move left to right",
-        "hint": "Camera slowly sweeps from left to right. Great for showcasing wide environments or guiding viewer attention rightward."
-      },
-      "pan_left": {
-        "name": "Pan Left",
-        "description": "Move right to left",
-        "hint": "Camera slowly sweeps from right to left. Great for showcasing wide environments or guiding viewer attention leftward."
-      },
-      "tilt_up": {
-        "name": "Tilt Up",
-        "description": "Camera tilts upward",
-        "hint": "Camera slowly tilts from bottom to top. Perfect for showcasing tall objects, buildings, or full-body shots from feet to head."
-      },
-      "tilt_down": {
-        "name": "Tilt Down",
-        "description": "Camera tilts downward",
-        "hint": "Camera slowly tilts from top to bottom. Perfect for overview shots, head-to-toe reveals, or creating a reveal effect."
-      }
-    },
-    "priceEstimate": {
-      "label": "~{{price}} to chill",
-      "hint": "Note: Each generation produces random results. Adjusting parameters may produce different outcomes"
-    },
-    "videoMode": {
-      "label": "Video Generation Mode",
-      "single_image": {
-        "name": "Image to Video",
-        "description": "1-3 images to video",
-        "hint": "Upload 1 image as first frame; upload 2-3 images as style references for AI to generate video based on their visual style"
-      },
-      "frames_to_video": {
-        "name": "Frame Animation",
-        "description": "Start → end frame transition",
-        "hint": "Upload start and end images, AI generates smooth transition animation between them (8 seconds only)"
-      },
-      "text_only": {
-        "name": "Text Only",
-        "description": "No image needed",
-        "hint": "Generate video purely from text description"
-      }
+      "unit": "sec"
     },
     "modeUploader": {
-      "startImage": "Start Image",
-      "image": "Image",
-      "startFrame": "Start Frame",
-      "endFrame": "End Frame",
+      "endFrame": "End frame",
       "reference": "Reference",
-      "required": "Required",
       "optional": "Optional",
       "remove": "Remove",
       "clickToUpload": "Click or drag to upload",
       "processing": "Processing...",
-      "textOnlyHint": "Text-only mode: No image upload needed. Enter your video content in the Additional Notes field."
+      "mainImage": "Main",
+      "endFrameHint": "Optional: the video transitions from the main image to this one"
     },
     "negativePrompt": {
       "label": "Exclude Content",
       "placeholder": "Describe what you don't want in the video, e.g.: blur, text, watermark, distortion..."
     },
     "preview": {
-      "textOnly": "Text-only mode - No preview image",
-      "uploadHint": "Upload an image to see preview"
+      "uploadHint": "Your main image will appear here. You can also skip it and use text only"
+    },
+    "advanced": {
+      "label": "Advanced settings"
+    },
+    "priceEstimate": {
+      "label": "Estimated cost ~{{price}}",
+      "labelUpscaled": "Estimated cost from ~{{price}} (1080p / 4K are upscaled and may cost more)"
     }
-  },
-  "loader": {
-    "analyzing": {
-      "title": "AI is on the move, just relax",
-      "description": "(Pretending to professionally analyze your images)"
-    },
-    "refining": {
-      "title": "AI is rethinking life choices",
-      "description": "(Adjusting direction based on your feedback)"
-    },
-    "generatingScript": {
-      "title": "AI is writing the script",
-      "description": "(Working hard to turn ideas into words)"
-    }
-  },
-  "analysis": {
-    "title": "Analysis Report",
-    "originalImage": "Original Image",
-    "defaultSubject": "Your Creative Material",
-    "noDescription": "(No additional notes provided)",
-    "moodAndStyle": "Mood & Style",
-    "suggestedThemes": "Suggested Themes",
-    "additionalImages": "+ {count} additional materials"
-  },
-  "suggestions": {
-    "title": "Choose Video Direction",
-    "subtitle": "AI has proposed the following creative directions based on your materials",
-    "selectButton": "Select This",
-    "selectedBadge": "Selected",
-    "unknown": "Unknown",
-    "refineTitle": "Refine Direction",
-    "refinePlaceholder": "e.g., Make it more energetic, focus on product close-ups, add humor...",
-    "refineButton": "Regenerate Suggestions",
-    "generateScript": "Generate Script",
-    "adjustmentLabel": "Adjustment Direction",
-    "additionalNotes": "Additional Notes (Optional)",
-    "additionalNotesPlaceholder": "Additional info about brand, target audience, or special requirements...",
-    "badges": {
-      "safe": "Safe Choice",
-      "creative": "Creative",
-      "viral": "Viral"
-    },
-    "fields": {
-      "concept": "Concept",
-      "hook": "Opening Hook",
-      "mainContent": "Main Content",
-      "cta": "Call to Action",
-      "title": "Title",
-      "postContent": "Post Content",
-      "hashtag": "Hashtag",
-      "duration": "Duration",
-      "platform": "Platform",
-      "music": "Music Style"
-    },
-    "visualDirection": "Visual Direction",
-    "subjectAction": "Subject & Action",
-    "environment": "Environment Consistency",
-    "cameraStyle": "Camera Style",
-    "cameraMotion": "Camera Motion",
-    "lighting": "Lighting",
-    "videoQuality": "Video Quality",
-    "qualityBooster": "Quality Boost",
-    "suggestedMusic": "Suggested Music",
-    "addAdjustments": "Add Adjustments",
-    "refineMore": "Refine More",
-    "finalizeScript": "Confirm & Generate Video",
-    "iterationHistory": "Iteration History"
-  },
-  "recommendedSettings": {
-    "title": "AI Recommended Settings",
-    "subtitle": "Automatically recommended based on your image analysis"
-  },
-  "script": {
-    "title": "Script Preview",
-    "storyboard": "Storyboard",
-    "scene": "Scene",
-    "duration": "Duration",
-    "camera": "Camera",
-    "lighting": "Lighting",
-    "transition": "Transition",
-    "music": "Music",
-    "colorGrading": "Color Grading",
-    "prepareGeneration": "Prepare Video Generation",
-    "prepareDescription": "After confirming the script, click below to start generating your video",
-    "consistencyWarning": "Consistency Notice",
-    "exportPrompt": "Export Prompt",
-    "exportDescription": "Export script prompts for use with Runway, Pika, Kling, and other AI video platforms.",
-    "exportFormats": {
-      "text": "Plain Text",
-      "textDesc": "Universal format",
-      "markdown": "Markdown",
-      "markdownDesc": "For Notion",
-      "prompts": "Prompts Only",
-      "promptsDesc": "Quick copy"
-    },
-    "copyToClipboard": "Copy to Clipboard",
-    "copied": "Copied!",
-    "downloadFile": "Download File",
-    "adjustScript": "Want to adjust the script?",
-    "adjustPlaceholder": "e.g., Make scene 2 slow motion, add product close-up at the end...",
-    "adjustButton": "Adjust Script",
-    "backToSuggestions": "← Back to Suggestions",
-    "generateVideo": "Generate Video"
-  },
-  "generation": {
-    "preparing": "Preparing to generate...",
-    "generatingInitial": "Generating initial segment",
-    "generatingInitialWithDuration": "Generating initial segment ({duration}s)...",
-    "extending": "Extending video",
-    "extendingWithSegment": "Extending video (segment {current}/{total})...",
-    "completed": "Video generation complete!",
-    "failed": "Generation failed",
-    "processing": "Processing...",
-    "progress": "Overall Progress",
-    "estimated": "Estimated time remaining",
-    "estimatedTime": "Estimated time remaining: {time}",
-    "about": "About",
-    "minute": "minute",
-    "minutes": "minutes",
-    "cancelGeneration": "Cancel Generation",
-    "initial": "Initial",
-    "initialGeneration": "Initial",
-    "extension": "Extension",
-    "extensionNumber": "Extension #{number}",
-    "segment": "segment",
-    "segments": "Segments",
-    "segmentCount": "Segment Count",
-    "target": "Target",
-    "targetDuration": "Target {duration}s",
-    "targetLength": "Target Duration",
-    "seconds": "sec",
-    "elapsed": "Elapsed",
-    "jobId": "Job ID",
-    "using": "Using {provider}",
-    "usingProvider": "Using {provider} to generate {duration}s video"
-  },
-  "video": {
-    "completed": "Video Complete!",
-    "ready": "Your Video is Ready!",
-    "downloadVideo": "Download Video",
-    "extendVideo": "Extend Video",
-    "extendVideoSeconds": "Extend Video (+7s)",
-    "extending": "Extending...",
-    "extendTitle": "Extend Your Video",
-    "extendDescription": "Describe what comes next, Veo will generate an additional 7 seconds seamlessly.",
-    "extendPlaceholder": "e.g., Camera slowly pulls back to reveal the full landscape...",
-    "extendButton": "Extend Video",
-    "editScript": "Edit Script",
-    "regenerate": "Edit Prompts",
-    "createNew": "Create Another",
-    "retryGeneration": "Retry",
-    "share": "Share your creation",
-    "shareOn": "Share on {{platform}}",
-    "platform": "Platform",
-    "durationLabel": "Duration",
-    "style": "Style",
-    "disclaimer": "This video was generated using AI. Please review before publishing to ensure it meets your requirements and platform guidelines."
   },
   "errors": {
     "apiKeyRequired": "Please set up API key first",
@@ -622,9 +211,41 @@
     "contentFilteredViolence": "Content was blocked due to violent or harmful imagery. Please use a different image",
     "contentFilteredAdult": "Content was blocked due to adult/NSFW content. Please use a different image",
     "contentFilteredCopyright": "Content was blocked due to potential copyright issues. Please use a different image",
-    "videoGenerationUnknown": "Video generation completed but no video was produced. Please try again with different settings"
+    "videoGenerationUnknown": "Video generation completed but no video was produced. Please try again with different settings",
+    "promptRequired": "Enter a description or get an AI suggestion first"
   },
-  "warnings": {
-    "consistencyWarning": "This video exceeds 8 seconds and will use AI extension. Visual consistency between segments may vary."
+  "workspace": {
+    "draftButton": "Suggest prompt",
+    "redraftButton": "Suggest again",
+    "drafting": "Suggesting...",
+    "directButton": "Generate now",
+    "directHint": "Send your description to Omni as-is, without AI suggestions"
+  },
+  "prompt": {
+    "title": "Prompt",
+    "useOption": "Use this suggestion",
+    "generate": "Generate video",
+    "fields": {
+      "subject": "Subject & motion",
+      "setting": "Setting",
+      "camera": "Camera",
+      "lighting": "Lighting",
+      "sound": "Sound / music"
+    }
+  },
+  "result": {
+    "composing": "Preparing the prompt",
+    "generating": "Gemini Omni is generating",
+    "extending": "Extending",
+    "cancel": "Cancel",
+    "download": "Download",
+    "regenerate": "Regenerate",
+    "extendLabel": "Extend video (now {{total}} s, max {{max}} s)",
+    "extendPlaceholder": "What happens next?",
+    "extendButton": "Extend",
+    "maxReached": "Reached the 40 s limit",
+    "finalPrompt": "English prompt sent to Omni",
+    "copy": "Copy",
+    "copied": "Copied"
   }
 }

@@ -2,18 +2,16 @@
 
 import { useCallback, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import type { UploadedImage, VideoGenerationMode, VideoRatio } from "@/types";
+import type { UploadedImage } from "@/types";
 import { useLocale } from "@/contexts/LocaleContext";
 
 interface ModeImageUploaderProps {
-  mode: VideoGenerationMode;
-  videoRatio: VideoRatio;
   startFrame?: UploadedImage;
-  endFrame?: UploadedImage;
   references: UploadedImage[];
   onStartFrameChange: (image: UploadedImage | undefined) => void;
-  onEndFrameChange: (image: UploadedImage | undefined) => void;
   onReferencesChange: (images: UploadedImage[]) => void;
+  /** True while an end frame is set */
+  referencesDisabled?: boolean;
   disabled?: boolean;
 }
 
@@ -79,17 +77,15 @@ interface SingleUploadBoxProps {
   hint?: string;
   image?: UploadedImage;
   onImageChange: (image: UploadedImage | undefined) => void;
-  videoRatio: VideoRatio;
   disabled?: boolean;
   required?: boolean;
 }
 
-function SingleUploadBox({
+export function SingleUploadBox({
   label,
   hint,
   image,
   onImageChange,
-  videoRatio,
   disabled = false,
   required = false,
 }: SingleUploadBoxProps) {
@@ -235,15 +231,17 @@ function SingleUploadBox({
   );
 }
 
+/**
+ * Main image + up to 2 extra reference images.
+ * No image = text-to-video; 1 image = image-to-video; 2-3 images = reference-to-video.
+ * References are disabled while an end frame is set (first/last frame mode).
+ */
 export function ModeImageUploader({
-  mode,
-  videoRatio,
   startFrame,
-  endFrame,
   references,
   onStartFrameChange,
-  onEndFrameChange,
   onReferencesChange,
+  referencesDisabled = false,
   disabled = false,
 }: ModeImageUploaderProps) {
   const { t } = useLocale();
@@ -262,74 +260,29 @@ export function ModeImageUploader({
     [references, onReferencesChange]
   );
 
-  // Pure text mode - no upload boxes, just text hint
-  if (mode === "text_only") {
-    return (
-      <div className="p-4 bg-gray-800/50 rounded-xl border border-white/10">
-        <p className="text-sm text-gray-400">{t("upload.modeUploader.textOnlyHint")}</p>
-      </div>
-    );
-  }
-
-  // Single image mode - supports 1-3 images
-  // 1 image = image-to-video (first frame), 2-3 images = reference/ingredients mode
-  if (mode === "single_image") {
-    return (
-      <div className="grid grid-cols-3 gap-3">
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.image")} 1`}
-          hint={t("upload.modeUploader.required")}
-          image={startFrame}
-          onImageChange={onStartFrameChange}
-          videoRatio={videoRatio}
-          disabled={disabled}
-          required
-        />
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.image")} 2`}
-          hint={t("upload.modeUploader.optional")}
-          image={references[0]}
-          onImageChange={(img) => handleReferenceChange(0, img)}
-          videoRatio={videoRatio}
-          disabled={disabled || !startFrame}
-        />
-        <SingleUploadBox
-          label={`${t("upload.modeUploader.image")} 3`}
-          hint={t("upload.modeUploader.optional")}
-          image={references[1]}
-          onImageChange={(img) => handleReferenceChange(1, img)}
-          videoRatio={videoRatio}
-          disabled={disabled || !references[0]}
-        />
-      </div>
-    );
-  }
-
-  // Frames to video mode (start + end)
-  if (mode === "frames_to_video") {
-    return (
-      <div className="grid grid-cols-2 gap-3">
-        <SingleUploadBox
-          label={t("upload.modeUploader.startFrame")}
-          image={startFrame}
-          onImageChange={onStartFrameChange}
-          videoRatio={videoRatio}
-          disabled={disabled}
-          required
-        />
-        <SingleUploadBox
-          label={t("upload.modeUploader.endFrame")}
-          image={endFrame}
-          onImageChange={onEndFrameChange}
-          videoRatio={videoRatio}
-          disabled={disabled}
-          required
-        />
-      </div>
-    );
-  }
-
-  // References mode removed - merged into single_image
-
-  return null;
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <SingleUploadBox
+        label={t("upload.modeUploader.mainImage")}
+        hint={t("upload.modeUploader.optional")}
+        image={startFrame}
+        onImageChange={onStartFrameChange}
+        disabled={disabled}
+      />
+      <SingleUploadBox
+        label={`${t("upload.modeUploader.reference")} 1`}
+        hint={t("upload.modeUploader.optional")}
+        image={references[0]}
+        onImageChange={(img) => handleReferenceChange(0, img)}
+        disabled={disabled || referencesDisabled || !startFrame}
+      />
+      <SingleUploadBox
+        label={`${t("upload.modeUploader.reference")} 2`}
+        hint={t("upload.modeUploader.optional")}
+        image={references[1]}
+        onImageChange={(img) => handleReferenceChange(1, img)}
+        disabled={disabled || referencesDisabled || !references[0]}
+      />
+    </div>
+  );
 }

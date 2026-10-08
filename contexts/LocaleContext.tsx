@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useCallback, useMemo, useSyncExternalStore } from "react";
 import zhMessages from "@/locales/zh.json";
 import enMessages from "@/locales/en.json";
 
@@ -81,32 +81,57 @@ interface LocaleProviderProps {
   children: React.ReactNode;
 }
 
+// Locale store: localStorage-backed, with an in-memory fallback when storage is unavailable
+let localeOverride: Locale | null = null;
+const localeListeners = new Set<() => void>();
+
+function readStoredLocale(): Locale | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === "zh" || stored === "en" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function subscribeLocale(listener: () => void) {
+  localeListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    localeListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function getLocaleSnapshot(): Locale {
+  return localeOverride ?? readStoredLocale() ?? detectBrowserLanguage();
+}
+
+function getServerLocaleSnapshot(): Locale {
+  return "zh";
+}
+
+const subscribeNoop = () => () => {};
+
 export function LocaleProvider({ children }: LocaleProviderProps) {
-  const [locale, setLocaleState] = useState<Locale>("zh");
-  const [isInitialized, setIsInitialized] = useState(false);
+  const locale = useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getServerLocaleSnapshot);
+  // false during SSR and hydration, true afterwards
+  const isInitialized = useSyncExternalStore(subscribeNoop, () => true, () => false);
 
   // Load messages based on locale
   const messages = useMemo<Messages>(() => {
     return locale === "zh" ? zhMessages : enMessages;
   }, [locale]);
 
-  // Initialize locale from localStorage or browser detection
-  useEffect(() => {
-    const storedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
-
-    if (storedLocale && (storedLocale === "zh" || storedLocale === "en")) {
-      setLocaleState(storedLocale);
-    } else {
-      const detectedLocale = detectBrowserLanguage();
-      setLocaleState(detectedLocale);
-    }
-    setIsInitialized(true);
-  }, []);
-
   // Set locale and persist to localStorage
   const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem(STORAGE_KEY, newLocale);
+    localeOverride = newLocale;
+    try {
+      localStorage.setItem(STORAGE_KEY, newLocale);
+    } catch {
+      // Storage unavailable - keep the in-memory value
+    }
+    localeListeners.forEach((listener) => listener());
   }, []);
 
   // Toggle between zh and en

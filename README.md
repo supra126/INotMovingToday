@@ -2,7 +2,7 @@
 
 > Viral video? Making it myself? Nope. I'm not moving today.
 
-An AI-powered video script generator for Reels/TikTok/Shorts/YouTube. Upload images, describe your idea, and let **AI** craft viral-worthy video scripts and generate videos with Google Veo 3.1.
+An AI-powered video script generator for Reels/TikTok/Shorts/YouTube. Upload images, describe your idea, and let **AI** craft viral-worthy video scripts and generate videos with Google Gemini Omni Flash.
 
 ---
 
@@ -39,52 +39,33 @@ docker run -p 8080:8080 -e GEMINI_API_KEY=your-api-key supra126/inotmovingtoday
 
 ## Features
 
-### Phase 1: Image Analysis & Direction
+### Step 1: Main Image + Idea
 
 _The Creative Spark_
 
-- **Smart Image Analysis**: Upload up to 3 images, AI analyzes visual features, mood, colors, and themes
-- **3 Video Directions**: Instantly generate 3 distinct video concepts
-- **AI-Recommended Settings**: Automatic suggestions for consistency mode, motion dynamics, and quality booster
-- **Platform-Specific Strategy**: Optimized hooks for TikTok/Reels/Shorts vs YouTube
+- **Main image**: Upload 1 image to animate it, 2-3 to combine them into a new shot, or none for text-to-video
+- **One-sentence idea**: Describe what you want; AI analyzes the image's subject, mood and colors
+- **Aspect ratio**: 9:16 or 16:9, detected from the image
+- **Advanced (optional, collapsed)**: Resolution (720p / 1080p / 4K), length (4 / 6 / 8 / 10 s), things to avoid, end frame for a first-to-last-frame transition
 
-### Phase 2: Script Generation & Video Creation
+No camera, motion or quality settings: Omni works them out from the image and the description.
+
+### Step 2: Pick a Direction, Generate
 
 _Let AI Do The Work_
 
-#### Multi-Platform Support
-
-| Ratio           | Best For                              |
-| --------------- | ------------------------------------- |
-| **9:16**        | TikTok, Reels, Shorts (vertical)      |
-| **16:9**        | YouTube, landscape videos             |
-| **1:1**         | Instagram posts, square format        |
-
-#### Video Generation Settings
-
-| Setting              | Options                                                    |
-| -------------------- | ---------------------------------------------------------- |
-| **Consistency Mode** | None, Product, Character, Both                             |
-| **Motion Dynamics**  | Subtle, Moderate, Dramatic                                 |
-| **Quality Booster**  | Commercial, Cinematic, Luxury, Editorial, Documentary, Artistic |
-| **Scene Mode**       | Auto, Single (≤8s), Multi (story-based)                    |
-| **Resolution**       | 720p, 1080p                                                |
-
-#### Image Usage
-
-| Mode      | Description                                    |
-| --------- | ---------------------------------------------- |
-| **Start** | Use image as video opening (Image-to-Video)    |
-| **None**  | Pure text-to-video generation                  |
+- **3 Video Directions**: Distinct concepts with hook, content, call to action and visual description
+- **Editable cards**: Tweak any field, or ask AI to adjust
+- **One click**: The script is written in Omni-friendly natural language and sent straight to generation
 
 ### Video Generation
 
-Powered by **Google Veo 3.1** for high-quality AI video generation.
+Powered by **Google Gemini Omni Flash** (`gemini-omni-1.1-flash`).
 
-- Up to 8 seconds per clip
-- Image-to-Video support
-- Multiple aspect ratios
-- Fast or Standard quality modes
+- 3-10 seconds per clip, with native audio
+- Image-to-video, reference images, first/last frame
+- Longer videos are extended in segments, up to 40 seconds
+- Extend a finished video with "what happens next"
 
 ---
 
@@ -93,8 +74,8 @@ Powered by **Google Veo 3.1** for high-quality AI video generation.
 | Category  | Technology                                     |
 | --------- | ---------------------------------------------- |
 | Framework | Next.js 16 + React 19 + TypeScript             |
-| AI Models | Google Gemini (text analysis)                  |
-|           | Google Veo 3.1 (video generation)              |
+| AI Models | Gemini 3.8 Flash (analysis & scripts)          |
+|           | Gemini Omni Flash (video generation)           |
 | Styling   | Tailwind CSS                                   |
 | State     | Zustand                                        |
 
@@ -145,15 +126,11 @@ Copy `.env.example` to `.env.local`:
 # Gemini API Key (optional - if set, users get free access)
 GEMINI_API_KEY=your-api-key
 
-# Gemini Thinking Budget (optional)
-GEMINI_THINKING_BUDGET=2048
+# Gemini thinking level (optional): low | medium | high
+# GEMINI_THINKING_LEVEL=medium
 
-# Video Provider: mock (testing), veo (Google Veo 3.1)
-VIDEO_PROVIDER=veo
-
-# Veo Quality Mode (optional)
-# false = Fast mode (default), true = Standard mode (higher quality)
-VEO_USE_STANDARD=false
+# Video Provider: mock (testing), omni (Google Gemini Omni Flash)
+VIDEO_PROVIDER=omni
 ```
 
 > **Get Gemini API Key**: [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -171,14 +148,12 @@ VEO_USE_STANDARD=false
 
 ## User Flow
 
-1. **Upload Images**: Add up to 3 reference images
-2. **Describe Your Idea**: Tell AI what video you want
-3. **AI Analysis**: Wait ~3-5 seconds for analysis
-4. **Choose Direction**: Pick from 3 AI-generated concepts
-5. **Configure Settings**: Adjust ratio, consistency, motion, quality
-6. **Generate Script**: AI creates detailed scene-by-scene script
-7. **Generate Video**: Powered by Google Veo 3.1
-8. **Download & Share**: Export your viral video
+1. **Upload a Main Image**: Optional, up to 3 images
+2. **Describe Your Idea**: One sentence about the video
+3. **AI Analysis**: AI proposes 3 directions
+4. **Pick a Direction**: Edit it if you like, then generate
+5. **Generate Video**: Script and video are produced automatically by Gemini Omni Flash
+6. **Extend & Download**: Add more seconds or export the MP4
 
 ---
 
@@ -241,7 +216,7 @@ MIT License
 
 > 做病毒式短影片？自己剪？不用，今天不想動。
 
-一個由 AI 驅動的影片腳本生成工具，支援 Reels/TikTok/Shorts/YouTube。上傳圖片、描述你的想法，讓 **AI** 幫你打造爆款影片腳本，並使用 Google Veo 3.1 生成影片。
+一個由 AI 驅動的影片腳本生成工具，支援 Reels/TikTok/Shorts/YouTube。上傳圖片、描述你的想法，讓 **AI** 幫你打造爆款影片腳本，並使用 Google Gemini Omni Flash 生成影片。
 
 ---
 
@@ -278,52 +253,33 @@ docker run -p 8080:8080 -e GEMINI_API_KEY=your-api-key supra126/inotmovingtoday
 
 ## 功能特色
 
-### 第一階段：圖片分析與方向選擇
+### 第一步：主圖＋想法
 
-_創意的火花_
+_創意火花_
 
-- **智能圖片分析**：上傳最多 3 張圖片，AI 自動分析視覺特徵、氛圍、色彩與主題
-- **三種影片方向**：即時生成 3 種截然不同的影片概念
-- **AI 推薦設定**：自動建議一致性模式、動態程度與品質增強
-- **平台專屬策略**：針對 TikTok/Reels/Shorts 與 YouTube 優化開場策略
+- **主圖**：上傳 1 張讓它動起來，2-3 張組合成新畫面，不上傳就用文字生成
+- **一句話描述**：說出你想要的影片，AI 會分析圖片的主體、氛圍與色彩
+- **畫面比例**：9:16 或 16:9，依主圖自動判斷
+- **進階設定（選填，預設收起）**：解析度（720p / 1080p / 4K）、秒數（4 / 6 / 8 / 10）、排除內容、結束畫面（首尾幀轉場）
 
-### 第二階段：腳本生成與影片製作
+不需要設定運鏡、動態或品質：Omni 會依圖片和描述自動處理。
 
-_讓 AI 來努力_
+### 第二步：挑方向、直接生成
 
-#### 多平台支援
+_讓 AI 做事_
 
-| 比例      | 適用場景                         |
-| --------- | -------------------------------- |
-| **9:16**  | TikTok、Reels、Shorts（直式）    |
-| **16:9**  | YouTube、橫式影片                |
-| **1:1**   | Instagram 貼文、方形格式         |
-
-#### 影片生成設定
-
-| 設定             | 選項                                                         |
-| ---------------- | ------------------------------------------------------------ |
-| **一致性模式**   | 無、產品、人物、兩者皆是                                     |
-| **動態程度**     | 微妙、中等、劇烈                                             |
-| **品質增強**     | 商業級、電影級、奢侈品、編輯級、紀錄片、藝術感               |
-| **場景模式**     | 自動、單場景（≤8秒）、多場景（故事敘述）                     |
-| **解析度**       | 720p、1080p                                                  |
-
-#### 圖片使用方式
-
-| 模式     | 說明                             |
-| -------- | -------------------------------- |
-| **開頭** | 使用圖片作為影片開頭（圖生影片） |
-| **不用** | 純文字生成影片                   |
+- **3 個影片方向**：各自包含開場、內容、行動呼籲與視覺描述
+- **卡片可編輯**：直接修改任何欄位，或請 AI 重新調整
+- **一鍵生成**：腳本以 Omni 偏好的自然語言撰寫，完成後直接送出生成
 
 ### 影片生成
 
-由 **Google Veo 3.1** 驅動的高品質 AI 影片生成。
+由 **Google Gemini Omni Flash**（`gemini-omni-1.1-flash`）驅動。
 
-- 單次最長 8 秒
-- 支援圖片轉影片
-- 多種長寬比
-- 快速或標準品質模式
+- 單段 3-10 秒，內建音效
+- 支援圖生影片、參考圖、首尾幀
+- 較長影片自動分段延伸，最長 40 秒
+- 完成後可描述「接下來發生什麼」延伸影片
 
 ---
 
@@ -332,8 +288,8 @@ _讓 AI 來努力_
 | 類別    | 技術                              |
 | ------- | --------------------------------- |
 | 框架    | Next.js 16 + React 19 + TypeScript |
-| AI 模型 | Google Gemini（文字分析）         |
-|         | Google Veo 3.1（影片生成）        |
+| AI 模型 | Gemini 3.8 Flash（分析與腳本）    |
+|         | Gemini Omni Flash（影片生成）     |
 | 樣式    | Tailwind CSS                      |
 | 狀態    | Zustand                           |
 
@@ -384,15 +340,11 @@ pnpm start:static  # 本地測試
 # Gemini API 金鑰（選填 - 若設定，用戶可免費使用）
 GEMINI_API_KEY=your-api-key
 
-# Gemini Thinking Budget（選填）
-GEMINI_THINKING_BUDGET=2048
+# Gemini 思考等級（選填）：low | medium | high
+# GEMINI_THINKING_LEVEL=medium
 
-# 影片提供者：mock（測試用）、veo（Google Veo 3.1）
-VIDEO_PROVIDER=veo
-
-# Veo 品質模式（選填）
-# false = 快速模式（預設）、true = 標準模式（更高品質）
-VEO_USE_STANDARD=false
+# 影片提供者：mock（測試用）、omni（Google Gemini Omni Flash）
+VIDEO_PROVIDER=omni
 ```
 
 > **取得 API Key**: [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -410,14 +362,12 @@ VEO_USE_STANDARD=false
 
 ## 使用流程
 
-1. **上傳圖片**：新增最多 3 張參考圖片
-2. **描述想法**：告訴 AI 你想要什麼影片
-3. **AI 分析**：等待約 3-5 秒完成分析
-4. **選擇方向**：從 3 個 AI 生成的概念中選擇
-5. **調整設定**：設定比例、一致性、動態、品質
-6. **生成腳本**：AI 建立詳細的分場腳本
-7. **生成影片**：由 Google Veo 3.1 驅動
-8. **下載分享**：匯出你的爆款影片
+1. **上傳主圖**：選填，最多 3 張
+2. **描述想法**：一句話說明影片內容
+3. **AI 分析**：AI 提出 3 個方向
+4. **挑選方向**：可先修改，再按生成
+5. **生成影片**：腳本與影片由 Gemini Omni Flash 自動完成
+6. **延伸與下載**：再加幾秒或直接下載 MP4
 
 ---
 
