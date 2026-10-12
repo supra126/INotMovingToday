@@ -12,10 +12,11 @@ export async function hasServerApiKey(): Promise<boolean> {
   return !!process.env.GEMINI_API_KEY;
 }
 
-function createClient(): GeminiClient {
-  const apiKey = process.env.GEMINI_API_KEY;
+// The user's own key wins; the server key is only a fallback
+function createClient(userApiKey?: string): GeminiClient {
+  const apiKey = userApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured on the server");
+    throw new Error("errors.apiKeyRequired");
   }
   return new GeminiClient({ apiKey, thinkingLevel: parseThinkingLevel(process.env.GEMINI_THINKING_LEVEL) });
 }
@@ -25,14 +26,19 @@ function createClient(): GeminiClient {
  */
 export async function draftPromptAction(
   images: File[],
-  input: Omit<PromptDraftInput, "imageCount">
+  input: Omit<PromptDraftInput, "imageCount">,
+  apiKey?: string
 ): Promise<ActionResult<PromptDraft>> {
-  return toActionResult(() => createClient().draftPrompt(images, input));
+  return toActionResult(() => createClient(apiKey).draftPrompt(images, input));
 }
 
 /**
  * Compose the edited fields into the final English Omni prompt
  */
-export async function composePromptAction(fields: PromptFields, ctx: PromptContext): Promise<ActionResult<string>> {
-  return toActionResult(() => createClient().composePrompt(fields, ctx));
+export async function composePromptAction(
+  fields: PromptFields,
+  ctx: PromptContext,
+  apiKey?: string
+): Promise<ActionResult<string>> {
+  return toActionResult(() => createClient(apiKey).composePrompt(fields, ctx));
 }

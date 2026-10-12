@@ -98,7 +98,7 @@
   },
   "apiKeyModal": {
     "title": "API Settings",
-    "description": "API Key is stored locally in your browser and never sent to any server.",
+    "description": "API Key is stored only in your browser and used solely to call Google Gemini; it is never logged or stored on the server.",
     "descriptionFree": "You can enter your own API Key for faster speed and higher quota.",
     "freeMode": {
       "title": "Free Mode Enabled",
@@ -111,7 +111,7 @@
     },
     "required": {
       "title": "API Key Required",
-      "description": "Please enter your Gemini API Key to use this tool. API Key is stored locally in your browser and never sent to any server."
+      "description": "Please enter your Gemini API Key to use this tool. API Key is stored only in your browser and used solely to call Google Gemini; it is never logged or stored on the server."
     },
     "geminiKey": {
       "label": "Google Gemini API Key",

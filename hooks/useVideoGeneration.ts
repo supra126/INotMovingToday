@@ -7,7 +7,6 @@ import {
   startVideoGeneration,
   checkVideoStatus,
   extendVideo,
-  isStaticMode,
   cleanupVideoJob,
 } from "@/services/videoService";
 import type { PromptContext } from "@/lib/ai/prompts";
@@ -197,9 +196,10 @@ const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
 export const MAX_TOTAL_DURATION = 40;
 
-// Static builds call Gemini from the browser with the user's own key
+// The user's own key: static builds call Gemini from the browser,
+// server builds forward it so the server key is only a fallback
 function apiKey(): string | undefined {
-  return isStaticMode() ? getApiKey("gemini") : undefined;
+  return getApiKey("gemini");
 }
 
 export function useVideoGeneration(): VideoGenerationState & VideoGenerationActions {
@@ -215,7 +215,13 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
   const runIdRef = useRef(0);
   const jobIdsRef = useRef<string[]>([]);
   // Settings of the current video, reused for extension
-  const lastRequestRef = useRef<{ sourceVideoUri: string; ratio: VideoRatio; resolution: VideoResolution } | null>(null);
+  // apiKey is pinned per video: the server only lets the starting key read or extend a job
+  const lastRequestRef = useRef<{
+    sourceVideoUri: string;
+    ratio: VideoRatio;
+    resolution: VideoResolution;
+    apiKey: string | undefined;
+  } | null>(null);
 
   // Job that produced the video currently on screen; its blob URL must outlive a cancelled extension
   const shownJobIdRef = useRef<string | null>(null);
@@ -229,13 +235,13 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     if (!keep) shownJobIdRef.current = null;
   }, []);
 
-  const pollUntilDone = useCallback(async (jobId: string, runId: number) => {
+  const pollUntilDone = useCallback(async (jobId: string, runId: number, key: string | undefined) => {
     for (let i = 0; i < MAX_POLLS; i++) {
       if (runIdRef.current !== runId) return null;
 
       let result: Awaited<ReturnType<typeof checkVideoStatus>>;
       try {
-        result = await checkVideoStatus(jobId, apiKey());
+        result = await checkVideoStatus(jobId, key);
       } catch (err) {
         // Request itself failed (network etc.) - transient, keep polling
         if (process.env.NODE_ENV === "development") {
@@ -264,6 +270,8 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     setVideoUrl(null);
     setProgress(0);
     setStatus("composing");
+    // Pin the key for this run so changing it in settings mid-run keeps the job reachable
+    const key = apiKey();
 
     try {
       const ctx: PromptContext = {
@@ -273,7 +281,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         duration: request.duration,
         locale: request.locale,
       };
-      const prompt = request.rawPrompt?.trim() || (request.fields ? await composePrompt(request.fields, ctx, apiKey()) : "");
+      const prompt = request.rawPrompt?.trim() || (request.fields ? await composePrompt(request.fields, ctx, key) : "");
       if (!prompt) throw new Error("errors.promptRequired");
       if (runIdRef.current !== runId) return false;
       setFinalPrompt(prompt);
@@ -296,17 +304,17 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         params.referenceImages = images;
       }
 
-      const job = await startVideoGeneration(params, apiKey());
+      const job = await startVideoGeneration(params, key);
       jobIdsRef.current.push(job.jobId);
 
-      const done = await pollUntilDone(job.jobId, runId);
+      const done = await pollUntilDone(job.jobId, runId, key);
       if (!done) return false;
 
       shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
       setTotalDuration(request.duration);
       lastRequestRef.current = done.sourceVideoUri
-        ? { sourceVideoUri: done.sourceVideoUri, ratio: request.ratio, resolution: request.resolution }
+        ? { sourceVideoUri: done.sourceVideoUri, ratio: request.ratio, resolution: request.resolution, apiKey: key }
         : null;
       setProgress(100);
       setStatus("completed");
@@ -333,10 +341,10 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     try {
       const job = await extendVideo(
         { prompt, sourceVideoUri: last.sourceVideoUri, ratio: last.ratio, resolution: last.resolution, extensionDuration: seconds },
-        apiKey()
+        last.apiKey
       );
       jobIdsRef.current.push(job.jobId);
-      const done = await pollUntilDone(job.jobId, runId);
+      const done = await pollUntilDone(job.jobId, runId, last.apiKey);
       if (!done) return false;
 
       shownJobIdRef.current = job.jobId;

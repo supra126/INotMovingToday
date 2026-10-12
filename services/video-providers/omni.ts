@@ -254,7 +254,8 @@ export class OmniProvider implements VideoGenerationProvider {
 
   async checkStatus(jobId: string): Promise<VideoJobStatus> {
     const job = jobStore.get(jobId);
-    if (!job) {
+    // Server jobs are shared across users: only the key that started a job may read it
+    if (!job || job.apiKey !== this.apiKey) {
       return { status: "failed", error: "Job not found" };
     }
 

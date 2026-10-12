@@ -98,7 +98,7 @@
   },
   "apiKeyModal": {
     "title": "API 設定",
-    "description": "API Key 僅儲存在你的瀏覽器本地，不會傳送至任何伺服器。",
+    "description": "API Key 僅儲存在你的瀏覽器，只用來呼叫 Google Gemini，不會被記錄或保存在伺服器上。",
     "descriptionFree": "你可以輸入自己的 API Key 以獲得更快的速度和更高的配額。",
     "freeMode": {
       "title": "免費模式已啟用",
@@ -111,7 +111,7 @@
     },
     "required": {
       "title": "需要設定 API Key",
-      "description": "請輸入你的 Gemini API Key 以使用本工具。API Key 僅儲存在你的瀏覽器中，不會傳送到任何伺服器。"
+      "description": "請輸入你的 Gemini API Key 以使用本工具。API Key 僅儲存在你的瀏覽器，只用來呼叫 Google Gemini，不會被記錄或保存在伺服器上。"
     },
     "geminiKey": {
       "label": "Google Gemini API Key",
