@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { draftPrompt, isStaticMode } from "@/services/videoService";
+import { draftPrompt } from "@/services/videoService";
 import type { PromptDraftInput } from "@/lib/ai/prompts";
 import type { PromptDraft, PromptFieldKey, PromptFields, UploadedImage } from "@/types";
 
@@ -32,7 +32,7 @@ export function usePromptDraft(): PromptDraftState & PromptDraftActions {
       setIsDrafting(true);
       setError(null);
       try {
-        const apiKey = isStaticMode() ? getApiKey("gemini") : undefined;
+        const apiKey = getApiKey("gemini");
         const result = await draftPrompt(images.map((img) => img.file), input, apiKey);
         setDraft(result);
         setFields({

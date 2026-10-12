@@ -7,7 +7,6 @@ import {
   startVideoGeneration,
   checkVideoStatus,
   extendVideo,
-  isStaticMode,
   cleanupVideoJob,
 } from "@/services/videoService";
 import type { PromptContext } from "@/lib/ai/prompts";
@@ -197,9 +196,10 @@ const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
 export const MAX_TOTAL_DURATION = 40;
 
-// Static builds call Gemini from the browser with the user's own key
+// The user's own key: static builds call Gemini from the browser,
+// server builds forward it so the server key is only a fallback
 function apiKey(): string | undefined {
-  return isStaticMode() ? getApiKey("gemini") : undefined;
+  return getApiKey("gemini");
 }
 
 export function useVideoGeneration(): VideoGenerationState & VideoGenerationActions {

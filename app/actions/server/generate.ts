@@ -12,13 +12,13 @@ export interface VideoJobResult {
 }
 
 /**
- * Resolve the configured provider with its server-side API key
+ * Resolve the configured provider; the user's own key wins over the server key
  */
-function resolveProvider() {
+function resolveProvider(userApiKey?: string) {
   const providerType = resolveProviderType(process.env.VIDEO_PROVIDER);
-  const apiKey = providerType === "omni" ? process.env.GEMINI_API_KEY : undefined;
+  const apiKey = providerType === "omni" ? userApiKey || process.env.GEMINI_API_KEY : undefined;
   if (providerType === "omni" && !apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured on the server for Omni");
+    throw new Error("errors.apiKeyRequired");
   }
   return getVideoProvider({ type: providerType, apiKey });
 }
@@ -30,14 +30,17 @@ function formatIssues(issues: { message: string }[]): string {
 /**
  * Start video generation
  */
-export async function generateVideoAction(params: VideoGenerationParams): Promise<ActionResult<VideoJobResult>> {
+export async function generateVideoAction(
+  params: VideoGenerationParams,
+  apiKey?: string
+): Promise<ActionResult<VideoJobResult>> {
   return toActionResult(async () => {
     const validation = GenerateVideoParamsSchema.safeParse(params);
     if (!validation.success) {
       throw new Error(formatIssues(validation.error.issues));
     }
 
-    const provider = resolveProvider();
+    const provider = resolveProvider(apiKey);
     const result = await provider.generateVideo(validation.data);
     return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
   });
@@ -46,26 +49,29 @@ export async function generateVideoAction(params: VideoGenerationParams): Promis
 /**
  * Check video generation status
  */
-export async function checkVideoStatusAction(jobId: string): Promise<ActionResult<VideoJobStatus>> {
+export async function checkVideoStatusAction(jobId: string, apiKey?: string): Promise<ActionResult<VideoJobStatus>> {
   return toActionResult(async () => {
     if (!jobId) {
       throw new Error("Invalid job ID");
     }
-    return resolveProvider().checkStatus(jobId);
+    return resolveProvider(apiKey).checkStatus(jobId);
   });
 }
 
 /**
  * Extend an existing video
  */
-export async function extendVideoAction(params: VideoExtensionParams): Promise<ActionResult<VideoJobResult>> {
+export async function extendVideoAction(
+  params: VideoExtensionParams,
+  apiKey?: string
+): Promise<ActionResult<VideoJobResult>> {
   return toActionResult(async () => {
     const validation = ExtendVideoParamsSchema.safeParse(params);
     if (!validation.success) {
       throw new Error(formatIssues(validation.error.issues));
     }
 
-    const provider = resolveProvider();
+    const provider = resolveProvider(apiKey);
     if (!provider.extendVideo) {
       throw new Error("This provider does not support video extension");
     }

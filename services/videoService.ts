@@ -31,7 +31,7 @@ export async function draftPrompt(
     return draftPromptClient(images, input, requireKey(apiKey));
   }
   const { draftPromptAction } = await import("@/app/actions/server/prompt");
-  return unwrapActionResult(await draftPromptAction(images, input));
+  return unwrapActionResult(await draftPromptAction(images, input, apiKey));
 }
 
 /**
@@ -43,7 +43,7 @@ export async function composePrompt(fields: PromptFields, ctx: PromptContext, ap
     return composePromptClient(fields, ctx, requireKey(apiKey));
   }
   const { composePromptAction } = await import("@/app/actions/server/prompt");
-  return unwrapActionResult(await composePromptAction(fields, ctx));
+  return unwrapActionResult(await composePromptAction(fields, ctx, apiKey));
 }
 
 /**
@@ -55,7 +55,7 @@ export async function startVideoGeneration(params: VideoGenerationParams, apiKey
     return startVideoGenerationClient(params, requireKey(apiKey));
   }
   const { generateVideoAction } = await import("@/app/actions/server/generate");
-  return unwrapActionResult(await generateVideoAction(params));
+  return unwrapActionResult(await generateVideoAction(params, apiKey));
 }
 
 /**
@@ -67,7 +67,7 @@ export async function checkVideoStatus(jobId: string, apiKey?: string): Promise<
     return checkVideoStatusClient(jobId, requireKey(apiKey));
   }
   const { checkVideoStatusAction } = await import("@/app/actions/server/generate");
-  return unwrapActionResult(await checkVideoStatusAction(jobId));
+  return unwrapActionResult(await checkVideoStatusAction(jobId, apiKey));
 }
 
 /**
@@ -79,7 +79,7 @@ export async function extendVideo(params: VideoExtensionParams, apiKey?: string)
     return extendVideoClient(params, requireKey(apiKey));
   }
   const { extendVideoAction } = await import("@/app/actions/server/generate");
-  return unwrapActionResult(await extendVideoAction(params));
+  return unwrapActionResult(await extendVideoAction(params, apiKey));
 }
 
 /**
