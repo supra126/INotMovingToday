@@ -66,7 +66,7 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
   };
 
   return (
-    <article className="grid gap-4 rounded-lg border border-line p-4 lg:grid-cols-[12rem_minmax(0,1fr)_16rem]">
+    <article className="grid gap-4 rounded-lg border border-line p-4 lg:grid-cols-[12rem_minmax(0,1fr)_18rem] xl:grid-cols-[12rem_minmax(0,1fr)_22rem]">
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-medium text-foreground">{shot.id} · {shot.visual}</h3>
         {shot.finalImage && <BlobImage blob={shot.finalImage.blob} alt={shot.id} className={`${ratioClass} w-full rounded-md object-cover`} />}
@@ -124,7 +124,7 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
           <p className="text-xs text-amber-300">{t("storyboard.videos.outdated")}</p>
         )}
         {video?.error && <p role="alert" className="text-xs text-red-300">{video.error.startsWith("errors.") ? t(video.error) : video.error}</p>}
-        {hasVideo && <video ref={videoRef} controls playsInline className={`${ratioClass} w-full rounded-md bg-black`} />}
+        {hasVideo && <video ref={videoRef} controls playsInline className={`${ratioClass} w-full max-h-[80vh] rounded-md bg-black object-contain`} />}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
