@@ -1,4 +1,4 @@
-import type { Locale, PromptFieldKey, PromptFields, VideoGenerationMode, VideoRatio } from "@/types";
+import type { AudioMode, Locale, PromptFieldKey, PromptFields, VideoGenerationMode, VideoRatio } from "@/types";
 
 export const PROMPT_FIELD_KEYS: PromptFieldKey[] = ["subject", "setting", "camera", "lighting", "sound"];
 
@@ -7,6 +7,7 @@ export interface PromptContext {
   mode: VideoGenerationMode;
   ratio: VideoRatio;
   duration: number;
+  audioMode: AudioMode;
   locale: Locale;
 }
 
@@ -23,13 +24,26 @@ const MODE_GUIDANCE: Record<VideoGenerationMode, string> = {
   text_only: "No image is provided. Describe the subject and scene completely so the video can be generated from text alone.",
 };
 
-const FIELD_GUIDE = [
-  "- subject: the subject and what it does (the motion)",
-  "- setting: the environment and background",
-  "- camera: camera movement and framing, in plain words",
-  "- lighting: lighting and mood",
-  "- sound: ambience, music or sound effects",
-].join("\n");
+/** Audio direction appended to every Omni prompt, so it holds for direct prompts and extensions too */
+export const AUDIO_DIRECTION: Record<AudioMode, string> = {
+  sfx: "Audio: natural sound effects and ambience only. No background music, no soundtrack, no score.",
+  sfx_music: "Audio: natural sound effects and ambience, mixed with fitting background music.",
+};
+
+const SOUND_GUIDE: Record<AudioMode, string> = {
+  sfx: "- sound: ambience and sound effects only (no music)",
+  sfx_music: "- sound: ambience and sound effects, plus the style of background music",
+};
+
+function fieldGuide(audioMode: AudioMode): string {
+  return [
+    "- subject: the subject and what it does (the motion)",
+    "- setting: the environment and background",
+    "- camera: camera movement and framing, in plain words",
+    "- lighting: lighting and mood",
+    SOUND_GUIDE[audioMode],
+  ].join("\n");
+}
 
 function contextLines(ctx: PromptContext): string[] {
   const orientation = ctx.ratio === "9:16" ? "vertical 9:16" : "horizontal 16:9";
@@ -64,7 +78,7 @@ export function buildPromptDraftPrompt(input: PromptDraftInput): string {
       : "The user gave no description: propose a tasteful, commercial-looking motion based on the image(s).",
     "",
     `Fill these fields in ${lang}. Each "value" is one or two concrete, visual sentences.`,
-    FIELD_GUIDE,
+    fieldGuide(input.audioMode),
     `For each field also give "options": 3 short alternative values in ${lang}, clearly different from each other and from "value".`,
     `Also write "summary": one short sentence in ${lang} describing the whole shot.`,
     "Refer to uploaded images naturally (\"the product in the image\"). Do not invent brand names or text.",
@@ -95,6 +109,9 @@ export function buildPromptComposePrompt(fields: PromptFields, ctx: PromptContex
     "- English only, 3 to 5 natural sentences, about 50-90 words, one continuous shot.",
     "- Keep every detail the user wrote; translate faithfully, do not add new subjects.",
     "- Order: subject and motion, setting, camera, lighting and mood, sound.",
+    ctx.audioMode === "sfx"
+      ? "- Sound: sound effects and ambience only. Drop any music from the plan and do not mention music."
+      : "- Sound: sound effects and ambience plus background music; keep the music style from the plan or pick one that fits.",
     "- No keyword lists, no \"4K, masterpiece\" style tags, no negatives, no on-screen text.",
     "",
     'Return JSON only: {"prompt": "..."}',

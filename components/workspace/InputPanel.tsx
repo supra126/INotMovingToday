@@ -4,9 +4,10 @@ import { RatioSelector } from "@/components/upload/RatioSelector";
 import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { ModeImageUploader, SingleUploadBox } from "@/components/upload/ModeImageUploader";
 import { DurationSelector } from "@/components/upload/DurationSelector";
+import { AudioModeSelector } from "@/components/upload/AudioModeSelector";
 import { PriceEstimate } from "@/components/upload/PriceEstimate";
 import { useLocale } from "@/contexts/LocaleContext";
-import type { UploadedImage, VideoRatio, VideoResolution, VideoDuration } from "@/types";
+import type { AudioMode, UploadedImage, VideoRatio, VideoResolution, VideoDuration } from "@/types";
 
 interface InputPanelProps {
   startFrame?: UploadedImage;
@@ -17,6 +18,7 @@ interface InputPanelProps {
   videoRatio: VideoRatio;
   videoResolution: VideoResolution;
   videoDuration: VideoDuration;
+  audioMode: AudioMode;
   /** Disables inputs while AI or generation is running */
   isBusy: boolean;
   isDrafting: boolean;
@@ -29,6 +31,7 @@ interface InputPanelProps {
   onVideoRatioChange: (ratio: VideoRatio) => void;
   onVideoResolutionChange: (resolution: VideoResolution) => void;
   onVideoDurationChange: (duration: VideoDuration) => void;
+  onAudioModeChange: (mode: AudioMode) => void;
   onRequestDraft: () => void;
   onGenerateDirect: () => void;
 }
@@ -45,6 +48,7 @@ export function InputPanel({
   videoRatio,
   videoResolution,
   videoDuration,
+  audioMode,
   isBusy,
   isDrafting,
   hasDraft,
@@ -56,6 +60,7 @@ export function InputPanel({
   onVideoRatioChange,
   onVideoResolutionChange,
   onVideoDurationChange,
+  onAudioModeChange,
   onRequestDraft,
   onGenerateDirect,
 }: InputPanelProps) {
@@ -106,7 +111,14 @@ export function InputPanel({
             disabled={isBusy}
           />
 
-          {/* 4. Advanced settings (collapsed) */}
+          {/* 4. Audio */}
+          <AudioModeSelector
+            value={audioMode}
+            onChange={onAudioModeChange}
+            disabled={isBusy}
+          />
+
+          {/* 5. Advanced settings (collapsed) */}
           <details className="group rounded-lg border border-line text-left">
             <summary className="cursor-pointer select-none list-none px-3.5 py-3 text-sm text-foreground flex items-center justify-between">
               <span>{t("upload.advanced.label")}</span>

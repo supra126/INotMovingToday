@@ -79,6 +79,7 @@ export default function Home() {
       mode: videoSettings.videoMode,
       ratio: videoSettings.videoRatio,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       locale,
     });
   };
@@ -93,6 +94,7 @@ export default function Home() {
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       negativePrompt: videoSettings.negativePrompt,
       locale,
     });
@@ -108,6 +110,7 @@ export default function Home() {
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       negativePrompt: videoSettings.negativePrompt,
       locale,
     });
@@ -140,6 +143,7 @@ export default function Home() {
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
               videoDuration={videoSettings.videoDuration}
+              audioMode={videoSettings.audioMode}
               isBusy={isBusy}
               isDrafting={promptDraft.isDrafting}
               hasDraft={!!promptDraft.draft}
@@ -151,6 +155,7 @@ export default function Home() {
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
               onVideoDurationChange={videoSettings.setVideoDuration}
+              onAudioModeChange={videoSettings.setAudioMode}
               onRequestDraft={handleRequestDraft}
               onGenerateDirect={handleGenerateDirect}
             />

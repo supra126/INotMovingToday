@@ -161,6 +161,12 @@
       "label": "影片長度",
       "unit": "秒"
     },
+    "audio": {
+      "label": "音訊",
+      "sfx_music": "音效 + 背景音樂",
+      "sfx": "只有音效",
+      "sfxHint": "不加背景音樂，方便之後在剪輯軟體自己配樂"
+    },
     "modeUploader": {
       "endFrame": "結束畫面",
       "reference": "參考圖",

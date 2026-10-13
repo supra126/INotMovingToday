@@ -18,6 +18,8 @@ import type {
   VideoExtensionParams,
 } from "./types";
 import { omniLogger as logger } from "@/lib/logger";
+import { AUDIO_DIRECTION } from "@/lib/ai/prompts";
+import type { AudioMode } from "@/types";
 
 export const OMNI_MODEL = "gemini-omni-1.1-flash";
 export const OMNI_PROVIDER_NAME = "Google Gemini Omni Flash";
@@ -110,10 +112,13 @@ function clampDuration(seconds: number | undefined, fallback: number): number {
 }
 
 /**
- * Omni has no negativePrompt field: negatives go into the prompt text
+ * Omni has no negativePrompt or audio field: both go into the prompt text
  */
-function buildPromptText(prompt: string, negativePrompt?: string): string {
+function buildPromptText(prompt: string, audioMode?: AudioMode, negativePrompt?: string): string {
   const parts = [prompt.trim()];
+  if (audioMode) {
+    parts.push(AUDIO_DIRECTION[audioMode]);
+  }
   if (negativePrompt?.trim()) {
     parts.push(`Avoid: ${negativePrompt.trim()}.`);
   }
@@ -193,6 +198,7 @@ export class OmniProvider implements VideoGenerationProvider {
       duration,
       ratio: params.ratio,
       resolution: params.resolution,
+      audioMode: params.audioMode,
       task,
       imageCount: images.length,
     });
@@ -201,7 +207,7 @@ export class OmniProvider implements VideoGenerationProvider {
       model: OMNI_MODEL,
       input: [
         ...images.map(imagePart),
-        { type: "text", text: buildPromptText(params.prompt, params.negativePrompt) },
+        { type: "text", text: buildPromptText(params.prompt, params.audioMode, params.negativePrompt) },
       ],
       response_format: {
         type: "video",
@@ -227,7 +233,7 @@ export class OmniProvider implements VideoGenerationProvider {
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
       previous_interaction_id: params.sourceVideoUri,
-      input: [{ type: "text", text: buildPromptText(params.prompt) }],
+      input: [{ type: "text", text: buildPromptText(params.prompt, params.audioMode) }],
       response_format: {
         type: "video",
         aspect_ratio: params.ratio === "9:16" ? "9:16" : "16:9",

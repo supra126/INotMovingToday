@@ -1,4 +1,4 @@
-import type { VideoRatio, VideoResolution } from "@/types";
+import type { AudioMode, VideoRatio, VideoResolution } from "@/types";
 
 export interface VideoGenerationParams {
   prompt: string;
@@ -7,6 +7,8 @@ export interface VideoGenerationParams {
   duration: number;
   ratio: VideoRatio;
   resolution?: VideoResolution;
+  /** Sound effects only, or with background music */
+  audioMode?: AudioMode;
   /** Reference images, base64 encoded (up to 3) */
   referenceImages?: string[];
   /** First frame image for image-to-video (base64 encoded) */
@@ -21,6 +23,8 @@ export interface VideoExtensionParams {
   sourceVideoUri: string;
   ratio: VideoRatio;
   resolution?: VideoResolution;
+  /** Sound effects only, or with background music */
+  audioMode?: AudioMode;
   /** Seconds to add (3-10), default 8 */
   extensionDuration?: number;
 }

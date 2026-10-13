@@ -161,6 +161,12 @@
       "label": "Video Duration",
       "unit": "sec"
     },
+    "audio": {
+      "label": "Audio",
+      "sfx_music": "SFX + music",
+      "sfx": "SFX only",
+      "sfxHint": "No background music, so you can add your own in your editor"
+    },
     "modeUploader": {
       "endFrame": "End frame",
       "reference": "Reference",

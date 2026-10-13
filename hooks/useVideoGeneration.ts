@@ -12,6 +12,7 @@ import {
 import type { PromptContext } from "@/lib/ai/prompts";
 import type { VideoGenerationParams } from "@/services/video-providers/types";
 import type {
+  AudioMode,
   PromptFields,
   UploadedImage,
   VideoDuration,
@@ -169,6 +170,7 @@ export interface GenerateRequest {
   ratio: VideoRatio;
   resolution: VideoResolution;
   duration: VideoDuration;
+  audioMode: AudioMode;
   negativePrompt?: string;
   locale: PromptContext["locale"];
 }
@@ -220,6 +222,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     sourceVideoUri: string;
     ratio: VideoRatio;
     resolution: VideoResolution;
+    audioMode: AudioMode;
     apiKey: string | undefined;
   } | null>(null);
 
@@ -279,6 +282,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         mode: request.mode,
         ratio: request.ratio,
         duration: request.duration,
+        audioMode: request.audioMode,
         locale: request.locale,
       };
       const prompt = request.rawPrompt?.trim() || (request.fields ? await composePrompt(request.fields, ctx, key) : "");
@@ -294,6 +298,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         duration: request.duration,
         ratio: request.ratio,
         resolution: request.resolution,
+        audioMode: request.audioMode,
       };
       if (request.mode === "frames_to_video") {
         params.firstFrameImage = images[0];
@@ -314,7 +319,13 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       setVideoUrl(done.videoUrl);
       setTotalDuration(request.duration);
       lastRequestRef.current = done.sourceVideoUri
-        ? { sourceVideoUri: done.sourceVideoUri, ratio: request.ratio, resolution: request.resolution, apiKey: key }
+        ? {
+            sourceVideoUri: done.sourceVideoUri,
+            ratio: request.ratio,
+            resolution: request.resolution,
+            audioMode: request.audioMode,
+            apiKey: key,
+          }
         : null;
       setProgress(100);
       setStatus("completed");
@@ -340,7 +351,14 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
 
     try {
       const job = await extendVideo(
-        { prompt, sourceVideoUri: last.sourceVideoUri, ratio: last.ratio, resolution: last.resolution, extensionDuration: seconds },
+        {
+          prompt,
+          sourceVideoUri: last.sourceVideoUri,
+          ratio: last.ratio,
+          resolution: last.resolution,
+          audioMode: last.audioMode,
+          extensionDuration: seconds,
+        },
         last.apiKey
       );
       jobIdsRef.current.push(job.jobId);
