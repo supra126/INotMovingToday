@@ -105,6 +105,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
         main={
           selected && (
             <ShotVideoPreview
+              key={selected.id}
               shot={selected}
               ratio={project.ratio}
               onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}

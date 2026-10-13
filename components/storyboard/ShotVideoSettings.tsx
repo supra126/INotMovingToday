@@ -38,6 +38,7 @@ export function ShotVideoSettings({ shot, isLast, resolution, onPatch }: ShotVid
             <select
               value={shot.endFrame.kind}
               disabled={busy}
+              aria-label={t("storyboard.videos.endFrame")}
               onChange={(e) => {
                 const kind = e.target.value as EndFrame["kind"];
                 if (kind !== "upload") onPatch((s) => ({ ...s, endFrame: { kind } }));

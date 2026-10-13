@@ -30,24 +30,27 @@ export function ShotCandidates({ shot, ratio, size, onSelect, onDelete }: ShotCa
   const zoomed = zoom === "final" ? rerendered : zoom !== null ? shot.candidates[zoom] : undefined;
 
   const aspect = ratio === "9:16" ? "aspect-[9/16]" : "aspect-video";
-  const tile =
+  // Large tiles fill a grid sized by the canvas; small tiles have a fixed width
+  const tile = size === "large" ? "w-full" : ratio === "9:16" ? "w-24" : "w-40";
+  const container =
     size === "large"
       ? ratio === "9:16"
-        ? "w-[min(18rem,40vw)]"
-        : "w-[min(28rem,60vw)]"
-      : ratio === "9:16"
-        ? "w-24"
-        : "w-40";
+        ? "grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))] max-w-4xl"
+        : "grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] max-w-5xl"
+      : "flex flex-wrap gap-3";
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className={container}>
       {shot.candidates.map((image, index) => {
         const picked = shot.selected === index;
         return (
           <figure key={index} className={`flex flex-col gap-1.5 ${tile}`}>
             <button
               type="button"
-              onClick={() => (size === "large" ? setZoom(index) : onSelect(index))}
+              onClick={() => {
+                if (size === "large") setZoom(index);
+                else if (!busy) onSelect(index);
+              }}
               className={`checker relative overflow-hidden rounded-[var(--radius-control)] border ${aspect} ${
                 picked ? "border-accent ring-2 ring-accent" : "border-line hover:border-line-strong"
               }`}

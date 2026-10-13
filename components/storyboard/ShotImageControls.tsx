@@ -27,7 +27,13 @@ export function ShotImageControls({ shot, onRegenerate }: ShotImageControlsProps
   return (
     <div className="flex flex-col gap-3">
       <Field label={t("storyboard.images.notePlaceholder")}>
-        <input value={note} disabled={busy} onChange={(e) => setNote(e.target.value)} className={inputClass} />
+        <input
+          value={note}
+          disabled={busy}
+          aria-label={t("storyboard.images.notePlaceholder")}
+          onChange={(e) => setNote(e.target.value)}
+          className={inputClass}
+        />
       </Field>
       <Field label={t("storyboard.images.count")}>
         <Segmented

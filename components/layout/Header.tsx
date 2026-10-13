@@ -29,7 +29,7 @@ export function Header({ hasApiKey, serverHasKey, onApiSettingsClick, onGuideCli
     : t(hasApiKey ? "header.apiSettingsConnected" : "header.apiSettings");
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line bg-panel px-3">
+    <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line bg-panel px-3 py-1.5 lg:h-12 lg:flex-nowrap lg:py-0">
       <span className="shrink-0 text-[13px] font-semibold tracking-tight">{t("common.appName")}</span>
 
       <nav aria-label={t("header.modeSingle")} className="flex shrink-0 rounded-[var(--radius-control)] border border-line bg-sunken p-0.5">
@@ -47,9 +47,10 @@ export function Header({ hasApiKey, serverHasKey, onApiSettingsClick, onGuideCli
         ))}
       </nav>
 
-      <div className="flex min-w-0 flex-1 items-center gap-3">{children}</div>
+      {/* Below 1024px the mode controls take their own row */}
+      <div className="order-last flex w-full min-w-0 items-center gap-3 lg:order-none lg:w-auto lg:flex-1">{children}</div>
 
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <LanguageToggle />
         {onGuideClick && (
           <Button variant="ghost" size="sm" onClick={onGuideClick}>
