@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
-import { railThumbnail, shotStatus, type ShotStatus } from "@/lib/storyboard/shots";
+import { isVideoOutdated, railThumbnail, shotStatus, type ShotStatus } from "@/lib/storyboard/shots";
 import type { Shot, Step } from "@/lib/storyboard/types";
 import type { VideoRatio } from "@/types";
 import { BlobImage } from "./BlobImage";
@@ -42,8 +42,8 @@ export function ShotRail({ shots, step, ratio, selectedId, onSelect, header }: S
         <p className="p-3 text-xs text-fg-subtle">{t("storyboard.rail.empty")}</p>
       ) : (
         <ol className="flex gap-1 overflow-x-auto p-2 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto">
-          {shots.map((shot) => {
-            const status = shotStatus(shot, step);
+          {shots.map((shot, index) => {
+            const status = shotStatus(shot, step, isVideoOutdated(shots, index));
             const thumb = railThumbnail(shot);
             const active = shot.id === selectedId;
             return (

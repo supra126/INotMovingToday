@@ -12,6 +12,8 @@ export interface StoreSnapshot {
   projects: ProjectSummary[];
   project: StoryboardProject | null;
   isLoading: boolean;
+  /** Last failed write (e.g. storage full); unsaved changes are kept and retried */
+  saveError: string | null;
 }
 
 export interface UpdateOptions {
@@ -51,10 +53,11 @@ export function createProjectStore(
   let currentId: string | null = null;
   let projects: ProjectSummary[] = [];
   let isLoading = true;
-  let snapshot: StoreSnapshot = { projects, project: null, isLoading };
+  let saveError: string | null = null;
+  let snapshot: StoreSnapshot = { projects, project: null, isLoading, saveError };
 
   const emit = () => {
-    snapshot = { projects, project: currentId ? cache.get(currentId) ?? null : null, isLoading };
+    snapshot = { projects, project: currentId ? cache.get(currentId) ?? null : null, isLoading, saveError };
     listeners.forEach((listener) => listener());
   };
 
@@ -82,14 +85,29 @@ export function createProjectStore(
     return pending;
   };
 
+  // Keep the list in memory; reading it back would load every project's images and videos
+  const upsertSummary = ({ id, name, updatedAt, step }: StoryboardProject) => {
+    projects = [{ id, name, updatedAt, step }, ...projects.filter((p) => p.id !== id)].sort(
+      (a, b) => b.updatedAt - a.updatedAt
+    );
+  };
+
   const save = async (id: string) => {
     clearTimeout(timers.get(id));
     timers.delete(id);
     const project = cache.get(id);
     if (!project || !dirty.has(id)) return;
     dirty.delete(id);
-    await storage.save(project);
-    await refreshList();
+    try {
+      await storage.save(project);
+      saveError = null;
+      upsertSummary(project);
+    } catch (err) {
+      // Keep the changes: the next save or flush tries again
+      if (cache.get(id)) dirty.add(id);
+      saveError = err instanceof Error ? err.message : String(err);
+    }
+    emit();
   };
 
   const schedule = (id: string) => {

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const drafts = vi.hoisted(() => ({ next: null as null | (() => Promise<unknown>) }));
 vi.mock("@/services/videoService", () => ({
-  composePrompt: vi.fn(async () => "prompt"),
-  draftPrompt: vi.fn(),
+  composePrompt: async () => "prompt",
+  draftPrompt: () => (drafts.next ? drafts.next() : Promise.reject(new Error("no draft queued"))),
 }));
 // Plain functions: vitest flags errors thrown by vi.fn implementations even when the caller handles them
 const job = vi.hoisted(() => ({ attempts: [] as (() => Promise<unknown>)[] }));
@@ -11,11 +12,14 @@ vi.mock("@/lib/video/job", () => ({
     const next = job.attempts.shift();
     return next ? next() : Promise.reject(new Error("no attempt queued"));
   },
-  runExtendJob: () => Promise.reject(new Error("not used")),
+  runExtendJob: () => {
+    const next = job.attempts.shift();
+    return next ? next() : Promise.reject(new Error("no attempt queued"));
+  },
 }));
 import { newProject, toShot } from "./shots";
 import type { StoryboardProject } from "./types";
-import { generateShotVideos } from "./videoJobs";
+import { draftShotFields, extendShotVideo, generateShotVideos } from "./videoJobs";
 
 const fields = { subject: "s", setting: "", camera: "", lighting: "", sound: "" };
 
@@ -93,3 +97,50 @@ describe("generateShotVideos", () => {
     expect(h.get().shots[0].video?.status).toBe("failed");
   });
 });
+
+describe("code review fixes", () => {
+  beforeEach(() => {
+    job.attempts = [];
+    drafts.next = null;
+  });
+
+  it("records the frames a video was made from", async () => {
+    job.attempts = [async () => done];
+    const h = harness(project());
+    const start = h.get().shots[0].finalImage!.blob;
+    await generateShotVideos(h.ctx, h.get(), ["s01"], "zh", { retryDelayMs: 0 });
+    expect(h.get().shots[0].video?.startFrame).toBe(start);
+  });
+
+  it("drops a field draft that finishes after the frame changed", async () => {
+    const draft = {
+      summary: "",
+      fields: Object.fromEntries(["subject", "setting", "camera", "lighting", "sound"].map((k) => [k, { value: "old", options: [] }])),
+    };
+    let release: () => void = () => {};
+    drafts.next = () => new Promise((resolve) => (release = () => resolve(draft)));
+    const h = harness({ ...project(), shots: project().shots.map((s) => ({ ...s, fields: undefined })) });
+    const running = draftShotFields(h.ctx, h.get(), "zh");
+    await new Promise((r) => setTimeout(r, 0));
+    // The user picks a different frame while the draft is in flight
+    h.ctx.update((p) => ({
+      ...p,
+      shots: p.shots.map((s) => ({ ...s, finalImage: { blob: new Blob(["new"]), mimeType: "image/png" }, draftStatus: undefined })),
+    }));
+    release();
+    await running;
+    expect(h.get().shots[0].fields).toBeUndefined();
+    expect(h.get().shots[0].draft).toBeUndefined();
+  });
+
+  it("clears an earlier error when an extension succeeds", async () => {
+    job.attempts = [async () => ({ videoUrl: "data:video/mp4;base64,AAAA", sourceVideoUri: "interaction-2" })];
+    const h = harness(
+      project({ status: "completed", progress: 100, prompt: "p", duration: 4, blob: new Blob(["v"]), sourceVideoUri: "interaction-1", error: "errors.rateLimited" })
+    );
+    await extendShotVideo(h.ctx, h.get(), "s01", "more", 4);
+    expect(h.get().shots[0].video?.error).toBeUndefined();
+    expect(h.get().shots[0].video?.duration).toBe(8);
+  });
+});
+

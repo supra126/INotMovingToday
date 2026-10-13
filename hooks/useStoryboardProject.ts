@@ -19,7 +19,7 @@ function getStore(): ProjectStore {
   return store;
 }
 
-const SERVER_SNAPSHOT: StoreSnapshot = { projects: [], project: null, isLoading: true };
+const SERVER_SNAPSHOT: StoreSnapshot = { projects: [], project: null, isLoading: true, saveError: null };
 
 export function useStoryboardProject() {
   const projectStore = getStore();

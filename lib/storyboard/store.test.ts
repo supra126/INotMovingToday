@@ -100,3 +100,46 @@ describe("project store", () => {
     expect(store.getSnapshot().project?.shots[0].video?.status).toBe("interrupted");
   });
 });
+
+describe("project store saving", () => {
+  it("keeps unsaved changes and reports the error when a write fails", async () => {
+    const { data, storage } = memoryStorage();
+    data.set("a", newProject("a", 0));
+    let fail = true;
+    const save = storage.save;
+    storage.save = async (p) => {
+      if (fail) throw new Error("QuotaExceededError");
+      await save(p);
+    };
+    const store = createProjectStore(storage, options);
+    store.open("a");
+    await new Promise((r) => setTimeout(r, 5));
+    store.update("a", (p) => ({ ...p, name: "keep me" }));
+    await store.flush();
+    expect(store.getSnapshot().saveError).toBe("QuotaExceededError");
+    expect(data.get("a")?.name).not.toBe("keep me");
+    fail = false;
+    await store.flush();
+    expect(data.get("a")?.name).toBe("keep me");
+    expect(store.getSnapshot().saveError).toBeNull();
+  });
+
+  it("does not reload every project after each save", async () => {
+    const { data, storage } = memoryStorage();
+    data.set("a", newProject("a", 0));
+    let lists = 0;
+    const list = storage.list;
+    storage.list = async () => {
+      lists++;
+      return list();
+    };
+    const store = createProjectStore(storage, options);
+    store.init("a");
+    await new Promise((r) => setTimeout(r, 5));
+    const before = lists;
+    store.update("a", (p) => ({ ...p, name: "renamed" }));
+    await store.flush();
+    expect(lists).toBe(before);
+    expect(store.getSnapshot().projects.find((p) => p.id === "a")?.name).toBe("renamed");
+  });
+});

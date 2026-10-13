@@ -12,6 +12,8 @@ export type Step = 1 | 2 | 3 | 4;
 export interface StoredImage {
   blob: Blob;
   mimeType: string;
+  /** The user's own frame: used as is at any final size, never re-rendered */
+  uploaded?: boolean;
 }
 
 export interface ChatMessage {
@@ -48,8 +50,11 @@ export interface ShotVideo {
   sourceVideoUri?: string;
   duration: number;
   error?: string;
-  /** The final image changed after this video was made */
+  /** The final image changed after this video was made (older videos without recorded frames) */
   outdated?: boolean;
+  /** Frames the video was generated from, to tell when the shot or the next shot changed */
+  startFrame?: Blob;
+  endFrame?: Blob;
 }
 
 export interface Shot extends ScriptShot {

@@ -98,12 +98,16 @@ export function withFinalImage(shot: Shot, image: StoredImage | undefined): Shot
   };
 }
 
+/** The final image a candidate gives at this size: itself at 1K or when uploaded, else a re-render */
+function finalFor(candidate: StoredImage | undefined, finalSize: ImageSize): StoredImage | undefined {
+  return candidate && (finalSize === "1K" || candidate.uploaded) ? candidate : undefined;
+}
+
 /** Picking a candidate accepts it, even if the row changed after it was made */
 export function selectCandidate(shot: Shot, index: number, finalSize: ImageSize): Shot {
-  return withFinalImage(
-    { ...shot, selected: index, stale: false },
-    finalSize === "1K" ? shot.candidates[index] : undefined
-  );
+  // Clicking the current pick again must not drop a paid 2K / 4K final
+  if (index === shot.selected && !shot.stale) return shot;
+  return withFinalImage({ ...shot, selected: index, stale: false }, finalFor(shot.candidates[index], finalSize));
 }
 
 export function setFinalSize(project: StoryboardProject, size: ImageSize): StoryboardProject {
@@ -111,7 +115,7 @@ export function setFinalSize(project: StoryboardProject, size: ImageSize): Story
     ...project,
     finalSize: size,
     shots: project.shots.map((shot) =>
-      withFinalImage(shot, size === "1K" && shot.selected !== undefined ? shot.candidates[shot.selected] : undefined)
+      withFinalImage(shot, shot.selected !== undefined ? finalFor(shot.candidates[shot.selected], size) : undefined)
     ),
   };
 }
@@ -151,7 +155,8 @@ export function videoFileName(shot: ScriptShot): string {
   return `${shot.id}${label ? `-${label}` : ""}.mp4`;
 }
 
-const NO_MUSIC = /^(無|无|none|no)?$/i;
+// Only explicit values: a style like "noir jazz" must not read as "no" while it is typed
+const NO_MUSIC = /^(無|无|none)?$/i;
 
 export function hasMusic(music: string): boolean {
   return !NO_MUSIC.test(music.trim());
@@ -177,11 +182,12 @@ export function shotResolution(shot: Shot, project: StoryboardProject): VideoRes
 export type ShotStatus = "empty" | "unpicked" | "done" | "stale" | "failed" | "busy";
 
 /** One status per shot for the rail: images up to step 3, the video in step 4 */
-export function shotStatus(shot: Shot, step: Step): ShotStatus {
+/** videoOutdated comes from isVideoOutdated, which needs the neighbouring shots */
+export function shotStatus(shot: Shot, step: Step, videoOutdated?: boolean): ShotStatus {
   if (step >= 4) {
     if (shot.video?.status === "generating" || shot.draftStatus === "drafting") return "busy";
     if (shot.video?.status === "failed" || shot.draftStatus === "failed") return "failed";
-    if (shot.video?.status === "completed") return shot.video.outdated ? "stale" : "done";
+    if (shot.video?.status === "completed") return (videoOutdated ?? shot.video.outdated) ? "stale" : "done";
     return "empty";
   }
   if (shot.imageStatus === "generating") return "busy";
@@ -206,7 +212,7 @@ export function isRatioLocked(project: StoryboardProject): boolean {
   return project.script.confirmed || project.shots.some((shot) => shot.candidates.length > 0 || shot.finalImage);
 }
 
-/** The user's own frames join the candidates; the last one becomes the pick */
+/** The user's own frames (marked uploaded) join the candidates; the last one becomes the pick */
 export function addUploadedFrames(shot: Shot, images: StoredImage[], finalSize: ImageSize): Shot {
   if (images.length === 0) return shot;
   const withUploads = { ...shot, candidates: [...shot.candidates, ...images] };
@@ -217,4 +223,13 @@ export function addUploadedFrames(shot: Shot, images: StoredImage[], finalSize: 
 export function matchesRatio(width: number, height: number, ratio: VideoRatio): boolean {
   const [w, h] = ratio.split(":").map(Number);
   return Math.abs(width / height / (w / h) - 1) <= 0.03;
+}
+
+/** A finished video no longer matches its shot: its own frame or the next shot's frame (its end) changed */
+export function isVideoOutdated(shots: Shot[], index: number): boolean {
+  const shot = shots[index];
+  const video = shot?.video;
+  if (!video || video.status !== "completed") return false;
+  if (!video.startFrame) return !!video.outdated;
+  return video.startFrame !== shot.finalImage?.blob || video.endFrame !== endFrameImage(shots, index)?.blob;
 }

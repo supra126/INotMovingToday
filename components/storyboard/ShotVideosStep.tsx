@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
+import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
 import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
@@ -22,7 +22,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
   const unfinished = project.shots.filter(
-    (s) => s.video?.status !== "generating" && (s.video?.status !== "completed" || s.video.outdated)
+    (s, i) => s.video?.status !== "generating" && (s.video?.status !== "completed" || isVideoOutdated(project.shots, i))
   );
   // Shots whose fields are missing and not being filled right now (never drafted, failed, or image changed)
   const needDraft = project.shots.filter((s) => !s.fields && s.finalImage && s.draftStatus !== "drafting");
@@ -109,6 +109,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
             <ShotVideoPreview
               key={selected.id}
               shot={selected}
+              outdated={isVideoOutdated(project.shots, project.shots.indexOf(selected))}
               ratio={project.ratio}
               onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}
             />

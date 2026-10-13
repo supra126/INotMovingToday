@@ -23,6 +23,8 @@ import {
   isRatioLocked,
   addUploadedFrames,
   matchesRatio,
+  isVideoOutdated,
+  hasMusic,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -311,5 +313,59 @@ describe("uploaded frames", () => {
     expect(matchesRatio(1080, 1080, "9:16")).toBe(false);
     expect(matchesRatio(1920, 1080, "16:9")).toBe(true);
     expect(matchesRatio(1080, 1920, "16:9")).toBe(false);
+  });
+});
+
+describe("code review fixes", () => {
+  it("keeps a paid final frame when the picked candidate is clicked again", () => {
+    const a = img("a");
+    const final2k = img("2k");
+    const fields = { subject: "s", setting: "", camera: "", lighting: "", sound: "" };
+    const shot = { ...toShot(row(), true), candidates: [a], selected: 0, finalImage: final2k, fields };
+    expect(selectCandidate(shot, 0, "2K")).toBe(shot);
+  });
+
+  it("derives an outdated video from the frames it was made from", () => {
+    const start = img("start");
+    const next = img("next");
+    const s01 = {
+      ...toShot(row(), false),
+      finalImage: start,
+      endFrame: { kind: "next" as const },
+      video: { status: "completed" as const, progress: 100, prompt: "", duration: 4, startFrame: start.blob, endFrame: next.blob },
+    };
+    const s02 = { ...toShot(row({ id: "s02" }), true), finalImage: next };
+    expect(isVideoOutdated([s01, s02], 0)).toBe(false);
+    // The next shot's frame changed: the transition no longer lands on it
+    expect(isVideoOutdated([s01, { ...s02, finalImage: img("other") }], 0)).toBe(true);
+    // This shot's own frame changed
+    expect(isVideoOutdated([{ ...s01, finalImage: img("new") }, s02], 0)).toBe(true);
+    // Older videos without recorded frames fall back to the stored flag
+    const legacy = { ...s01, video: { status: "completed" as const, progress: 100, prompt: "", duration: 4 } };
+    expect(isVideoOutdated([legacy, s02], 0)).toBe(false);
+  });
+
+  it("uses an uploaded frame as the final image at any size", () => {
+    const mine = { ...img("mine"), uploaded: true };
+    const shot = addUploadedFrames(toShot(row(), true), [mine], "4K");
+    expect(shot.finalImage).toBe(mine);
+    const p = newProject("id", 0);
+    p.shots = [shot];
+    expect(setFinalSize(p, "2K").shots[0].finalImage).toBe(mine);
+  });
+
+  it("treats only explicit 'no music' values as no music", () => {
+    expect(hasMusic("無")).toBe(false);
+    expect(hasMusic("")).toBe(false);
+    expect(hasMusic("no")).toBe(true);
+    expect(hasMusic("noir jazz")).toBe(true);
+  });
+});
+
+describe("rail status with derived outdated videos", () => {
+  it("marks a finished video stale when told it is outdated", () => {
+    const shot = { ...toShot(row(), true), video: { status: "completed" as const, progress: 100, prompt: "", duration: 4 } };
+    expect(shotStatus(shot, 4)).toBe("done");
+    expect(shotStatus(shot, 4, true)).toBe("stale");
   });
 });

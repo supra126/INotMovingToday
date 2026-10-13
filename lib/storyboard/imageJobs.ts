@@ -40,7 +40,10 @@ export async function generateCandidates(
   shotIds: string[],
   count: number = CANDIDATES_PER_SHOT
 ) {
-  const shots = project.shots.filter((shot) => shotIds.includes(shot.id) && shot.imagePrompt);
+  // A shot already generating must not start a second paid batch
+  const shots = project.shots.filter(
+    (shot) => shotIds.includes(shot.id) && shot.imagePrompt && shot.imageStatus !== "generating"
+  );
   for (const shot of shots) {
     updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
   }

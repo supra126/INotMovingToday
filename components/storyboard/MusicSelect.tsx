@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { hasMusic } from "@/lib/storyboard/shots";
 
@@ -13,21 +14,27 @@ interface MusicSelectProps {
 export function MusicSelect({ value, disabled = false, onChange }: MusicSelectProps) {
   const { t } = useLocale();
   const yes = t("storyboard.script.musicYes");
+  // The style field stays open while typing, even through text that reads as "no music"
+  const [on, setOn] = useState(hasMusic(value));
 
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-fg-muted">{t("storyboard.script.columns.music")}</span>
       <div className="flex gap-2">
         <select
-          value={hasMusic(value) ? "yes" : "no"}
+          value={on ? "yes" : "no"}
           disabled={disabled}
-          onChange={(e) => onChange(e.target.value === "yes" ? yes : "無")}
+          onChange={(e) => {
+            const next = e.target.value === "yes";
+            setOn(next);
+            onChange(next ? yes : "無");
+          }}
           className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 text-sm text-fg focus:border-line-strong focus:outline-none"
         >
           <option value="no">{t("storyboard.script.musicNo")}</option>
           <option value="yes">{yes}</option>
         </select>
-        {hasMusic(value) && (
+        {on && (
           <input
             value={value === yes ? "" : value}
             disabled={disabled}

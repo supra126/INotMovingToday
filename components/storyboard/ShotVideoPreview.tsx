@@ -33,10 +33,12 @@ function useVideoElement(shot: Shot) {
 interface ShotVideoPreviewProps {
   shot: Shot;
   ratio: VideoRatio;
+  /** The shot's frame or the next shot's frame changed since this video was made */
+  outdated: boolean;
   onExtend: (prompt: string, seconds: number) => void;
 }
 
-export function ShotVideoPreview({ shot, ratio, onExtend }: ShotVideoPreviewProps) {
+export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoPreviewProps) {
   const { t } = useLocale();
   const [extendPrompt, setExtendPrompt] = useState("");
   const [extendSeconds, setExtendSeconds] = useState(4);
@@ -79,7 +81,7 @@ export function ShotVideoPreview({ shot, ratio, onExtend }: ShotVideoPreviewProp
       <div className="flex w-full max-w-md flex-col gap-2">
         {!hasVideo && video?.status !== "generating" && <p className="text-center text-xs text-fg-subtle">{t("storyboard.videos.noVideo")}</p>}
         {video?.status === "interrupted" && <p className="text-xs text-warning">{t("storyboard.videos.status.interrupted")}</p>}
-        {video?.outdated && video.status === "completed" && <p className="text-xs text-warning">{t("storyboard.videos.outdated")}</p>}
+        {outdated && <p className="text-xs text-warning">{t("storyboard.videos.outdated")}</p>}
         {video?.error && (
           <p role="alert" className="text-xs text-danger">{video.error.startsWith("errors.") ? t(video.error) : video.error}</p>
         )}

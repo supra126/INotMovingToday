@@ -35,7 +35,9 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const hasInput = !!project.script.sourceImage || project.script.sourceText.trim().length > 0;
   const hasShots = project.shots.length > 0;
-  const needsImages = project.shots.filter((s) => s.candidates.length === 0 || s.stale);
+  const needsImages = project.shots.filter(
+    (s) => (s.candidates.length === 0 || s.stale) && s.imageStatus !== "generating"
+  );
   const confirmCost = imageCost("1K", needsImages.length * CANDIDATES_PER_SHOT);
 
   const run = async (kind: "analyze" | "chat" | "confirm", work: (apiKey: string) => Promise<void>) => {

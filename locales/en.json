@@ -394,6 +394,7 @@
       "stale": "Outdated",
       "failed": "Failed",
       "busy": "Working"
-    }
+    },
+    "saveError": "Saving failed ({{error}}). Your changes are still in this tab and will be retried; if storage is full, delete projects you no longer need."
   }
 }

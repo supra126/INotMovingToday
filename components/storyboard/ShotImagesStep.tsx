@@ -58,7 +58,7 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
   const uploadFrames = async (shotId: string, files: FileList | null) => {
     const images = Array.from(files ?? [])
       .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({ blob: file as Blob, mimeType: file.type }));
+      .map((file) => ({ blob: file as Blob, mimeType: file.type, uploaded: true }));
     if (images.length === 0) return;
     const sizes = await Promise.all(
       images.map(async (image) => {

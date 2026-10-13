@@ -81,25 +81,33 @@ export async function draftShotFields(ctx: JobContext, project: StoryboardProjec
         { description: shotDescription(shot), mode: "single_image", ratio: pc.ratio, duration: pc.duration, audioMode: pc.audioMode, locale },
         ctx.apiKey
       );
-      updateShot(ctx, shot.id, (s) => ({
-        ...s,
-        draft,
-        draftStatus: undefined,
-        fields: s.fields ?? {
-          subject: draft.fields.subject.value,
-          setting: draft.fields.setting.value,
-          camera: draft.fields.camera.value,
-          lighting: draft.fields.lighting.value,
-          sound: draft.fields.sound.value,
-        },
-      }));
+      updateShot(ctx, shot.id, (s) =>
+        // The frame changed while drafting: these fields describe the old picture
+        s.finalImage !== shot.finalImage
+          ? s
+          : {
+              ...s,
+              draft,
+              draftStatus: undefined,
+              fields: s.fields ?? {
+                subject: draft.fields.subject.value,
+                setting: draft.fields.setting.value,
+                camera: draft.fields.camera.value,
+                lighting: draft.fields.lighting.value,
+                sound: draft.fields.sound.value,
+              },
+            }
+      );
     }),
     { concurrency: DRAFT_CONCURRENCY }
   );
   results.forEach((result, i) => {
     if (result.ok) return;
     const message = result.error instanceof Error ? result.error.message : "";
-    updateShot(ctx, targets[i].shot.id, (s) => ({ ...s, draftStatus: "failed", draftError: toDisplayError(message) }));
+    const { shot } = targets[i];
+    updateShot(ctx, shot.id, (s) =>
+      s.finalImage !== shot.finalImage ? s : { ...s, draftStatus: "failed", draftError: toDisplayError(message) }
+    );
   });
 }
 
@@ -156,7 +164,17 @@ export async function generateShotVideos(
       const stored = await toStoredVideo(result.videoUrl);
       updateShot(ctx, shot.id, (s) => ({
         ...s,
-        video: { status: "completed", progress: 100, prompt, ...stored, sourceVideoUri: result.sourceVideoUri, duration: shot.duration },
+        video: {
+          status: "completed",
+          progress: 100,
+          prompt,
+          ...stored,
+          sourceVideoUri: result.sourceVideoUri,
+          duration: shot.duration,
+          // Frames this video was made from, so a later change marks it outdated
+          startFrame: shot.finalImage!.blob,
+          endFrame: endFrameImage(project.shots, index)?.blob,
+        },
       }));
     }),
     { concurrency: VIDEO_CONCURRENCY, retryDelayMs: options.retryDelayMs }
@@ -217,6 +235,7 @@ export async function extendShotVideo(
         url: stored.url,
         status: "completed",
         progress: 100,
+        error: undefined,
         sourceVideoUri: result.sourceVideoUri ?? previous.sourceVideoUri,
         duration: previous.duration + seconds,
       },

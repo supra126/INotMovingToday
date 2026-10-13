@@ -72,6 +72,12 @@ export default function StoryboardPage() {
         {project && stepProps && <StepBar project={project} onSelect={stepProps.goTo} />}
       </Header>
 
+      {store.saveError && (
+        <p role="alert" className="border-b border-danger/40 bg-danger-soft px-4 py-2 text-sm text-danger">
+          {t("storyboard.saveError", { error: store.saveError })}
+        </p>
+      )}
+
       {project && stepProps && StepComponent ? (
         <StepComponent key={project.id} {...stepProps} />
       ) : (
