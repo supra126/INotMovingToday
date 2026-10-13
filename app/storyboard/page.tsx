@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Header } from "@/components/layout/Header";
 import { ProjectList } from "@/components/storyboard/ProjectList";
@@ -32,6 +33,7 @@ export default function StoryboardPage() {
   const apiKeyStatus = useApiKeyStatus();
   const store = useStoryboardProject();
   const { project } = store;
+  const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
 
   // Storyboard mode always uses the user's own key (images are generated in the browser)
   const requireApiKey = () => {
@@ -41,46 +43,42 @@ export default function StoryboardPage() {
   };
 
   const StepComponent = project ? STEP_COMPONENTS[project.step] : null;
-  const projectId = project?.id;
   const stepProps: StepProps | null = project
     ? {
         project,
         update: (fn, options) => store.update(project.id, fn, options),
         requireApiKey,
         goTo: (step: Step) => store.update(project.id, (p) => ({ ...p, step })),
+        selectedShotId,
+        selectShot: setSelectedShotId,
       }
     : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-dvh flex-col lg:h-dvh">
       <Header
         active="storyboard"
         hasApiKey={apiKeyStatus.hasApiKey}
         serverHasKey={apiKeyStatus.serverHasKey}
-        onGuideClick={() => {}}
         onApiSettingsClick={apiKeyStatus.openApiKeyModal}
-      />
-
-      <main className="container mx-auto w-full flex-1 px-4 lg:px-6 py-6 flex flex-col gap-6">
+      >
         <ProjectList
           projects={store.projects}
-          activeId={projectId}
+          activeId={project?.id}
           onOpen={store.open}
           onCreate={store.create}
           onDelete={store.remove}
         />
+        {project && stepProps && <StepBar project={project} onSelect={stepProps.goTo} />}
+      </Header>
 
-        <section className="flex flex-col gap-6 min-w-0">
-          {store.isLoading && <p className="text-sm text-muted">{t("storyboard.loading")}</p>}
-          {!store.isLoading && !project && <p className="text-sm text-muted">{t("storyboard.empty")}</p>}
-          {project && stepProps && StepComponent && (
-            <>
-              <StepBar project={project} onSelect={stepProps.goTo} />
-              <StepComponent key={project.id} {...stepProps} />
-            </>
-          )}
-        </section>
-      </main>
+      {project && stepProps && StepComponent ? (
+        <StepComponent key={project.id} {...stepProps} />
+      ) : (
+        <div className="flex flex-1 items-center justify-center p-6 text-sm text-fg-subtle">
+          {store.isLoading ? t("storyboard.loading") : t("storyboard.empty")}
+        </div>
+      )}
 
       <ApiKeyModal
         isOpen={apiKeyStatus.showApiKeyModal}

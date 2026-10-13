@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import { RatioSelector } from "@/components/upload/RatioSelector";
 import { useLocale } from "@/contexts/LocaleContext";
 import { canEnterStep } from "@/lib/storyboard/shots";
@@ -7,15 +8,16 @@ import { ImagePicker } from "./ImagePicker";
 import type { StepProps } from "./types";
 
 const inputClass =
-  "w-full bg-surface border border-line rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder-gray-500 focus:border-accent focus:outline-none transition-colors";
+  "w-full rounded-[var(--radius-control)] border border-line bg-sunken px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none";
 
 export function ProjectSetupStep({ project, update, goTo }: StepProps) {
   const { t } = useLocale();
   const ratioLocked = project.script.confirmed;
 
   return (
-    <div className="flex max-w-xl flex-col gap-5">
-      <label className="flex flex-col gap-2 text-sm text-muted">
+    <div className="flex flex-1 justify-center overflow-y-auto bg-canvas p-6">
+      <div className="flex h-fit w-full max-w-[560px] flex-col gap-5 rounded-[var(--radius-panel)] border border-line bg-panel p-6">
+      <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
         {t("storyboard.setup.name")}
         <input
           value={project.name}
@@ -25,7 +27,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
       </label>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm text-muted">{t("storyboard.setup.products")}</span>
+        <span className="text-xs text-fg-muted">{t("storyboard.setup.products")}</span>
         <ImagePicker
           images={project.productImages}
           max={2}
@@ -34,7 +36,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         <p className="text-xs text-muted">{t("storyboard.setup.productsHint")}</p>
       </div>
 
-      <label className="flex flex-col gap-2 text-sm text-muted">
+      <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
         {t("storyboard.setup.packagingText")}
         <input
           value={project.packagingText}
@@ -53,7 +55,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         {ratioLocked && <p className="text-xs text-muted">{t("storyboard.setup.ratioLocked")}</p>}
       </div>
 
-      <label className="flex flex-col gap-2 text-sm text-muted">
+      <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
         {t("storyboard.setup.tone")}
         <input
           value={project.tone}
@@ -63,14 +65,10 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         />
       </label>
 
-      <button
-        type="button"
-        disabled={!canEnterStep(project, 2)}
-        onClick={() => goTo(2)}
-        className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover transition-colors disabled:opacity-40"
-      >
+      <Button variant="primary" size="lg" disabled={!canEnterStep(project, 2)} onClick={() => goTo(2)}>
         {t("storyboard.next")}
-      </button>
+      </Button>
+      </div>
     </div>
   );
 }

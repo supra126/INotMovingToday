@@ -8,4 +8,7 @@ export interface StepProps {
   /** Returns the user's key, or opens the key dialog and returns null */
   requireApiKey: () => string | null;
   goTo: (step: Step) => void;
+  /** Shot shown in the canvas and inspector; resolve with resolveSelectedShot */
+  selectedShotId: string | null;
+  selectShot: (id: string) => void;
 }

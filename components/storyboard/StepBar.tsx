@@ -10,21 +10,23 @@ export function StepBar({ project, onSelect }: { project: StoryboardProject; onS
   const { t } = useLocale();
 
   return (
-    <ol className="grid grid-cols-4 gap-2">
+    <ol className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
       {STEPS.map((step) => {
         // Going back is always allowed; going forward only through the step's own button
         const reachable = step <= project.step && canEnterStep(project, step);
+        const current = project.step === step;
         return (
-          <li key={step}>
+          <li key={step} className="shrink-0">
             <button
               type="button"
               disabled={!reachable}
+              aria-current={current ? "step" : undefined}
               onClick={() => onSelect(step)}
-              className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors disabled:opacity-40 ${
-                project.step === step ? "border-accent text-foreground" : "border-line text-muted hover:text-foreground"
+              className={`flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-xs font-medium transition-colors disabled:opacity-35 ${
+                current ? "bg-raised text-fg" : "text-fg-muted hover:text-fg"
               }`}
             >
-              <span className="mr-1.5 text-xs">{step}</span>
+              <span className="font-mono text-[11px] text-fg-subtle">{step}</span>
               {t(`storyboard.steps.${step}`)}
             </button>
           </li>
