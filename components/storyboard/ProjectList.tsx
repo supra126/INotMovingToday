@@ -11,47 +11,46 @@ interface ProjectListProps {
   onDelete: (id: string) => void;
 }
 
+/** Project picker as one row above the steps, so the work area gets the full width */
 export function ProjectList({ projects, activeId, onOpen, onCreate, onDelete }: ProjectListProps) {
   const { t } = useLocale();
+  const active = projects.find((p) => p.id === activeId);
 
   return (
-    <aside className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-foreground">{t("storyboard.projects")}</h2>
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted sm:flex-none">
+        {t("storyboard.projects")}
+        <select
+          value={activeId ?? ""}
+          onChange={(e) => e.target.value && onOpen(e.target.value)}
+          className="min-w-0 flex-1 sm:w-72 sm:flex-none bg-surface border border-line rounded-md px-2.5 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
+        >
+          {!activeId && <option value="">{t("storyboard.empty")}</option>}
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} · {t(`storyboard.steps.${p.step}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        onClick={onCreate}
+        className="h-8 px-3 rounded-md bg-accent text-white text-sm hover:bg-accent-hover transition-colors"
+      >
+        {t("storyboard.newProject")}
+      </button>
+      {active && (
         <button
           type="button"
-          onClick={onCreate}
-          className="h-8 px-3 rounded-md bg-accent text-white text-sm hover:bg-accent-hover transition-colors"
+          onClick={() => {
+            if (window.confirm(t("storyboard.deleteConfirm", { name: active.name }))) onDelete(active.id);
+          }}
+          className="h-8 px-3 rounded-md border border-line text-sm text-muted hover:text-red-300 transition-colors"
         >
-          {t("storyboard.newProject")}
+          {t("storyboard.deleteProject")}
         </button>
-      </div>
-      {projects.length === 0 && <p className="text-xs text-muted">{t("storyboard.empty")}</p>}
-      <ul className="flex flex-col gap-1">
-        {projects.map((p) => (
-          <li key={p.id} className="group flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onOpen(p.id)}
-              className={`flex-1 truncate rounded-md px-2.5 py-2 text-left text-sm transition-colors ${
-                p.id === activeId ? "bg-white/10 text-foreground" : "text-muted hover:text-foreground hover:bg-white/5"
-              }`}
-            >
-              {p.name}
-              <span className="ml-2 text-xs text-muted">{t(`storyboard.steps.${p.step}`)}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm(t("storyboard.deleteConfirm", { name: p.name }))) onDelete(p.id);
-              }}
-              className="h-8 px-2 rounded-md text-xs text-muted opacity-0 group-hover:opacity-100 hover:text-red-300 transition"
-            >
-              {t("storyboard.deleteProject")}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </aside>
+      )}
+    </div>
   );
 }

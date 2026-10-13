@@ -61,7 +61,7 @@ export default function StoryboardPage() {
         onApiSettingsClick={apiKeyStatus.openApiKeyModal}
       />
 
-      <main className="container mx-auto w-full flex-1 px-4 lg:px-6 py-8 grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <main className="container mx-auto w-full flex-1 px-4 lg:px-6 py-6 flex flex-col gap-6">
         <ProjectList
           projects={store.projects}
           activeId={projectId}
