@@ -16,6 +16,9 @@ export type VideoGenerationMode =
 // 影片音訊：只有音效，或音效加背景音樂
 export type AudioMode = "sfx" | "sfx_music";
 
+// 分鏡圖尺寸（Nano Banana）
+export type ImageSize = "1K" | "2K" | "4K";
+
 export type Locale = "zh" | "en";
 
 // ============ 上傳的素材 ============

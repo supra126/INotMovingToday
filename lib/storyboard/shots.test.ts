@@ -1,0 +1,159 @@
+import { describe, expect, it } from "vitest";
+import {
+  applyScriptEdit,
+  canEnterStep,
+  defaultEndFrame,
+  endFrameImage,
+  mergeScriptShots,
+  newProject,
+  normalizeOnLoad,
+  selectCandidate,
+  setFinalSize,
+  shotDescription,
+  snapDuration,
+  toShot,
+  videoFileName,
+} from "./shots";
+import type { ScriptShot, StoredImage } from "./types";
+
+const img = (name: string): StoredImage => ({ blob: new Blob([name]), mimeType: "image/png" });
+
+const row = (over: Partial<ScriptShot> = {}): ScriptShot => ({
+  id: "s01",
+  seconds: 4,
+  visual: "黑色布膜展開",
+  camera: "慢推",
+  sound: "布料聲",
+  music: "無",
+  onScreenText: "這片黑，很有料！",
+  transition: "硬切",
+  hasPackaging: false,
+  ...over,
+});
+
+describe("snapDuration", () => {
+  it("rounds up to the nearest Omni length", () => {
+    expect(snapDuration(3)).toBe(4);
+    expect(snapDuration(4)).toBe(4);
+    expect(snapDuration(4.5)).toBe(6);
+    expect(snapDuration(9)).toBe(10);
+    expect(snapDuration(15)).toBe(10);
+  });
+});
+
+describe("defaultEndFrame", () => {
+  it("uses the next shot for continuous transitions", () => {
+    expect(defaultEndFrame("溶接", false)).toEqual({ kind: "next" });
+    expect(defaultEndFrame("match cut transition", false)).toEqual({ kind: "next" });
+  });
+  it("uses none for hard cuts and the last shot", () => {
+    expect(defaultEndFrame("硬切", false)).toEqual({ kind: "none" });
+    expect(defaultEndFrame("溶接", true)).toEqual({ kind: "none" });
+    expect(defaultEndFrame("", false)).toEqual({ kind: "none" });
+  });
+});
+
+describe("applyScriptEdit", () => {
+  it("marks a shot with images stale and clears its prompt when the picture changes", () => {
+    const shot = { ...toShot(row(), false), imagePrompt: "prompt", candidates: [img("a")], selected: 0 };
+    const next = applyScriptEdit(shot, row({ visual: "布膜貼臉" }), false);
+    expect(next.stale).toBe(true);
+    expect(next.imagePrompt).toBe("");
+    expect(next.candidates).toHaveLength(1);
+  });
+  it("keeps images fresh when only on-screen text changes", () => {
+    const shot = { ...toShot(row(), false), imagePrompt: "prompt", candidates: [img("a")] };
+    const next = applyScriptEdit(shot, row({ onScreenText: "新字卡" }), false);
+    expect(next.stale).toBe(false);
+    expect(next.imagePrompt).toBe("prompt");
+  });
+  it("re-snaps the duration when seconds change", () => {
+    const next = applyScriptEdit(toShot(row(), false), row({ seconds: 7 }), false);
+    expect(next.duration).toBe(8);
+  });
+});
+
+describe("mergeScriptShots", () => {
+  it("adds new rows, keeps matching rows and drops removed rows", () => {
+    const prev = [{ ...toShot(row(), false), imagePrompt: "p1" }, toShot(row({ id: "s02" }), true)];
+    const merged = mergeScriptShots(prev, [row(), row({ id: "s03", visual: "產品" })]);
+    expect(merged.map((s) => s.id)).toEqual(["s01", "s03"]);
+    expect(merged[0].imagePrompt).toBe("p1");
+    expect(merged[1].candidates).toEqual([]);
+  });
+});
+
+describe("normalizeOnLoad", () => {
+  it("resets work that was running when the page closed", () => {
+    const p = newProject("id", 0);
+    p.shots = [
+      {
+        ...toShot(row(), true),
+        imageStatus: "generating",
+        video: { status: "generating", progress: 40, prompt: "x", duration: 4 },
+      },
+    ];
+    const loaded = normalizeOnLoad(p);
+    expect(loaded.shots[0].imageStatus).toBe("idle");
+    expect(loaded.shots[0].video?.status).toBe("interrupted");
+  });
+});
+
+describe("canEnterStep", () => {
+  it("gates each step", () => {
+    const p = newProject("id", 0);
+    expect(canEnterStep(p, 2)).toBe(false);
+    p.productImages = [img("product")];
+    expect(canEnterStep(p, 2)).toBe(true);
+    p.shots = [{ ...toShot(row(), true), imagePrompt: "p" }];
+    expect(canEnterStep(p, 3)).toBe(false);
+    p.script.confirmed = true;
+    expect(canEnterStep(p, 3)).toBe(true);
+    expect(canEnterStep(p, 4)).toBe(false);
+    p.shots[0] = { ...p.shots[0], finalImage: img("final") };
+    expect(canEnterStep(p, 4)).toBe(true);
+    p.shots[0] = { ...p.shots[0], stale: true };
+    expect(canEnterStep(p, 4)).toBe(false);
+  });
+});
+
+describe("selectCandidate / setFinalSize", () => {
+  it("uses the candidate as the final image at 1K only", () => {
+    const shot = { ...toShot(row(), true), candidates: [img("a"), img("b")], stale: true };
+    const picked = selectCandidate(shot, 1, "1K");
+    expect(picked.finalImage).toBe(shot.candidates[1]);
+    expect(picked.stale).toBe(false);
+    expect(selectCandidate(shot, 1, "2K").finalImage).toBeUndefined();
+  });
+  it("resets final images when the size changes", () => {
+    const p = newProject("id", 0);
+    p.shots = [{ ...toShot(row(), true), candidates: [img("a")], selected: 0, finalImage: img("2k") }];
+    p.finalSize = "2K";
+    const at1k = setFinalSize(p, "1K");
+    expect(at1k.shots[0].finalImage).toBe(p.shots[0].candidates[0]);
+    expect(setFinalSize(p, "4K").shots[0].finalImage).toBeUndefined();
+  });
+});
+
+describe("endFrameImage", () => {
+  it("resolves next / upload / none", () => {
+    const a = { ...toShot(row(), false), endFrame: { kind: "next" as const } };
+    const b = { ...toShot(row({ id: "s02" }), true), finalImage: img("b") };
+    expect(endFrameImage([a, b], 0)).toBe(b.finalImage);
+    expect(endFrameImage([b], 0)).toBeUndefined();
+    const up = img("up");
+    expect(endFrameImage([{ ...a, endFrame: { kind: "upload", image: up } }], 0)).toBe(up);
+  });
+});
+
+describe("shotDescription / videoFileName", () => {
+  it("describes the shot for the field draft", () => {
+    expect(shotDescription(toShot(row(), true))).toContain("黑色布膜展開");
+    expect(shotDescription(toShot(row(), true))).not.toContain("這片黑");
+  });
+  it("builds a safe file name", () => {
+    expect(videoFileName(toShot(row({ visual: "布膜/貼合:臉部 展現高度服貼力很長很長" }), true))).toBe(
+      "s01-布膜貼合臉部展現高度.mp4"
+    );
+  });
+});
