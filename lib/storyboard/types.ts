@@ -1,0 +1,119 @@
+import type {
+  AudioMode,
+  ImageSize,
+  PromptDraft,
+  PromptFields,
+  VideoDuration,
+  VideoRatio,
+  VideoResolution,
+} from "@/types";
+
+export type Step = 1 | 2 | 3 | 4;
+
+export interface StoredImage {
+  blob: Blob;
+  mimeType: string;
+  /** The user's own frame: used as is at any final size, never re-rendered */
+  uploaded?: boolean;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
+  at: number;
+}
+
+/** One row of the storyboard table, as the AI and the user edit it */
+export interface ScriptShot {
+  id: string; // "s01"
+  seconds: number;
+  visual: string;
+  camera: string;
+  sound: string;
+  music: string;
+  onScreenText: string;
+  transition: string;
+  hasPackaging: boolean;
+}
+
+export type EndFrame = { kind: "none" } | { kind: "next" } | { kind: "upload"; image: StoredImage };
+
+/** Settings a video was generated with, to tell when the shot changed afterwards */
+export interface VideoMadeWith {
+  duration: VideoDuration;
+  audioMode: AudioMode;
+  resolution?: VideoResolution;
+  /** JSON of the prompt fields */
+  fields: string;
+}
+
+export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted";
+
+export interface ShotVideo {
+  status: ShotVideoStatus;
+  progress: number;
+  /** English prompt sent to Omni */
+  prompt: string;
+  blob?: Blob;
+  /** Used when the video could not be downloaded as a Blob (e.g. remote mock URL) */
+  url?: string;
+  sourceVideoUri?: string;
+  duration: number;
+  error?: string;
+  /** The final image changed after this video was made (older videos without recorded frames) */
+  outdated?: boolean;
+  /** Frames the video was generated from, to tell when the shot or the next shot changed */
+  startFrame?: Blob;
+  endFrame?: Blob;
+  made?: VideoMadeWith;
+}
+
+export interface Shot extends ScriptShot {
+  /** English Nano Banana prompt; empty until the storyboard is confirmed */
+  imagePrompt: string;
+  candidates: StoredImage[];
+  selected?: number;
+  finalImage?: StoredImage;
+  /** The storyboard row changed after images were made */
+  stale: boolean;
+  imageStatus: "idle" | "generating" | "failed";
+  imageError?: string;
+  duration: VideoDuration;
+  /** Overrides the project default */
+  resolution?: VideoResolution;
+  endFrame: EndFrame;
+  draft?: PromptDraft;
+  fields?: PromptFields;
+  draftStatus?: "drafting" | "failed";
+  draftError?: string;
+  video?: ShotVideo;
+}
+
+export interface StoryboardProject {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  ratio: VideoRatio;
+  tone: string;
+  packagingText: string;
+  productImages: StoredImage[];
+  script: {
+    sourceImage?: StoredImage;
+    sourceText: string;
+    chat: ChatMessage[];
+    suggestions: string[];
+    confirmed: boolean;
+  };
+  shots: Shot[];
+  finalSize: ImageSize;
+  videoSettings: { resolution: VideoResolution };
+  step: Step;
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  updatedAt: number;
+  step: Step;
+}

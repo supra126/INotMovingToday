@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans, Noto_Sans_TC } from "next/font/google";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import "./globals.css";
 
-const geist = Geist({
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
-  variable: "--font-geist",
+  variable: "--font-plex-sans",
 });
 
-const geistMono = Geist_Mono({
+const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
+  weight: ["400", "500"],
   display: "swap",
-  variable: "--font-geist-mono",
+  variable: "--font-plex-mono",
 });
 
 // Chinese glyphs fall back to Noto Sans TC
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 // Paint the background before CSS loads to avoid a white flash
-const criticalCSS = `html,body{margin:0;background-color:#17171a;color:#ededef}`;
+const criticalCSS = `html,body{margin:0;background-color:oklch(0.17 0.004 260);color:oklch(0.94 0.004 260)}`;
 
 export default function RootLayout({
   children,
@@ -47,7 +49,7 @@ export default function RootLayout({
     <html
       lang="zh-TW"
       suppressHydrationWarning
-      className={`${geist.variable} ${geistMono.variable} ${notoSansTC.variable}`}
+      className={`${plexSans.variable} ${plexMono.variable} ${notoSansTC.variable}`}
     >
       <head>
         {/* DNS prefetch for API endpoints */}

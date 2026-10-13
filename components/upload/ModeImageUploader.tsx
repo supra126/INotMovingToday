@@ -157,8 +157,8 @@ export function SingleUploadBox({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium text-gray-400">{label}</span>
-        {required && <span className="text-red-400 text-xs">*</span>}
+        <span className="text-xs font-medium text-fg-muted">{label}</span>
+        {required && <span className="text-danger text-xs">*</span>}
       </div>
       <label
         onDrop={handleDrop}
@@ -170,12 +170,12 @@ export function SingleUploadBox({
           e.preventDefault();
           setIsDragOver(false);
         }}
-        className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${getAspectClass()} ${
+        className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-[var(--radius-control)] cursor-pointer transition-all duration-200 overflow-hidden ${getAspectClass()} ${
           image
-            ? "border-blue-500/50"
+            ? "border-line-strong"
             : isDragOver
-            ? "border-blue-400 bg-blue-500/10"
-            : "border-white/20 hover:border-white/40 hover:bg-white/5"
+            ? "border-accent bg-accent-soft"
+            : "border-white/20 hover:border-white/40 hover:bg-raised"
         } ${disabled || isConverting ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {image ? (
@@ -197,7 +197,7 @@ export function SingleUploadBox({
         ) : (
           <div className="flex flex-col items-center justify-center p-4">
             <svg
-              className="w-8 h-8 text-gray-500 mb-2"
+              className="w-8 h-8 text-fg-subtle mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -209,7 +209,7 @@ export function SingleUploadBox({
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <span className="text-xs text-gray-500 text-center">
+            <span className="text-xs text-fg-subtle text-center">
               {isConverting ? t("upload.modeUploader.processing") : t("upload.modeUploader.clickToUpload")}
             </span>
           </div>
@@ -226,7 +226,7 @@ export function SingleUploadBox({
           disabled={disabled || isConverting}
         />
       </label>
-      {hint && <span className="text-xs text-gray-500">{hint}</span>}
+      {hint && <span className="text-xs text-fg-subtle">{hint}</span>}
     </div>
   );
 }

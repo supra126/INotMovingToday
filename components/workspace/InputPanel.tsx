@@ -4,9 +4,10 @@ import { RatioSelector } from "@/components/upload/RatioSelector";
 import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { ModeImageUploader, SingleUploadBox } from "@/components/upload/ModeImageUploader";
 import { DurationSelector } from "@/components/upload/DurationSelector";
+import { AudioModeSelector } from "@/components/upload/AudioModeSelector";
 import { PriceEstimate } from "@/components/upload/PriceEstimate";
 import { useLocale } from "@/contexts/LocaleContext";
-import type { UploadedImage, VideoRatio, VideoResolution, VideoDuration } from "@/types";
+import type { AudioMode, UploadedImage, VideoRatio, VideoResolution, VideoDuration } from "@/types";
 
 interface InputPanelProps {
   startFrame?: UploadedImage;
@@ -17,6 +18,7 @@ interface InputPanelProps {
   videoRatio: VideoRatio;
   videoResolution: VideoResolution;
   videoDuration: VideoDuration;
+  audioMode: AudioMode;
   /** Disables inputs while AI or generation is running */
   isBusy: boolean;
   isDrafting: boolean;
@@ -29,12 +31,13 @@ interface InputPanelProps {
   onVideoRatioChange: (ratio: VideoRatio) => void;
   onVideoResolutionChange: (resolution: VideoResolution) => void;
   onVideoDurationChange: (duration: VideoDuration) => void;
+  onAudioModeChange: (mode: AudioMode) => void;
   onRequestDraft: () => void;
   onGenerateDirect: () => void;
 }
 
 const textareaClass =
-  "w-full bg-surface border border-line rounded-lg px-3.5 py-3 text-foreground placeholder-gray-500 focus:border-accent focus:outline-none transition-colors resize-none text-sm leading-relaxed disabled:opacity-50";
+  "w-full bg-surface border border-line rounded-lg px-3.5 py-3 text-foreground placeholder:text-fg-subtle focus:border-accent focus:outline-none transition-colors resize-none text-sm leading-relaxed disabled:opacity-50";
 
 export function InputPanel({
   startFrame,
@@ -45,6 +48,7 @@ export function InputPanel({
   videoRatio,
   videoResolution,
   videoDuration,
+  audioMode,
   isBusy,
   isDrafting,
   hasDraft,
@@ -56,6 +60,7 @@ export function InputPanel({
   onVideoRatioChange,
   onVideoResolutionChange,
   onVideoDurationChange,
+  onAudioModeChange,
   onRequestDraft,
   onGenerateDirect,
 }: InputPanelProps) {
@@ -106,7 +111,14 @@ export function InputPanel({
             disabled={isBusy}
           />
 
-          {/* 4. Advanced settings (collapsed) */}
+          {/* 4. Audio */}
+          <AudioModeSelector
+            value={audioMode}
+            onChange={onAudioModeChange}
+            disabled={isBusy}
+          />
+
+          {/* 5. Advanced settings (collapsed) */}
           <details className="group rounded-lg border border-line text-left">
             <summary className="cursor-pointer select-none list-none px-3.5 py-3 text-sm text-foreground flex items-center justify-between">
               <span>{t("upload.advanced.label")}</span>
@@ -160,8 +172,8 @@ export function InputPanel({
           disabled={!canDraft}
           className={`h-11 rounded-lg text-[15px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
             hasDraft
-              ? "border border-line text-foreground hover:bg-white/5"
-              : "bg-accent text-white hover:bg-accent-hover"
+              ? "border border-line text-foreground hover:bg-raised"
+              : "bg-accent text-accent-fg hover:bg-accent-hover"
           }`}
         >
           {isDrafting && <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
@@ -175,7 +187,7 @@ export function InputPanel({
           onClick={onGenerateDirect}
           disabled={!canGenerateDirect}
           title={t("workspace.directHint")}
-          className="h-11 px-4 rounded-lg border border-line text-[15px] text-foreground hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="h-11 px-4 rounded-lg border border-line text-[15px] text-foreground hover:bg-raised transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t("workspace.directButton")}
         </button>

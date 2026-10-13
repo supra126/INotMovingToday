@@ -20,12 +20,12 @@ interface ButtonProps {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover",
+    "bg-accent text-accent-fg hover:bg-accent-hover",
   secondary:
-    "bg-surface text-white hover:bg-gray-700 border border-blue-500/20",
+    "bg-surface text-white hover:bg-raised border border-line-strong",
   outline:
-    "bg-transparent border-2 border-blue-500 text-blue-400 hover:bg-blue-500/10",
-  ghost: "bg-transparent text-gray-300 hover:bg-gray-800 hover:text-white",
+    "bg-transparent border border-line-strong text-fg hover:bg-accent-soft",
+  ghost: "bg-transparent text-fg hover:bg-sunken hover:text-white",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -56,7 +56,7 @@ export function Button({
       whileTap={{ scale: isDisabled ? 1 : 0.98 }}
       className={`
         inline-flex items-center justify-center gap-2
-        font-medium rounded-xl
+        font-medium rounded-[var(--radius-control)]
         transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variantStyles[variant]}

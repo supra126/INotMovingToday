@@ -79,6 +79,7 @@ export default function Home() {
       mode: videoSettings.videoMode,
       ratio: videoSettings.videoRatio,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       locale,
     });
   };
@@ -93,6 +94,7 @@ export default function Home() {
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       negativePrompt: videoSettings.negativePrompt,
       locale,
     });
@@ -108,6 +110,7 @@ export default function Home() {
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
       duration: videoSettings.videoDuration,
+      audioMode: videoSettings.audioMode,
       negativePrompt: videoSettings.negativePrompt,
       locale,
     });
@@ -120,17 +123,18 @@ export default function Home() {
   const draftError = promptDraft.error;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-dvh flex-col lg:h-dvh">
       <Header
+        active="single"
         hasApiKey={apiKeyStatus.hasApiKey}
         serverHasKey={apiKeyStatus.serverHasKey}
         onGuideClick={() => setShowGuideModal(true)}
         onApiSettingsClick={apiKeyStatus.openApiKeyModal}
       />
 
-      <main className="container mx-auto w-full flex-1 px-4 lg:px-6 py-8 lg:py-10">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
-          <div className="order-2 lg:order-1 flex flex-col gap-6">
+      <div className="flex flex-1 flex-col lg:min-h-0 lg:flex-row">
+        <aside className="w-full shrink-0 border-line bg-panel lg:w-[360px] lg:overflow-y-auto lg:border-r">
+          <div className="flex flex-col gap-5 p-4">
             <InputPanel
               startFrame={videoSettings.startFrame}
               endFrame={videoSettings.endFrame}
@@ -140,6 +144,7 @@ export default function Home() {
               videoRatio={videoSettings.videoRatio}
               videoResolution={videoSettings.videoResolution}
               videoDuration={videoSettings.videoDuration}
+              audioMode={videoSettings.audioMode}
               isBusy={isBusy}
               isDrafting={promptDraft.isDrafting}
               hasDraft={!!promptDraft.draft}
@@ -151,12 +156,13 @@ export default function Home() {
               onVideoRatioChange={videoSettings.setVideoRatio}
               onVideoResolutionChange={videoSettings.setVideoResolution}
               onVideoDurationChange={videoSettings.setVideoDuration}
+              onAudioModeChange={videoSettings.setAudioMode}
               onRequestDraft={handleRequestDraft}
               onGenerateDirect={handleGenerateDirect}
             />
 
             {draftError && (
-              <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+              <p role="alert" className="rounded-[var(--radius-control)] border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger">
                 {draftError.startsWith("errors.") ? t(draftError) : draftError}
               </p>
             )}
@@ -171,8 +177,10 @@ export default function Home() {
               />
             )}
           </div>
+        </aside>
 
-          <div className="order-1 lg:order-2">
+        <main className="min-w-0 flex-1 bg-canvas lg:overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-6">
             <ResultPanel
               ratio={videoSettings.videoRatio}
               previewImage={videoSettings.startFrame}
@@ -188,8 +196,8 @@ export default function Home() {
               onExtend={handleExtend}
             />
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
 
       <GuideModal isOpen={showGuideModal} onClose={() => setShowGuideModal(false)} />
 

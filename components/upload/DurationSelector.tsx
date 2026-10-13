@@ -1,41 +1,34 @@
 "use client";
 
-import type { VideoDuration } from "@/types";
+import { Field } from "@/components/ui/PanelSection";
+import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
+import type { VideoDuration } from "@/types";
 
 interface DurationSelectorProps {
   value: VideoDuration;
   onChange: (duration: VideoDuration) => void;
   disabled?: boolean;
+  hint?: string;
 }
 
 const durations: VideoDuration[] = [4, 6, 8, 10];
 
-export function DurationSelector({ value, onChange, disabled = false }: DurationSelectorProps) {
+export function DurationSelector({ value, onChange, disabled = false, hint }: DurationSelectorProps) {
   const { t } = useLocale();
-
+  const label = t("upload.duration.label");
   return (
-    <div className="space-y-2">
-      <label className="block text-sm text-muted text-left">
-        {t("upload.duration.label")}
-      </label>
-      <div className="grid grid-cols-4 gap-2">
-        {durations.map((duration) => (
-          <button
-            key={duration}
-            type="button"
-            onClick={() => onChange(duration)}
-            disabled={disabled}
-            className={`py-2.5 rounded-lg border transition-colors text-sm font-medium ${
-              value === duration
-                ? "bg-surface-raised border-accent text-foreground"
-                : "border-line text-muted hover:border-white/20 hover:text-foreground"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {duration} {t("upload.duration.unit")}
-          </button>
-        ))}
-      </div>
-    </div>
+    <Field label={label} hint={hint}>
+      <Segmented
+        label={label}
+        value={String(value)}
+        onChange={(next) => onChange(Number(next) as VideoDuration)}
+        options={durations.map((duration) => ({
+          value: String(duration),
+          label: `${duration}${t("upload.duration.unit")}`,
+          disabled,
+        }))}
+      />
+    </Field>
   );
 }

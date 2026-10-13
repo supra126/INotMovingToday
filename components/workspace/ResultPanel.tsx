@@ -84,10 +84,12 @@ export function ResultPanel({
     status === "composing" ? t("result.composing") : isExtending ? t("result.extending") : t("result.generating");
 
   return (
-    <div className="lg:sticky lg:top-20 flex flex-col gap-4">
+    <div className="flex w-full flex-col items-center gap-4">
       <div
-        className={`relative mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface ${
-          ratio === "9:16" ? "aspect-[9/16] max-w-[min(100%,calc((100vh-12rem)*9/16))]" : "aspect-video"
+        className={`relative overflow-hidden rounded-[var(--radius-panel)] border border-line checker ${
+          ratio === "9:16"
+            ? "aspect-[9/16] w-full max-w-sm lg:h-[calc(100dvh-14rem)] lg:w-auto lg:max-w-full"
+            : "aspect-video w-full max-w-5xl"
         }`}
       >
         {videoUrl ? (
@@ -118,23 +120,23 @@ export function ResultPanel({
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+        <p role="alert" className="w-full max-w-md rounded-[var(--radius-control)] border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger">
           {translate(error)}
         </p>
       )}
 
       {videoUrl && !isWorking && (
         <>
-          <div className="flex gap-2">
-            <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-white hover:bg-accent-hover transition-colors">
+          <div className="flex w-full max-w-md gap-2">
+            <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors">
               {t("result.download")}
             </button>
-            <button onClick={onRegenerate} className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 transition-colors">
+            <button onClick={onRegenerate} className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-raised transition-colors">
               {t("result.regenerate")}
             </button>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border border-line p-3.5">
+          <div className="flex w-full max-w-md flex-col gap-2 rounded-[var(--radius-panel)] border border-line bg-panel p-3.5">
             <label htmlFor="extend-prompt" className="text-xs text-muted">
               {t("result.extendLabel", { total: totalDuration, max: MAX_TOTAL_DURATION })}
             </label>
@@ -146,7 +148,7 @@ export function ResultPanel({
                   onChange={(e) => setExtendPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleExtend()}
                   placeholder={t("result.extendPlaceholder")}
-                  className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-foreground placeholder-gray-500 focus:border-accent focus:outline-none"
+                  className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-foreground placeholder:text-fg-subtle focus:border-accent focus:outline-none"
                 />
                 <div className="flex gap-2">
                   <select
@@ -164,7 +166,7 @@ export function ResultPanel({
                   <button
                     onClick={handleExtend}
                     disabled={!extendPrompt.trim()}
-                    className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 transition-colors disabled:opacity-40"
+                    className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-raised transition-colors disabled:opacity-40"
                   >
                     {t("result.extendButton")}
                   </button>
@@ -178,7 +180,7 @@ export function ResultPanel({
       )}
 
       {finalPrompt && (
-        <details className="rounded-lg border border-line">
+        <details className="w-full max-w-md rounded-[var(--radius-panel)] border border-line bg-panel">
           <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-xs text-muted">
             <span>{t("result.finalPrompt")}</span>
             <button
@@ -192,7 +194,7 @@ export function ResultPanel({
               {copied ? t("result.copied") : t("result.copy")}
             </button>
           </summary>
-          <p className="px-3.5 pb-3 font-mono text-xs leading-relaxed text-gray-300">{finalPrompt}</p>
+          <p className="px-3.5 pb-3 font-mono text-xs leading-relaxed text-fg">{finalPrompt}</p>
         </details>
       )}
     </div>

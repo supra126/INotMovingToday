@@ -9,7 +9,10 @@ interface PromptEditorProps {
   fields: PromptFields;
   isBusy: boolean;
   onFieldChange: (key: PromptFieldKey, value: string) => void;
-  onGenerate: () => void;
+  /** Omit to hide the generate button (storyboard cards have their own) */
+  onGenerate?: () => void;
+  /** Inside a settings panel: no divider or heading, the section supplies them */
+  embedded?: boolean;
 }
 
 export function PromptEditor({
@@ -18,15 +21,16 @@ export function PromptEditor({
   isBusy,
   onFieldChange,
   onGenerate,
+  embedded = false,
 }: PromptEditorProps) {
   const { t } = useLocale();
   const canGenerate = !isBusy && fields.subject.trim().length > 0;
 
   return (
-    <section className="flex flex-col gap-4 border-t border-line pt-6">
+    <section className={embedded ? "flex flex-col gap-4" : "flex flex-col gap-4 border-t border-line pt-6"}>
       <div>
-        <h2 className="text-sm font-medium text-foreground">{t("prompt.title")}</h2>
-        {draft.summary && <p className="mt-1 text-sm text-muted">{draft.summary}</p>}
+        {!embedded && <h2 className="text-sm font-medium text-fg">{t("prompt.title")}</h2>}
+        {draft.summary && <p className="mt-1 text-sm text-fg-muted">{draft.summary}</p>}
       </div>
 
       {PROMPT_FIELD_KEYS.map((key) => {
@@ -64,13 +68,15 @@ export function PromptEditor({
         );
       })}
 
-      <button
-        onClick={onGenerate}
-        disabled={!canGenerate}
-        className="w-full h-12 rounded-lg bg-accent text-white text-[15px] font-medium hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        {t("prompt.generate")}
-      </button>
+      {onGenerate && (
+        <button
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          className="w-full h-12 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {t("prompt.generate")}
+        </button>
+      )}
     </section>
   );
 }

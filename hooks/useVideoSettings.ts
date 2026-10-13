@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import type {
+  AudioMode,
   VideoRatio,
   VideoResolution,
   VideoGenerationMode,
@@ -18,6 +19,7 @@ export interface VideoSettings {
   endFrame?: UploadedImage;
   references: UploadedImage[];
   videoDuration: VideoDuration;
+  audioMode: AudioMode;
   negativePrompt: string;
 }
 
@@ -28,6 +30,7 @@ export interface VideoSettingsActions {
   setEndFrame: (image: UploadedImage | undefined) => void;
   setReferences: (images: UploadedImage[]) => void;
   setVideoDuration: (duration: VideoDuration) => void;
+  setAudioMode: (mode: AudioMode) => void;
   setNegativePrompt: (prompt: string) => void;
   resetSettings: () => void;
   resetImageState: () => void;
@@ -37,6 +40,7 @@ const DEFAULT_SETTINGS = {
   videoRatio: "9:16" as VideoRatio,
   videoResolution: "720p" as VideoResolution,
   videoDuration: 8 as VideoDuration,
+  audioMode: "sfx_music" as AudioMode,
   negativePrompt: "",
 };
 
@@ -65,6 +69,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
   const [endFrame, setEndFrame] = useState<UploadedImage | undefined>(undefined);
   const [references, setReferences] = useState<UploadedImage[]>([]);
   const [videoDuration, setVideoDuration] = useState<VideoDuration>(DEFAULT_SETTINGS.videoDuration);
+  const [audioMode, setAudioMode] = useState<AudioMode>(DEFAULT_SETTINGS.audioMode);
   const [negativePrompt, setNegativePrompt] = useState<string>(DEFAULT_SETTINGS.negativePrompt);
 
   const videoMode = getVideoMode(startFrame, endFrame);
@@ -80,6 +85,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setVideoResolution(DEFAULT_SETTINGS.videoResolution);
     resetImageState();
     setVideoDuration(DEFAULT_SETTINGS.videoDuration);
+    setAudioMode(DEFAULT_SETTINGS.audioMode);
     setNegativePrompt(DEFAULT_SETTINGS.negativePrompt);
   }, [resetImageState]);
 
@@ -91,6 +97,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     endFrame,
     references,
     videoDuration,
+    audioMode,
     negativePrompt,
     setVideoRatio,
     setVideoResolution,
@@ -98,6 +105,7 @@ export function useVideoSettings(): VideoSettings & VideoSettingsActions {
     setEndFrame,
     setReferences,
     setVideoDuration,
+    setAudioMode,
     setNegativePrompt,
     resetSettings,
     resetImageState,

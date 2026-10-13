@@ -2,16 +2,12 @@
 
 import { useState, useRef, useCallback } from "react";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import {
-  composePrompt,
-  startVideoGeneration,
-  checkVideoStatus,
-  extendVideo,
-  cleanupVideoJob,
-} from "@/services/videoService";
+import { composePrompt, cleanupVideoJob } from "@/services/videoService";
+import { toDisplayError } from "@/lib/video/errors";
+import { runExtendJob, runVideoJob } from "@/lib/video/job";
 import type { PromptContext } from "@/lib/ai/prompts";
-import type { VideoGenerationParams } from "@/services/video-providers/types";
 import type {
+  AudioMode,
   PromptFields,
   UploadedImage,
   VideoDuration,
@@ -19,143 +15,6 @@ import type {
   VideoRatio,
   VideoResolution,
 } from "@/types";
-
-/**
- * Map API error messages to an i18n key ("errors.xxx").
- * Unrecognized messages are returned as-is so the real cause is shown to the user.
- */
-function toDisplayError(errorMessage: string): string {
-  if (errorMessage.startsWith("errors.")) {
-    return errorMessage;
-  }
-  const key = matchErrorKey(errorMessage);
-  return key ? `errors.${key}` : errorMessage || "errors.videoGenerationFailed";
-}
-
-function matchErrorKey(errorMessage: string): string | null {
-
-  const msg = errorMessage.toLowerCase();
-  if (msg.includes("quota") || msg.includes("exceeded your current quota")) {
-    return "quotaExceeded";
-  }
-  if (msg.includes("rate") && msg.includes("limit")) {
-    return "rateLimited";
-  }
-  if (msg.includes("invalid api key") || msg.includes("api key not valid")) {
-    return "apiKeyInvalid";
-  }
-  if (msg.includes("network") || msg.includes("fetch")) {
-    return "networkError";
-  }
-  // Content filtering errors (fallback if not already i18n key)
-  if (msg.includes("content") && (msg.includes("filter") || msg.includes("block"))) {
-    return "contentFiltered";
-  }
-  return null;
-}
-
-/**
- * Crop and resize image to fit target aspect ratio (cover mode)
- * Returns base64 encoded JPEG
- */
-async function cropImageToRatio(file: File, targetRatio: VideoRatio): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-
-      const imgWidth = img.width;
-      const imgHeight = img.height;
-
-      // Calculate target aspect ratio
-      const [ratioW, ratioH] = targetRatio.split(":").map(Number);
-      const targetAspect = ratioW / ratioH;
-      const imgAspect = imgWidth / imgHeight;
-
-      // Calculate crop dimensions (cover mode - fill the target ratio)
-      let cropWidth: number;
-      let cropHeight: number;
-      let cropX: number;
-      let cropY: number;
-
-      if (imgAspect > targetAspect) {
-        // Image is wider than target - crop sides
-        cropHeight = imgHeight;
-        cropWidth = imgHeight * targetAspect;
-        cropX = (imgWidth - cropWidth) / 2;
-        cropY = 0;
-      } else {
-        // Image is taller than target - crop top/bottom
-        cropWidth = imgWidth;
-        cropHeight = imgWidth / targetAspect;
-        cropX = 0;
-        cropY = (imgHeight - cropHeight) / 2;
-      }
-
-      // Create canvas with target dimensions
-      const canvas = document.createElement("canvas");
-      // Use reasonable output size (max 1080p for the longer dimension)
-      const maxDim = 1080;
-      let outWidth: number;
-      let outHeight: number;
-
-      if (targetAspect >= 1) {
-        // Landscape or square
-        outWidth = maxDim;
-        outHeight = Math.round(maxDim / targetAspect);
-      } else {
-        // Portrait
-        outHeight = maxDim;
-        outWidth = Math.round(maxDim * targetAspect);
-      }
-
-      canvas.width = outWidth;
-      canvas.height = outHeight;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Failed to get canvas context"));
-        return;
-      }
-
-      // Draw cropped image onto canvas
-      ctx.drawImage(
-        img,
-        cropX, cropY, cropWidth, cropHeight,  // Source rectangle
-        0, 0, outWidth, outHeight              // Destination rectangle
-      );
-
-      // Convert to base64 JPEG
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error("Failed to create image blob"));
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = (reader.result as string).split(",")[1];
-            resolve(base64);
-          };
-          reader.onerror = () => reject(new Error("Failed to read blob"));
-          reader.readAsDataURL(blob);
-        },
-        "image/jpeg",
-        0.92
-      );
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image"));
-    };
-
-    img.src = url;
-  });
-}
 
 export type GenerationStatus = "idle" | "composing" | "generating" | "completed" | "failed";
 
@@ -169,6 +28,7 @@ export interface GenerateRequest {
   ratio: VideoRatio;
   resolution: VideoResolution;
   duration: VideoDuration;
+  audioMode: AudioMode;
   negativePrompt?: string;
   locale: PromptContext["locale"];
 }
@@ -192,8 +52,6 @@ export interface VideoGenerationActions {
   resetVideo: () => void;
 }
 
-const POLL_INTERVAL = 3000;
-const MAX_POLLS = 200; // ~10 minutes max
 export const MAX_TOTAL_DURATION = 40;
 
 // The user's own key: static builds call Gemini from the browser,
@@ -220,6 +78,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     sourceVideoUri: string;
     ratio: VideoRatio;
     resolution: VideoResolution;
+    audioMode: AudioMode;
     apiKey: string | undefined;
   } | null>(null);
 
@@ -235,33 +94,17 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     if (!keep) shownJobIdRef.current = null;
   }, []);
 
-  const pollUntilDone = useCallback(async (jobId: string, runId: number, key: string | undefined) => {
-    for (let i = 0; i < MAX_POLLS; i++) {
-      if (runIdRef.current !== runId) return null;
-
-      let result: Awaited<ReturnType<typeof checkVideoStatus>>;
-      try {
-        result = await checkVideoStatus(jobId, key);
-      } catch (err) {
-        // Request itself failed (network etc.) - transient, keep polling
-        if (process.env.NODE_ENV === "development") {
-          console.error("[Poll] Transient error, continuing:", err);
-        }
-        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-        continue;
-      }
-
-      if (result.status === "completed" && result.videoUrl) {
-        return { videoUrl: result.videoUrl, sourceVideoUri: result.sourceVideoUri };
-      }
-      if (result.status === "failed") {
-        throw new Error(result.error || "errors.videoGenerationFailed");
-      }
-      if (runIdRef.current === runId) setProgress(result.progress ?? 0);
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-    }
-    throw new Error("Video generation timed out");
-  }, []);
+  // Hooks for the shared job runner, bound to this run
+  const jobHooks = useCallback((runId: number, key: string | undefined) => ({
+    apiKey: key,
+    isCancelled: () => runIdRef.current !== runId,
+    onProgress: (value: number) => {
+      if (runIdRef.current === runId) setProgress(value);
+    },
+    onJobId: (jobId: string) => {
+      jobIdsRef.current.push(jobId);
+    },
+  }), []);
 
   const generate = useCallback(async (request: GenerateRequest) => {
     const runId = ++runIdRef.current;
@@ -279,6 +122,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
         mode: request.mode,
         ratio: request.ratio,
         duration: request.duration,
+        audioMode: request.audioMode,
         locale: request.locale,
       };
       const prompt = request.rawPrompt?.trim() || (request.fields ? await composePrompt(request.fields, ctx, key) : "");
@@ -287,34 +131,36 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       setFinalPrompt(prompt);
       setStatus("generating");
 
-      const images = await Promise.all(request.images.map((img) => cropImageToRatio(img.file, request.ratio)));
-      const params: VideoGenerationParams = {
-        prompt,
-        negativePrompt: request.negativePrompt || undefined,
-        duration: request.duration,
-        ratio: request.ratio,
-        resolution: request.resolution,
-      };
-      if (request.mode === "frames_to_video") {
-        params.firstFrameImage = images[0];
-        params.lastFrameImage = images[1];
-      } else if (images.length === 1) {
-        params.firstFrameImage = images[0];
-      } else if (images.length > 1) {
-        params.referenceImages = images;
-      }
-
-      const job = await startVideoGeneration(params, key);
-      jobIdsRef.current.push(job.jobId);
-
-      const done = await pollUntilDone(job.jobId, runId, key);
+      const files = request.images.map((img) => img.file);
+      const done = await runVideoJob(
+        {
+          prompt,
+          ratio: request.ratio,
+          resolution: request.resolution,
+          duration: request.duration,
+          audioMode: request.audioMode,
+          negativePrompt: request.negativePrompt,
+          // Same mapping as before: end frame → transition, 1 image → first frame, 2-3 → references
+          startImage: request.mode === "frames_to_video" || files.length === 1 ? files[0] : undefined,
+          endImage: request.mode === "frames_to_video" ? files[1] : undefined,
+          referenceImages: request.mode !== "frames_to_video" && files.length > 1 ? files : undefined,
+        },
+        jobHooks(runId, key)
+      );
       if (!done) return false;
+      const job = { jobId: jobIdsRef.current[jobIdsRef.current.length - 1] };
 
       shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
       setTotalDuration(request.duration);
       lastRequestRef.current = done.sourceVideoUri
-        ? { sourceVideoUri: done.sourceVideoUri, ratio: request.ratio, resolution: request.resolution, apiKey: key }
+        ? {
+            sourceVideoUri: done.sourceVideoUri,
+            ratio: request.ratio,
+            resolution: request.resolution,
+            audioMode: request.audioMode,
+            apiKey: key,
+          }
         : null;
       setProgress(100);
       setStatus("completed");
@@ -325,7 +171,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       setStatus("failed");
       return false;
     }
-  }, [pollUntilDone, releaseJobs]);
+  }, [jobHooks, releaseJobs]);
 
   const extend = useCallback(async (prompt: string, seconds: number) => {
     const last = lastRequestRef.current;
@@ -339,13 +185,19 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     setProgress(0);
 
     try {
-      const job = await extendVideo(
-        { prompt, sourceVideoUri: last.sourceVideoUri, ratio: last.ratio, resolution: last.resolution, extensionDuration: seconds },
-        last.apiKey
+      const done = await runExtendJob(
+        {
+          prompt,
+          sourceVideoUri: last.sourceVideoUri,
+          ratio: last.ratio,
+          resolution: last.resolution,
+          audioMode: last.audioMode,
+          extensionDuration: seconds,
+        },
+        jobHooks(runId, last.apiKey)
       );
-      jobIdsRef.current.push(job.jobId);
-      const done = await pollUntilDone(job.jobId, runId, last.apiKey);
       if (!done) return false;
+      const job = { jobId: jobIdsRef.current[jobIdsRef.current.length - 1] };
 
       shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
@@ -362,7 +214,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
     } finally {
       if (runIdRef.current === runId) setIsExtending(false);
     }
-  }, [pollUntilDone]);
+  }, [jobHooks]);
 
   const cancel = useCallback(() => {
     runIdRef.current++;

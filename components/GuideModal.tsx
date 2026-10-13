@@ -49,11 +49,11 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-line bg-surface animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[var(--radius-control)] border border-line bg-surface animate-in fade-in duration-200">
         <button
           onClick={onClose}
           aria-label={t("common.close")}
-          className="absolute top-3 right-3 h-9 w-9 inline-flex items-center justify-center rounded-md text-muted hover:text-foreground hover:bg-white/5 transition-colors"
+          className="absolute top-3 right-3 h-9 w-9 inline-flex items-center justify-center rounded-md text-muted hover:text-foreground hover:bg-raised transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -69,7 +69,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+              className="text-fg hover:text-fg underline underline-offset-2"
             >
               {t("guide.apiNotice.linkText")}
             </a>{" "}
@@ -83,7 +83,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
                 <div>
                   <h3 className="text-base font-medium text-foreground">{step.title}</h3>
                   <p className="mt-1 text-sm text-muted">{step.lead}</p>
-                  <ul className="mt-3 flex flex-col gap-1.5 text-sm text-gray-300">
+                  <ul className="mt-3 flex flex-col gap-1.5 text-sm text-fg">
                     {step.items.map((item) => (
                       <li key={item.label + item.desc}>
                         {item.label && <span className="text-foreground">{item.label}：</span>}
