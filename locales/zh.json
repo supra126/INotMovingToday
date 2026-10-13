@@ -315,7 +315,9 @@
       "scriptSeconds": "（腳本 {{seconds}} 秒，後製剪短）",
       "musicNo": "無",
       "musicYes": "有",
-      "musicStylePlaceholder": "風格（選填），例如：輕快電子"
+      "musicStylePlaceholder": "風格（選填），例如：輕快電子",
+      "polish": "AI 優化",
+      "polishing": "優化中…"
     },
     "images": {
       "generating": "生成中…",

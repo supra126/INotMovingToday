@@ -12,7 +12,9 @@ import {
   buildImagePromptsPrompt,
   buildScriptParsePrompt,
   buildScriptRevisePrompt,
+  buildShotPolishPrompt,
   parseImagePrompts,
+  parsePolishedShot,
   parseRewrittenPrompt,
   parseScriptResult,
   type ImagePromptRewriteInput,
@@ -20,6 +22,7 @@ import {
   type ScriptParseInput,
   type ScriptResult,
   type ScriptReviseInput,
+  type ShotPolishInput,
 } from "./storyboard-prompts";
 import { geminiLogger as logger } from "@/lib/logger";
 
@@ -251,6 +254,13 @@ export class GeminiClient {
   async writeImagePrompts(input: ImagePromptsInput): Promise<Record<string, string>> {
     const ids = input.shots.map((shot) => shot.id);
     return this.generateParsed(buildImagePromptsPrompt(input), [], (raw) => parseImagePrompts(raw, ids));
+  }
+
+  /**
+   * Storyboard: polish one shot's picture and camera (fast, low thinking)
+   */
+  async polishShot(input: ShotPolishInput): Promise<{ visual: string; camera: string }> {
+    return this.generateParsed(buildShotPolishPrompt(input), [], parsePolishedShot, "low");
   }
 
   /**

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildImagePromptsPrompt,
+  buildShotPolishPrompt,
   buildScriptParsePrompt,
   buildScriptRevisePrompt,
   parseImagePrompts,
+  parsePolishedShot,
   parseRewrittenPrompt,
   parseScriptResult,
 } from "./storyboard-prompts";
@@ -87,5 +89,21 @@ describe("shot ids", () => {
       ],
     });
     expect(result.shots.map((s) => s.id)).toEqual(["s01", "s06", "s02", "s07"]);
+  });
+});
+
+describe("polish one shot", () => {
+  it("sends the user's wording and the neighbouring shots", () => {
+    const shots = parseScriptResult({
+      shots: [{ visual: "布膜展開" }, { visual: "我改過的產品特寫，要有紅色光" }],
+    }).shots;
+    const text = buildShotPolishPrompt({ ...ctx, shots, shotId: "s02" });
+    expect(text).toContain("我改過的產品特寫，要有紅色光");
+    expect(text).toContain("布膜展開");
+    expect(text).toContain('"visual"');
+  });
+  it("reads the polished picture and camera", () => {
+    expect(parsePolishedShot({ visual: " 新畫面 ", camera: "慢推" })).toEqual({ visual: "新畫面", camera: "慢推" });
+    expect(() => parsePolishedShot({ camera: "x" })).toThrow();
   });
 });

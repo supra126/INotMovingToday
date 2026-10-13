@@ -8,6 +8,7 @@ import type {
   ScriptParseInput,
   ScriptResult,
   ScriptReviseInput,
+  ShotPolishInput,
 } from "@/lib/ai/storyboard-prompts";
 
 // Storyboard mode always runs on the user's own key
@@ -43,4 +44,11 @@ export async function rewriteImagePromptAction(
   apiKey: string
 ): Promise<ActionResult<string>> {
   return toActionResult(() => createClient(apiKey).rewriteImagePrompt(input));
+}
+
+export async function polishShotAction(
+  input: ShotPolishInput,
+  apiKey: string
+): Promise<ActionResult<{ visual: string; camera: string }>> {
+  return toActionResult(() => createClient(apiKey).polishShot(input));
 }

@@ -315,7 +315,9 @@
       "scriptSeconds": "(script {{seconds}}s, trim in editing)",
       "musicNo": "None",
       "musicYes": "Yes",
-      "musicStylePlaceholder": "Style (optional), e.g. upbeat electronic"
+      "musicStylePlaceholder": "Style (optional), e.g. upbeat electronic",
+      "polish": "Polish with AI",
+      "polishing": "Polishing…"
     },
     "images": {
       "generating": "Generating…",

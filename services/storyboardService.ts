@@ -6,6 +6,7 @@ import type {
   ScriptParseInput,
   ScriptResult,
   ScriptReviseInput,
+  ShotPolishInput,
 } from "@/lib/ai/storyboard-prompts";
 
 const isStaticBuild = process.env.NEXT_PUBLIC_BUILD_MODE === "static";
@@ -44,4 +45,12 @@ export async function rewriteImagePrompt(input: ImagePromptRewriteInput, apiKey:
   }
   const { rewriteImagePromptAction } = await import("@/app/actions/server/storyboard");
   return unwrapActionResult(await rewriteImagePromptAction(input, apiKey));
+}
+
+export async function polishShot(input: ShotPolishInput, apiKey: string): Promise<{ visual: string; camera: string }> {
+  if (isStaticBuild) {
+    return createGeminiClient(apiKey).polishShot(input);
+  }
+  const { polishShotAction } = await import("@/app/actions/server/storyboard");
+  return unwrapActionResult(await polishShotAction(input, apiKey));
 }

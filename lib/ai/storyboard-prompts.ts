@@ -152,6 +152,33 @@ export function buildImagePromptRewritePrompt(
   ].join("\n");
 }
 
+/**
+ * Polish one shot's picture and camera, keeping the user's wording and intent
+ */
+export function buildShotPolishPrompt(ctx: ScriptContext & { shots: ScriptShot[]; shotId: string }): string {
+  const lang = languageName(ctx.locale);
+  const shot = ctx.shots.find((s) => s.id === ctx.shotId);
+  return [
+    "You are a short-video director polishing one shot of a storyboard.",
+    "",
+    "Context:",
+    ...contextLines(ctx),
+    "",
+    "Whole storyboard, for consistency of lighting, setting and people:",
+    JSON.stringify(ctx.shots.map(({ id, visual, camera, onScreenText }) => ({ id, visual, camera, onScreenText })), null, 2),
+    "",
+    `Shot to polish (the user may have just rewritten it): ${JSON.stringify(shot ?? {})}`,
+    "",
+    "Rewrite only this shot's \"visual\" and \"camera\":",
+    "- Keep every idea and detail the user wrote; make it concrete and filmable (subject, action, setting, light).",
+    "- One or two sentences for visual, one short phrase for camera.",
+    "- Stay consistent with the neighbouring shots. No on-screen text in the picture.",
+    `- Write in ${lang}.`,
+    "",
+    'Return JSON only: {"visual": "...", "camera": "..."}',
+  ].join("\n");
+}
+
 function str(value: unknown): string {
   return typeof value === "string" ? value.trim() : typeof value === "number" ? String(value) : "";
 }
@@ -221,3 +248,12 @@ export type ScriptParseInput = ScriptContext & { sourceText: string };
 export type ScriptReviseInput = ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string };
 export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[] };
 export type ImagePromptRewriteInput = ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string };
+
+export function parsePolishedShot(raw: unknown): { visual: string; camera: string } {
+  const data = record(raw);
+  const visual = str(data.visual);
+  if (!visual) throw new Error("Failed to parse AI response: missing visual");
+  return { visual, camera: str(data.camera) };
+}
+
+export type ShotPolishInput = ScriptContext & { shots: ScriptShot[]; shotId: string };

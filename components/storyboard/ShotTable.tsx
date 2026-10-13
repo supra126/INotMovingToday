@@ -9,6 +9,9 @@ interface ShotTableProps {
   shots: Shot[];
   disabled: boolean;
   onEdit: (shotId: string, row: ScriptShot) => void;
+  onPolish: (shotId: string) => void;
+  /** Shot currently being polished by AI */
+  polishingId: string | null;
 }
 
 const fieldClass =
@@ -24,7 +27,7 @@ function rowsFor(value: string, charsPerLine: number, min: number): number {
  * One card per shot with what the picture shows. Length, music and sound are
  * chosen in the video step, once the frame exists.
  */
-export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
+export function ShotTable({ shots, disabled, onEdit, onPolish, polishingId }: ShotTableProps) {
   const { t } = useLocale();
 
   const edit = (shot: Shot, patch: Partial<ScriptShot>) => {
@@ -61,6 +64,14 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
               />
               {t("storyboard.script.columns.hasPackaging")}
             </label>
+            <button
+              type="button"
+              disabled={disabled || polishingId !== null}
+              onClick={() => onPolish(shot.id)}
+              className="ml-auto h-8 px-3 rounded-md border border-line text-xs text-foreground hover:bg-white/5 disabled:opacity-40"
+            >
+              {polishingId === shot.id ? t("storyboard.script.polishing") : t("storyboard.script.polish")}
+            </button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

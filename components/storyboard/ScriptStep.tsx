@@ -8,7 +8,7 @@ import { toDisplayError } from "@/lib/video/errors";
 import { CANDIDATES_PER_SHOT, generateCandidates, scriptContext } from "@/lib/storyboard/imageJobs";
 import { applyScriptEdit, mergeScriptShots } from "@/lib/storyboard/shots";
 import type { ScriptShot, StoryboardProject } from "@/lib/storyboard/types";
-import { parseScript, reviseScript, writeImagePrompts } from "@/services/storyboardService";
+import { parseScript, polishShot, reviseScript, writeImagePrompts } from "@/services/storyboardService";
 import { ImagePicker } from "./ImagePicker";
 import { ScriptChat } from "./ScriptChat";
 import { ShotTable } from "./ShotTable";
@@ -24,6 +24,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
   const { t, locale } = useLocale();
   const [busy, setBusy] = useState<"analyze" | "chat" | "confirm" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [polishingId, setPolishingId] = useState<string | null>(null);
 
   const ctx = scriptContext(project, locale);
   const hasInput = !!project.script.sourceImage || project.script.sourceText.trim().length > 0;
@@ -108,6 +109,28 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
       }
     });
 
+  const polish = async (shotId: string) => {
+    const apiKey = requireApiKey();
+    if (!apiKey) return;
+    setPolishingId(shotId);
+    setError(null);
+    try {
+      const result = await polishShot({ ...ctx, shots: toRows(project), shotId }, apiKey);
+      // Apply to the latest row, so edits made while waiting are kept
+      update((p) => {
+        const shots = p.shots.map((s, i) =>
+          s.id === shotId ? applyScriptEdit(s, { ...toRows({ ...p, shots: [s] })[0], ...result }, i === p.shots.length - 1) : s
+        );
+        return { ...p, shots, script: { ...p.script, confirmed: p.script.confirmed && shots.every((s) => s.imagePrompt) } };
+      });
+    } catch (err) {
+      const key = toDisplayError(err instanceof Error ? err.message : "");
+      setError(key === "errors.videoGenerationFailed" ? t("errors.analysisFailed") : key.startsWith("errors.") ? t(key) : key);
+    } finally {
+      setPolishingId(null);
+    }
+  };
+
   const editRow = (shotId: string, row: ScriptShot) =>
     update((p) => {
       const shots = p.shots.map((s, i) => (s.id === shotId ? applyScriptEdit(s, row, i === p.shots.length - 1) : s));
@@ -172,7 +195,13 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
       {hasShots && (
         <>
           <h3 className="text-sm font-medium text-foreground">{t("storyboard.script.table")}</h3>
-          <ShotTable shots={project.shots} disabled={!!busy} onEdit={editRow} />
+          <ShotTable
+            shots={project.shots}
+            disabled={!!busy}
+            onEdit={editRow}
+            onPolish={(shotId) => void polish(shotId)}
+            polishingId={polishingId}
+          />
           <ScriptChat chat={project.script.chat} disabled={!!busy} onSend={chat} />
           <button
             type="button"
