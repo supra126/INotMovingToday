@@ -317,7 +317,8 @@
       "musicYes": "Yes",
       "musicStylePlaceholder": "Style (optional), e.g. upbeat electronic",
       "polish": "Polish with AI",
-      "polishing": "Polishing…"
+      "polishing": "Polishing…",
+      "confirmUpload": "Confirm and upload my own frames (no generation)"
     },
     "images": {
       "generating": "Generating…",
@@ -341,7 +342,9 @@
       "viewSingle": "Shot",
       "viewOverview": "Overview",
       "shot": "This shot",
-      "regenerateTitle": "Regenerate"
+      "regenerateTitle": "Regenerate",
+      "upload": "Upload your own",
+      "uploadRatioWarning": "The uploaded image is not {{ratio}}; it will be center-cropped for video and edges may be cut"
     },
     "videos": {
       "settings": "Settings for all shots",

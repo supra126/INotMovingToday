@@ -91,7 +91,8 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
       applyResult(message, result);
     });
 
-  const confirm = () =>
+  // generateFrames=false: the user will upload their own frames in step 3
+  const confirm = (generateFrames: boolean) =>
     run("confirm", async (apiKey) => {
       const missing = project.shots.filter((s) => !s.imagePrompt);
       const prompts = missing.length
@@ -108,7 +109,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
         return confirmed;
       });
       const snapshot = confirmed as StoryboardProject | null;
-      if (snapshot) {
+      if (snapshot && generateFrames) {
         const ids = snapshot.shots.filter((s) => s.candidates.length === 0 || s.stale).map((s) => s.id);
         // Runs in the background; results land in this project even if the user moves on
         void generateCandidates({ projectId: project.id, update, apiKey }, snapshot, ids);
@@ -218,14 +219,21 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
         selected && (
           <Inspector
             footer={
-              <Button
-                variant="primary"
-                size="lg"
-                disabled={!!busy}
-                onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : confirm}
-              >
-                {confirmLabel}
-              </Button>
+              <>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  disabled={!!busy}
+                  onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : () => confirm(true)}
+                >
+                  {confirmLabel}
+                </Button>
+                {!(project.script.confirmed && needsImages.length === 0) && (
+                  <Button variant="ghost" disabled={!!busy} onClick={() => confirm(false)}>
+                    {t("storyboard.script.confirmUpload")}
+                  </Button>
+                )}
+              </>
             }
           >
             <PanelSection title={<ShotId id={selected.id} />}>

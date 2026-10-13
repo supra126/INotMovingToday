@@ -317,7 +317,8 @@
       "musicYes": "有",
       "musicStylePlaceholder": "風格（選填），例如：輕快電子",
       "polish": "AI 優化",
-      "polishing": "優化中…"
+      "polishing": "優化中…",
+      "confirmUpload": "確認分鏡表，自己上傳分鏡圖（不生圖）"
     },
     "images": {
       "generating": "生成中…",
@@ -341,7 +342,9 @@
       "viewSingle": "單鏡",
       "viewOverview": "總覽",
       "shot": "這一鏡",
-      "regenerateTitle": "重生"
+      "regenerateTitle": "重生",
+      "upload": "上傳自己的圖",
+      "uploadRatioWarning": "上傳的圖不是 {{ratio}}，生影片時會置中裁切，邊緣可能被切掉"
     },
     "videos": {
       "settings": "整支影片的設定",

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PanelSection } from "@/components/ui/PanelSection";
 import { Segmented } from "@/components/ui/Segmented";
@@ -8,7 +9,9 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, imageCost } from "@/lib/pricing";
 import { CANDIDATES_PER_SHOT, finalizeImages, generateCandidates, regenerateShot } from "@/lib/storyboard/imageJobs";
 import {
+  addUploadedFrames,
   canEnterStep,
+  matchesRatio,
   removeCandidate,
   resolveSelectedShot,
   selectCandidate,
@@ -29,6 +32,9 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
   const { t, locale } = useLocale();
   const [finalizing, setFinalizing] = useState(false);
   const [view, setView] = useState<"single" | "overview">("single");
+  // Shot whose last upload was not at the project ratio
+  const [ratioWarning, setRatioWarning] = useState<string | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const missing = project.shots.filter((s) => (s.candidates.length === 0 || s.stale) && s.imageStatus !== "generating");
@@ -47,6 +53,28 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
     ...p,
     shots: p.shots.map((s) => (s.id === shotId ? selectCandidate(s, index, p.finalSize) : s)),
   }));
+
+  // The user's own frames: no AI, no cost; the last one becomes the pick
+  const uploadFrames = async (shotId: string, files: FileList | null) => {
+    const images = Array.from(files ?? [])
+      .filter((file) => file.type.startsWith("image/"))
+      .map((file) => ({ blob: file as Blob, mimeType: file.type }));
+    if (images.length === 0) return;
+    const sizes = await Promise.all(
+      images.map(async (image) => {
+        try {
+          const bitmap = await createImageBitmap(image.blob);
+          const size = [bitmap.width, bitmap.height] as const;
+          bitmap.close();
+          return size;
+        } catch {
+          return null;
+        }
+      })
+    );
+    setRatioWarning(sizes.some((size) => size && !matchesRatio(size[0], size[1], project.ratio)) ? shotId : null);
+    update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? addUploadedFrames(s, images, p.finalSize) : s)) }));
+  };
 
   const finalize = () =>
     withKey(async (apiKey) => {
@@ -146,6 +174,24 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
                 {selected.stale && <p className="text-xs text-warning">{t("storyboard.images.stale")}</p>}
                 {selected.hasPackaging && <p className="text-xs text-fg-muted">{t("storyboard.images.packagingHint")}</p>}
                 {selected.imageError && <p role="alert" className="text-xs text-danger">{t(selected.imageError)}</p>}
+                <Button disabled={selected.imageStatus === "generating"} onClick={() => uploadRef.current?.click()}>
+                  <Upload size={14} aria-hidden="true" />
+                  {t("storyboard.images.upload")}
+                </Button>
+                <input
+                  ref={uploadRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    void uploadFrames(selected.id, e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+                {ratioWarning === selected.id && (
+                  <p className="text-xs text-warning">{t("storyboard.images.uploadRatioWarning", { ratio: project.ratio })}</p>
+                )}
                 <ShotImageControls
                   key={`${selected.id}-${selected.imagePrompt}`}
                   shot={selected}

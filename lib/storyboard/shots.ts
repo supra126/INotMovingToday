@@ -1,4 +1,4 @@
-import type { AudioMode, ImageSize, VideoDuration, VideoResolution } from "@/types";
+import type { AudioMode, ImageSize, VideoDuration, VideoRatio, VideoResolution } from "@/types";
 import type { EndFrame, ScriptShot, Shot, Step, StoredImage, StoryboardProject } from "./types";
 
 const DURATIONS: VideoDuration[] = [4, 6, 8, 10];
@@ -204,4 +204,17 @@ export function railThumbnail(shot: Shot): StoredImage | undefined {
 /** Frames are generated at the project ratio, so it cannot change once any exist */
 export function isRatioLocked(project: StoryboardProject): boolean {
   return project.script.confirmed || project.shots.some((shot) => shot.candidates.length > 0 || shot.finalImage);
+}
+
+/** The user's own frames join the candidates; the last one becomes the pick */
+export function addUploadedFrames(shot: Shot, images: StoredImage[], finalSize: ImageSize): Shot {
+  if (images.length === 0) return shot;
+  const withUploads = { ...shot, candidates: [...shot.candidates, ...images] };
+  return selectCandidate(withUploads, withUploads.candidates.length - 1, finalSize);
+}
+
+/** Within 3% of the project ratio; anything else is center-cropped when the video is made */
+export function matchesRatio(width: number, height: number, ratio: VideoRatio): boolean {
+  const [w, h] = ratio.split(":").map(Number);
+  return Math.abs(width / height / (w / h) - 1) <= 0.03;
 }

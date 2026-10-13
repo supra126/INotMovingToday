@@ -21,6 +21,8 @@ import {
   resolveSelectedShot,
   railThumbnail,
   isRatioLocked,
+  addUploadedFrames,
+  matchesRatio,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -289,5 +291,25 @@ describe("isRatioLocked", () => {
     p.script.confirmed = false;
     p.shots = [{ ...toShot(row(), true), candidates: [img("a")] }];
     expect(isRatioLocked(p)).toBe(true);
+  });
+});
+
+describe("uploaded frames", () => {
+  it("adds the user's frames as candidates and picks the last one", () => {
+    const a = img("a");
+    const mine = [img("m1"), img("m2")];
+    const shot = addUploadedFrames({ ...toShot(row(), true), candidates: [a], stale: true }, mine, "1K");
+    expect(shot.candidates).toEqual([a, ...mine]);
+    expect(shot.selected).toBe(2);
+    expect(shot.finalImage).toBe(mine[1]);
+    expect(shot.stale).toBe(false);
+  });
+
+  it("checks whether an image matches the project ratio", () => {
+    expect(matchesRatio(1080, 1920, "9:16")).toBe(true);
+    expect(matchesRatio(1000, 1790, "9:16")).toBe(true);
+    expect(matchesRatio(1080, 1080, "9:16")).toBe(false);
+    expect(matchesRatio(1920, 1080, "16:9")).toBe(true);
+    expect(matchesRatio(1080, 1920, "16:9")).toBe(false);
   });
 });
