@@ -130,9 +130,17 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
             type="button"
             disabled={busy || !shot.fields}
             onClick={props.onGenerate}
-            className="h-9 px-3 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 disabled:opacity-40"
+            className={`h-9 px-3 rounded-lg text-sm disabled:opacity-40 ${
+              video
+                ? "border border-line text-foreground hover:bg-white/5"
+                : "bg-accent text-white hover:bg-accent-hover"
+            }`}
           >
-            {video?.status === "failed" ? t("storyboard.videos.retry") : t("storyboard.videos.regenerate")}
+            {!video
+              ? t("storyboard.videos.generateOne")
+              : video.status === "failed"
+                ? t("storyboard.videos.retry")
+                : t("storyboard.videos.regenerate")}
           </button>
           {hasVideo && (
             <button type="button" onClick={download} className="h-9 px-3 rounded-lg border border-line text-sm text-foreground hover:bg-white/5">

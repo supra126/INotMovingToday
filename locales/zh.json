@@ -366,7 +366,8 @@
       "draftFields": "AI 填寫欄位",
       "draftFailed": "欄位填寫失敗，請按「AI 填寫欄位」重試",
       "needsFields": "尚未填寫欄位",
-      "outdated": "分鏡圖已更換，建議重生"
+      "outdated": "分鏡圖已更換，建議重生",
+      "generateOne": "生成這鏡"
     }
   }
 }
