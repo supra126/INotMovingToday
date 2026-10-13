@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, imageCost } from "@/lib/pricing";
 import { toFile } from "@/lib/storyboard/blob";
+import { toDisplayError } from "@/lib/video/errors";
 import { CANDIDATES_PER_SHOT, generateCandidates, scriptContext } from "@/lib/storyboard/imageJobs";
 import { applyScriptEdit, mergeScriptShots } from "@/lib/storyboard/shots";
 import type { ScriptShot, StoryboardProject } from "@/lib/storyboard/types";
@@ -38,8 +39,9 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
     try {
       await work(apiKey);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "";
-      setError(message.startsWith("errors.") ? t(message) : message || t("errors.analysisFailed"));
+      // Same mapping as the single-shot mode, so raw API errors read as plain messages
+      const key = toDisplayError(err instanceof Error ? err.message : "");
+      setError(key === "errors.videoGenerationFailed" ? t("errors.analysisFailed") : key.startsWith("errors.") ? t(key) : key);
     } finally {
       setBusy(null);
     }

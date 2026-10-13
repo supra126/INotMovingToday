@@ -5,6 +5,7 @@ import { generateImage } from "@/services/imageService";
 import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
+import { toDisplayError } from "@/lib/video/errors";
 import { withFinalImage } from "./shots";
 import type { UpdateOptions } from "./store";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
@@ -26,8 +27,8 @@ export function updateShot(ctx: JobContext, shotId: string, fn: (shot: Shot) => 
 }
 
 function errorKey(err: unknown): string {
-  const message = err instanceof Error ? err.message : "";
-  return message.startsWith("errors.") ? message : "errors.imageGenerationFailed";
+  const key = toDisplayError(err instanceof Error ? err.message : "");
+  return key.startsWith("errors.") && key !== "errors.videoGenerationFailed" ? key : "errors.imageGenerationFailed";
 }
 
 /**

@@ -16,3 +16,10 @@ describe("toDisplayError", () => {
     expect(toDisplayError("")).toBe("errors.videoGenerationFailed");
   });
 });
+
+describe("toDisplayError with raw Gemini JSON", () => {
+  it("maps an invalid key response", () => {
+    const raw = '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}';
+    expect(toDisplayError(raw)).toBe("errors.apiKeyInvalid");
+  });
+});
