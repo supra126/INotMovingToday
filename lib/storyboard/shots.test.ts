@@ -15,6 +15,8 @@ import {
   videoFileName,
   withFinalImage,
   shotAudioMode,
+  removeCandidate,
+  shotResolution,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -197,5 +199,34 @@ describe("shot music", () => {
     expect(shotAudioMode(row({ music: "none" }))).toBe("sfx");
     expect(shotAudioMode(row({ music: "有" }))).toBe("sfx_music");
     expect(shotAudioMode(row({ music: "輕快電子" }))).toBe("sfx_music");
+  });
+});
+
+describe("removeCandidate", () => {
+  const a = img("a");
+  const b = img("b");
+  const c = img("c");
+  const base = { ...toShot(row(), true), candidates: [a, b, c] };
+
+  it("removes an unpicked image and keeps the pick pointing at the same image", () => {
+    const shot = removeCandidate({ ...base, selected: 2, finalImage: c }, 0);
+    expect(shot.candidates).toEqual([b, c]);
+    expect(shot.selected).toBe(1);
+    expect(shot.finalImage).toBe(c);
+  });
+
+  it("clears the pick and its final image when the picked image is removed", () => {
+    const shot = removeCandidate({ ...base, selected: 1, finalImage: b }, 1);
+    expect(shot.candidates).toEqual([a, c]);
+    expect(shot.selected).toBeUndefined();
+    expect(shot.finalImage).toBeUndefined();
+  });
+});
+
+describe("shotResolution", () => {
+  it("uses the shot's own resolution, else the project default", () => {
+    const p = newProject("id", 0);
+    expect(shotResolution(toShot(row(), true), p)).toBe("720p");
+    expect(shotResolution({ ...toShot(row(), true), resolution: "1080p" }, p)).toBe("1080p");
   });
 });

@@ -1,4 +1,4 @@
-import type { AudioMode, ImageSize, VideoDuration } from "@/types";
+import type { AudioMode, ImageSize, VideoDuration, VideoResolution } from "@/types";
 import type { EndFrame, ScriptShot, Shot, Step, StoredImage, StoryboardProject } from "./types";
 
 const DURATIONS: VideoDuration[] = [4, 6, 8, 10];
@@ -160,4 +160,16 @@ export function hasMusic(music: string): boolean {
 /** Music is decided per shot: only shots with music get an Omni soundtrack */
 export function shotAudioMode(shot: ScriptShot): AudioMode {
   return hasMusic(shot.music) ? "sfx_music" : "sfx";
+}
+
+/** Delete one candidate; the pick follows its image, or is cleared if that image is deleted */
+export function removeCandidate(shot: Shot, index: number): Shot {
+  const candidates = shot.candidates.filter((_, i) => i !== index);
+  if (shot.selected === undefined) return { ...shot, candidates };
+  if (shot.selected === index) return withFinalImage({ ...shot, candidates, selected: undefined }, undefined);
+  return { ...shot, candidates, selected: shot.selected > index ? shot.selected - 1 : shot.selected };
+}
+
+export function shotResolution(shot: Shot, project: StoryboardProject): VideoResolution {
+  return shot.resolution ?? project.videoSettings.resolution;
 }

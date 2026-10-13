@@ -324,7 +324,7 @@
       "generateMissing": "生成缺少的分鏡圖",
       "stale": "分鏡已修改，建議重生",
       "packagingHint": "請放大檢查包裝上的字",
-      "regenerate": "重生 2 張",
+      "regenerate": "重生",
       "notePlaceholder": "想怎麼改？例如：人物換成短髮",
       "editPrompt": "編輯英文提示詞",
       "selected": "已選",
@@ -334,7 +334,10 @@
       "finalizing": "重出中…",
       "needSelection": "每一鏡都要選好圖",
       "final": "定稿",
-      "finalRerendered": "定稿（重出，請對照原圖）"
+      "finalRerendered": "定稿（重出，請對照原圖）",
+      "delete": "刪除",
+      "count": "張數",
+      "countOption": "{{count}} 張"
     },
     "videos": {
       "settings": "整支影片的設定",

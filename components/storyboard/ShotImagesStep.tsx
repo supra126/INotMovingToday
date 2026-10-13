@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, imageCost } from "@/lib/pricing";
 import { CANDIDATES_PER_SHOT, finalizeImages, generateCandidates, regenerateShot } from "@/lib/storyboard/imageJobs";
-import { canEnterStep, selectCandidate, setFinalSize } from "@/lib/storyboard/shots";
+import { canEnterStep, removeCandidate, selectCandidate, setFinalSize } from "@/lib/storyboard/shots";
 import type { ImageSize } from "@/types";
 import { ShotImageCard } from "./ShotImageCard";
 import type { StepProps } from "./types";
@@ -65,6 +65,9 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo }: StepPro
                 ...p,
                 shots: p.shots.map((s) => (s.id === shot.id ? selectCandidate(s, index, p.finalSize) : s)),
               }))
+            }
+            onDelete={(index) =>
+              update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shot.id ? removeCandidate(s, index) : s)) }))
             }
             onRegenerate={(change) =>
               withKey((apiKey) => void regenerateShot(jobCtx(apiKey), project, shot.id, change, locale))

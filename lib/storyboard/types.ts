@@ -63,6 +63,8 @@ export interface Shot extends ScriptShot {
   imageStatus: "idle" | "generating" | "failed";
   imageError?: string;
   duration: VideoDuration;
+  /** Overrides the project default */
+  resolution?: VideoResolution;
   endFrame: EndFrame;
   draft?: PromptDraft;
   fields?: PromptFields;

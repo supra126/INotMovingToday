@@ -34,14 +34,19 @@ function errorKey(err: unknown): string {
 /**
  * Make 2 new 1K candidates for each shot; all images run through one queue
  */
-export async function generateCandidates(ctx: JobContext, project: StoryboardProject, shotIds: string[]) {
+export async function generateCandidates(
+  ctx: JobContext,
+  project: StoryboardProject,
+  shotIds: string[],
+  count: number = CANDIDATES_PER_SHOT
+) {
   const shots = project.shots.filter((shot) => shotIds.includes(shot.id) && shot.imagePrompt);
   for (const shot of shots) {
     updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
   }
 
   const tasks = shots.flatMap((shot) =>
-    Array.from({ length: CANDIDATES_PER_SHOT }, (_, index) => () =>
+    Array.from({ length: count }, (_, index) => () =>
       generateImage({
         apiKey: ctx.apiKey,
         instruction: buildKeyframeInstruction({
@@ -49,7 +54,7 @@ export async function generateCandidates(ctx: JobContext, project: StoryboardPro
           ratio: project.ratio,
           refCount: project.productImages.length,
           index,
-          count: CANDIDATES_PER_SHOT,
+          count,
           packagingText: shot.hasPackaging ? project.packagingText : undefined,
         }),
         images: project.productImages,
@@ -61,7 +66,7 @@ export async function generateCandidates(ctx: JobContext, project: StoryboardPro
   const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY });
 
   shots.forEach((shot, shotIndex) => {
-    const mine = results.slice(shotIndex * CANDIDATES_PER_SHOT, (shotIndex + 1) * CANDIDATES_PER_SHOT);
+    const mine = results.slice(shotIndex * count, (shotIndex + 1) * count);
     const images = mine.flatMap((r) => (r.ok ? [r.value as StoredImage] : []));
     const failure = mine.find((r) => !r.ok);
     updateShot(ctx, shot.id, (s) => {
@@ -88,7 +93,7 @@ export async function regenerateShot(
   ctx: JobContext,
   project: StoryboardProject,
   shotId: string,
-  change: { prompt?: string; note?: string },
+  change: { prompt?: string; note?: string; count?: number },
   locale: Locale
 ) {
   const shot = project.shots.find((s) => s.id === shotId);
@@ -108,7 +113,7 @@ export async function regenerateShot(
   }
   updateShot(ctx, shotId, (s) => ({ ...s, imagePrompt: prompt }));
   const next = { ...project, shots: project.shots.map((s) => (s.id === shotId ? { ...s, imagePrompt: prompt } : s)) };
-  await generateCandidates(ctx, next, [shotId]);
+  await generateCandidates(ctx, next, [shotId], change.count);
 }
 
 /**

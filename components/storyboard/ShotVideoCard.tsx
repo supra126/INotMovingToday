@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DurationSelector } from "@/components/upload/DurationSelector";
+import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { PromptEditor } from "@/components/workspace/PromptEditor";
 import { useLocale } from "@/contexts/LocaleContext";
 import { videoFileName } from "@/lib/storyboard/shots";
 import type { EndFrame, Shot } from "@/lib/storyboard/types";
-import type { PromptFieldKey, VideoDuration } from "@/types";
+import type { PromptFieldKey, VideoDuration, VideoResolution } from "@/types";
 import { BlobImage } from "./BlobImage";
 import { ImagePicker } from "./ImagePicker";
 import { MusicSelect } from "./MusicSelect";
@@ -20,6 +21,8 @@ interface ShotVideoCardProps {
   onFieldChange: (key: PromptFieldKey, value: string) => void;
   onDurationChange: (duration: VideoDuration) => void;
   onMusicChange: (music: string) => void;
+  resolution: VideoResolution;
+  onResolutionChange: (resolution: VideoResolution) => void;
   onEndFrameChange: (endFrame: EndFrame) => void;
   onGenerate: () => void;
   onExtend: (prompt: string, seconds: number) => void;
@@ -75,6 +78,7 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
           <p className="text-xs text-muted">{t("storyboard.script.scriptSeconds", { seconds: shot.seconds })}</p>
         )}
         <MusicSelect value={shot.music} disabled={busy} onChange={props.onMusicChange} />
+        <ResolutionSelector value={props.resolution} onChange={props.onResolutionChange} disabled={busy} />
         <label className="flex flex-col gap-1 text-xs text-muted">
           {t("storyboard.videos.endFrame")}
           <select

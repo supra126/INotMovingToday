@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { useLocale } from "@/contexts/LocaleContext";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
+import { shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
 import { BatchCostConfirm } from "./BatchCostConfirm";
 import { ShotVideoCard } from "./ShotVideoCard";
@@ -47,11 +47,16 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
     });
   };
 
+  const shotResolutionOf = (shotId: string) => {
+    const shot = project.shots.find((s) => s.id === shotId);
+    return shot ? shotResolution(shot, project) : project.videoSettings.resolution;
+  };
+
   const confirmExtend = (shotId: string, prompt: string, seconds: number) => {
     const apiKey = requireApiKey();
     if (!apiKey) return;
     setPending({
-      rows: [{ id: shotId, seconds, resolution: project.videoSettings.resolution, hasEnd: false }],
+      rows: [{ id: shotId, seconds, resolution: shotResolutionOf(shotId), hasEnd: false }],
       run: () => void extendShotVideo(jobCtx(apiKey), project, shotId, prompt, seconds),
     });
   };
@@ -59,15 +64,8 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
   const patchShot = (shotId: string, fn: (shot: Shot) => Shot) =>
     update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? fn(s) : s)) }));
 
-  const setSettings = (patch: Partial<typeof project.videoSettings>) =>
-    update((p) => ({ ...p, videoSettings: { ...p.videoSettings, ...patch } }));
-
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 rounded-lg border border-line p-4 md:grid-cols-2">
-        <span className="text-sm font-medium text-foreground md:col-span-2">{t("storyboard.videos.settings")}</span>
-        <ResolutionSelector value={project.videoSettings.resolution} onChange={(resolution) => setSettings({ resolution })} />
-      </div>
 
       {needDraft.length > 0 && (
         <button
@@ -88,7 +86,7 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
         {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
         {unfinished.length > 0 &&
           `（${t("storyboard.cost", {
-            price: formatUsd(sumCosts(unfinished.map((s) => videoCost(s.duration, project.videoSettings.resolution))).amount),
+            price: formatUsd(sumCosts(unfinished.map((s) => videoCost(s.duration, shotResolution(s, project)))).amount),
           })}）`}
       </button>
 
@@ -103,6 +101,8 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
           }
           onDurationChange={(duration) => patchShot(shot.id, (s) => ({ ...s, duration }))}
           onMusicChange={(music) => patchShot(shot.id, (s) => ({ ...s, music }))}
+          resolution={shotResolution(shot, project)}
+          onResolutionChange={(resolution) => patchShot(shot.id, (s) => ({ ...s, resolution }))}
           onEndFrameChange={(endFrame) => patchShot(shot.id, (s) => ({ ...s, endFrame }))}
           onGenerate={() => confirmGenerate([shot.id])}
           onExtend={(prompt, seconds) => confirmExtend(shot.id, prompt, seconds)}

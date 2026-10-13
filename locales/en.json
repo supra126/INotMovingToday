@@ -324,7 +324,7 @@
       "generateMissing": "Generate missing frames",
       "stale": "Storyboard changed, regenerate recommended",
       "packagingHint": "Zoom in and check the packaging text",
-      "regenerate": "Regenerate 2",
+      "regenerate": "Regenerate",
       "notePlaceholder": "What to change? e.g. short hair",
       "editPrompt": "Edit English prompt",
       "selected": "Selected",
@@ -334,7 +334,10 @@
       "finalizing": "Re-rendering…",
       "needSelection": "Pick a frame for every shot",
       "final": "Final",
-      "finalRerendered": "Final (re-rendered, compare with the pick)"
+      "finalRerendered": "Final (re-rendered, compare with the pick)",
+      "delete": "Delete",
+      "count": "Count",
+      "countOption": "{{count}}"
     },
     "videos": {
       "settings": "Settings for all shots",

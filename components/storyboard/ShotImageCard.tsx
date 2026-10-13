@@ -4,18 +4,21 @@ import { useState } from "react";
 import { Modal } from "@/components/common/Modal";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { Shot } from "@/lib/storyboard/types";
+import { formatUsd, imageCost } from "@/lib/pricing";
 import { BlobImage } from "./BlobImage";
 
 interface ShotImageCardProps {
   shot: Shot;
   ratioClass: string;
   onSelect: (index: number) => void;
-  onRegenerate: (change: { prompt?: string; note?: string }) => void;
+  onRegenerate: (change: { prompt?: string; note?: string; count: number }) => void;
+  onDelete: (index: number) => void;
 }
 
-export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: ShotImageCardProps) {
+export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate, onDelete }: ShotImageCardProps) {
   const { t } = useLocale();
   const [note, setNote] = useState("");
+  const [count, setCount] = useState(2);
   const [prompt, setPrompt] = useState(shot.imagePrompt);
   // Candidate index, or "final" for a re-rendered 2K / 4K frame
   const [zoom, setZoom] = useState<number | "final" | null>(null);
@@ -62,6 +65,14 @@ export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: Shot
             >
               {shot.selected === index ? t("storyboard.images.selected") : `${index + 1}`}
             </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onDelete(index)}
+              className="rounded-md px-2 py-0.5 text-xs text-muted hover:text-red-300 disabled:opacity-40"
+            >
+              {t("storyboard.images.delete")}
+            </button>
           </div>
         ))}
         {rerendered && (
@@ -98,16 +109,29 @@ export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: Shot
           onChange={(e) => setNote(e.target.value)}
           className="flex-1 bg-surface border border-line rounded-lg px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none disabled:opacity-50"
         />
+        <select
+          value={count}
+          disabled={busy}
+          onChange={(e) => setCount(Number(e.target.value))}
+          aria-label={t("storyboard.images.count")}
+          className="h-9 shrink-0 bg-surface border border-line rounded-lg px-2 text-sm text-foreground"
+        >
+          {[1, 2].map((n) => (
+            <option key={n} value={n}>
+              {t("storyboard.images.countOption", { count: n })}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           disabled={busy}
           onClick={() => {
-            onRegenerate({ note, prompt: prompt !== shot.imagePrompt ? prompt : undefined });
+            onRegenerate({ note, prompt: prompt !== shot.imagePrompt ? prompt : undefined, count });
             setNote("");
           }}
           className="h-9 shrink-0 px-3 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 disabled:opacity-40"
         >
-          {t("storyboard.images.regenerate")}
+          {t("storyboard.images.regenerate")}（{formatUsd(imageCost("1K", count).amount)}）
         </button>
       </div>
 

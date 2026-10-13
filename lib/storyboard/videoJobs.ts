@@ -7,7 +7,7 @@ import { toFile } from "./blob";
 import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
-import { endFrameImage, shotAudioMode, shotDescription } from "./shots";
+import { endFrameImage, shotAudioMode, shotDescription, shotResolution } from "./shots";
 import type { StoryboardProject } from "./types";
 
 const fetchBlob = async (url: string) => {
@@ -41,7 +41,7 @@ export function costRows(project: StoryboardProject, shotIds: string[]): CostRow
       ? [{
           id: shot.id,
           seconds: shot.duration,
-          resolution: project.videoSettings.resolution,
+          resolution: shotResolution(shot, project),
           hasEnd: shot.endFrame.kind === "next" ? index < project.shots.length - 1 : shot.endFrame.kind === "upload",
         }]
       : []
@@ -138,7 +138,7 @@ export async function generateShotVideos(
         {
           prompt,
           ratio: project.ratio,
-          resolution: project.videoSettings.resolution,
+          resolution: shotResolution(shot, project),
           duration: shot.duration,
           audioMode: shotAudioMode(shot),
           startImage: shot.finalImage!.blob,
@@ -196,7 +196,7 @@ export async function extendShotVideo(
         prompt,
         sourceVideoUri: previous.sourceVideoUri,
         ratio: project.ratio,
-        resolution: project.videoSettings.resolution,
+        resolution: shotResolution(shot, project),
         audioMode: shotAudioMode(shot),
         extensionDuration: seconds,
       },
