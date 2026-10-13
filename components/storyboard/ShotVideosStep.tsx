@@ -102,6 +102,7 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
             patchShot(shot.id, (s) => (s.fields ? { ...s, fields: { ...s.fields, [key]: value } } : s))
           }
           onDurationChange={(duration) => patchShot(shot.id, (s) => ({ ...s, duration }))}
+          onMusicChange={(music) => patchShot(shot.id, (s) => ({ ...s, music }))}
           onEndFrameChange={(endFrame) => patchShot(shot.id, (s) => ({ ...s, endFrame }))}
           onGenerate={() => confirmGenerate([shot.id])}
           onExtend={(prompt, seconds) => confirmExtend(shot.id, prompt, seconds)}

@@ -1,12 +1,9 @@
 "use client";
 
 import { useLocale } from "@/contexts/LocaleContext";
-import { hasMusic, snapDuration } from "@/lib/storyboard/shots";
 import type { ScriptShot, Shot } from "@/lib/storyboard/types";
 
-type TextKey = "visual" | "camera" | "sound" | "onScreenText" | "transition";
-
-const DURATIONS = [4, 6, 8, 10] as const;
+type TextKey = "visual" | "camera" | "onScreenText";
 
 interface ShotTableProps {
   shots: Shot[];
@@ -23,7 +20,10 @@ function rowsFor(value: string, charsPerLine: number, min: number): number {
   return Math.max(min, lines);
 }
 
-/** One card per shot: the picture gets the room, short columns sit in a compact row */
+/**
+ * One card per shot with what the picture shows. Length, music and sound are
+ * chosen in the video step, once the frame exists.
+ */
 export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
   const { t } = useLocale();
 
@@ -49,39 +49,9 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
     <ol className="flex flex-col gap-3">
       {shots.map((shot) => (
         <li key={shot.id} className="flex flex-col gap-3 rounded-lg border border-line p-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <div className="flex items-center gap-4 text-sm">
             <span className="font-medium text-foreground">{shot.id}</span>
-            <div className="flex items-center gap-1.5 text-muted">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => edit(shot, { seconds: d })}
-                  className={`h-8 min-w-10 rounded-md border px-2 text-sm transition-colors disabled:opacity-50 ${
-                    snapDuration(shot.seconds) === d
-                      ? "border-accent bg-surface-raised text-foreground"
-                      : "border-line text-muted hover:text-foreground"
-                  }`}
-                >
-                  {d}
-                  {t("upload.duration.unit")}
-                </button>
-              ))}
-              {/* The script asked for a length Omni cannot make: it is generated longer and trimmed in editing */}
-              {snapDuration(shot.seconds) !== shot.seconds && (
-                <span className="text-xs">{t("storyboard.script.scriptSeconds", { seconds: shot.seconds })}</span>
-              )}
-            </div>
-            <label className="flex items-center gap-1.5 text-muted">
-              {t("storyboard.script.columns.transition")}
-              <input
-                value={shot.transition}
-                disabled={disabled}
-                onChange={(e) => edit(shot, { transition: e.target.value })}
-                className="w-28 bg-surface border border-line rounded-md px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-              />
-            </label>
+            {/* Packaging changes how the frame is generated (its text must stay exact) */}
             <label className="flex items-center gap-1.5 text-muted">
               <input
                 type="checkbox"
@@ -94,36 +64,11 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
           </div>
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            {text(shot, "visual", 40, 3)}
-            {text(shot, "onScreenText", 18, 3)}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {text(shot, "camera", 18)}
-            {text(shot, "sound", 18)}
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted">{t("storyboard.script.columns.music")}</span>
-              <div className="flex gap-2">
-                <select
-                  value={hasMusic(shot.music) ? "yes" : "no"}
-                  disabled={disabled}
-                  onChange={(e) => edit(shot, { music: e.target.value === "yes" ? t("storyboard.script.musicYes") : "無" })}
-                  className="bg-surface border border-line rounded-md px-2 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
-                >
-                  <option value="no">{t("storyboard.script.musicNo")}</option>
-                  <option value="yes">{t("storyboard.script.musicYes")}</option>
-                </select>
-                {hasMusic(shot.music) && (
-                  <input
-                    value={shot.music === t("storyboard.script.musicYes") ? "" : shot.music}
-                    disabled={disabled}
-                    placeholder={t("storyboard.script.musicStylePlaceholder")}
-                    onChange={(e) => edit(shot, { music: e.target.value.trim() ? e.target.value : t("storyboard.script.musicYes") })}
-                    className="min-w-0 flex-1 bg-surface border border-line rounded-md px-2.5 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
-                  />
-                )}
-              </div>
+            <div className="flex flex-col gap-3">
+              {text(shot, "visual", 40, 2)}
+              {text(shot, "camera", 40)}
             </div>
+            {text(shot, "onScreenText", 18, 3)}
           </div>
         </li>
       ))}

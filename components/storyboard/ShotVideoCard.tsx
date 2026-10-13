@@ -9,6 +9,7 @@ import type { EndFrame, Shot } from "@/lib/storyboard/types";
 import type { PromptFieldKey, VideoDuration } from "@/types";
 import { BlobImage } from "./BlobImage";
 import { ImagePicker } from "./ImagePicker";
+import { MusicSelect } from "./MusicSelect";
 
 const EXTEND_STEPS = [4, 6, 8];
 
@@ -18,6 +19,7 @@ interface ShotVideoCardProps {
   ratioClass: string;
   onFieldChange: (key: PromptFieldKey, value: string) => void;
   onDurationChange: (duration: VideoDuration) => void;
+  onMusicChange: (music: string) => void;
   onEndFrameChange: (endFrame: EndFrame) => void;
   onGenerate: () => void;
   onExtend: (prompt: string, seconds: number) => void;
@@ -69,6 +71,10 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
         <h3 className="text-sm font-medium text-foreground">{shot.id} · {shot.visual}</h3>
         {shot.finalImage && <BlobImage blob={shot.finalImage.blob} alt={shot.id} className={`${ratioClass} w-full rounded-md object-cover`} />}
         <DurationSelector value={shot.duration} onChange={props.onDurationChange} disabled={busy} />
+        {shot.seconds < shot.duration && (
+          <p className="text-xs text-muted">{t("storyboard.script.scriptSeconds", { seconds: shot.seconds })}</p>
+        )}
+        <MusicSelect value={shot.music} disabled={busy} onChange={props.onMusicChange} />
         <label className="flex flex-col gap-1 text-xs text-muted">
           {t("storyboard.videos.endFrame")}
           <select
