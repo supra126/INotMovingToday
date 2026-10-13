@@ -200,3 +200,8 @@ export function resolveSelectedShot(shots: Shot[], id: string | null): Shot | un
 export function railThumbnail(shot: Shot): StoredImage | undefined {
   return shot.finalImage ?? (shot.selected !== undefined ? shot.candidates[shot.selected] : shot.candidates[0]);
 }
+
+/** Frames are generated at the project ratio, so it cannot change once any exist */
+export function isRatioLocked(project: StoryboardProject): boolean {
+  return project.script.confirmed || project.shots.some((shot) => shot.candidates.length > 0 || shot.finalImage);
+}

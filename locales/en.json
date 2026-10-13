@@ -282,7 +282,7 @@
       "packagingText": "Packaging text that must stay exact",
       "packagingTextPlaceholder": "e.g. PDRN Repair Black Mask",
       "ratio": "Aspect ratio",
-      "ratioLocked": "The ratio is fixed once the storyboard is confirmed",
+      "ratioLocked": "The ratio is fixed once the storyboard is confirmed or any frame exists (frames are made at this ratio)",
       "tone": "Tone",
       "tonePlaceholder": "e.g. premium, clean, high-tech"
     },

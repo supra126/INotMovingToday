@@ -20,6 +20,7 @@ import {
   shotStatus,
   resolveSelectedShot,
   railThumbnail,
+  isRatioLocked,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -273,5 +274,20 @@ describe("workspace helpers", () => {
     const final = img("final");
     expect(railThumbnail({ ...shot, selected: 1, finalImage: final })).toBe(final);
     expect(railThumbnail(toShot(row(), true))).toBeUndefined();
+  });
+});
+
+describe("isRatioLocked", () => {
+  it("locks the ratio once the storyboard is confirmed or any frame exists", () => {
+    const p = newProject("id", 0);
+    expect(isRatioLocked(p)).toBe(false);
+    p.shots = [toShot(row(), true)];
+    expect(isRatioLocked(p)).toBe(false);
+    p.script.confirmed = true;
+    expect(isRatioLocked(p)).toBe(true);
+    // Editing a shot after frames exist un-confirms the storyboard, but the frames keep their ratio
+    p.script.confirmed = false;
+    p.shots = [{ ...toShot(row(), true), candidates: [img("a")] }];
+    expect(isRatioLocked(p)).toBe(true);
   });
 });

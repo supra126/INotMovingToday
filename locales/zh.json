@@ -282,7 +282,7 @@
       "packagingText": "包裝上不能錯的字",
       "packagingTextPlaceholder": "例如：PDRN 極潤修護黑面膜",
       "ratio": "比例",
-      "ratioLocked": "分鏡表確認後比例就固定了",
+      "ratioLocked": "已經有分鏡圖或分鏡表已確認，比例就固定了（分鏡圖是照這個比例生成的）",
       "tone": "調性",
       "tonePlaceholder": "例如：高級、乾淨、科技感"
     },

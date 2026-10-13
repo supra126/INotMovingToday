@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { RatioSelector } from "@/components/upload/RatioSelector";
 import { useLocale } from "@/contexts/LocaleContext";
-import { canEnterStep } from "@/lib/storyboard/shots";
+import { canEnterStep, isRatioLocked } from "@/lib/storyboard/shots";
 import { ImagePicker } from "./ImagePicker";
 import type { StepProps } from "./types";
 
@@ -12,7 +12,7 @@ const inputClass =
 
 export function ProjectSetupStep({ project, update, goTo }: StepProps) {
   const { t } = useLocale();
-  const ratioLocked = project.script.confirmed;
+  const ratioLocked = isRatioLocked(project);
 
   return (
     <div className="flex flex-1 justify-center overflow-y-auto bg-canvas p-6">
@@ -52,7 +52,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
           onChange={(ratio) => update((p) => ({ ...p, ratio }))}
           disabled={ratioLocked}
         />
-        {ratioLocked && <p className="text-xs text-muted">{t("storyboard.setup.ratioLocked")}</p>}
+        {ratioLocked && <p className="text-xs text-fg-subtle">{t("storyboard.setup.ratioLocked")}</p>}
       </div>
 
       <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
