@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
@@ -18,7 +18,6 @@ import type { StepProps } from "./types";
 export function ShotVideosStep({ project, update, requireApiKey, selectedShotId, selectShot }: StepProps) {
   const { t, locale } = useLocale();
   const [pending, setPending] = useState<{ rows: CostRow[]; run: () => void } | null>(null);
-  const drafted = useRef(false);
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
@@ -33,14 +32,17 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
     if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale);
   };
 
-  // Fill fields once when the step opens, if the key is already set; otherwise the button does it
+  // Fill missing fields whenever a shot needs them (step opened, or a new frame cleared them).
+  // draftShotFields marks shots as drafting right away, so they are not requested twice;
+  // a failed shot waits for the button instead of retrying in a loop.
+  const autoDraftKey = needDraft.filter((s) => s.draftStatus !== "failed").map((s) => s.id).join(",");
   useEffect(() => {
-    if (drafted.current) return;
-    drafted.current = true;
+    if (!autoDraftKey) return;
     const apiKey = getApiKey("gemini");
-    if (apiKey && needDraft.length > 0) void draftShotFields(jobCtx(apiKey), project, locale);
+    if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale);
+    // Only reruns when the set of shots needing fields changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [autoDraftKey]);
 
   const confirmGenerate = (shotIds: string[]) => {
     const apiKey = requireApiKey();
@@ -116,15 +118,22 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
           selected && (
             <Inspector
               footer={
-                <Button
-                  variant={selectedVideo ? "secondary" : "primary"}
-                  size="lg"
-                  disabled={selectedVideo?.status === "generating" || !selected.fields}
-                  onClick={() => confirmGenerate([selected.id])}
-                >
-                  {generateLabel}
-                  <span className="font-mono">{formatUsd(videoCost(selected.duration, shotResolution(selected, project)).amount)}</span>
-                </Button>
+                selected.fields ? (
+                  <Button
+                    variant={selectedVideo ? "secondary" : "primary"}
+                    size="lg"
+                    disabled={selectedVideo?.status === "generating"}
+                    onClick={() => confirmGenerate([selected.id])}
+                  >
+                    {generateLabel}
+                    <span className="font-mono">{formatUsd(videoCost(selected.duration, shotResolution(selected, project)).amount)}</span>
+                  </Button>
+                ) : (
+                  // Video needs the prompt fields; they are missing after a new frame or a failed draft
+                  <Button size="lg" disabled={selected.draftStatus === "drafting"} onClick={draftFields}>
+                    {selected.draftStatus === "drafting" ? t("storyboard.videos.drafting") : t("storyboard.videos.draftFields")}
+                  </Button>
+                )
               }
             >
               <ShotVideoSettings
