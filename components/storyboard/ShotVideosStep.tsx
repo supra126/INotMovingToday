@@ -39,7 +39,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
   useEffect(() => {
     if (!autoDraftKey) return;
     const apiKey = getApiKey("gemini");
-    if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale);
+    if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale, { retryFailed: false });
     // Only reruns when the set of shots needing fields changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoDraftKey]);

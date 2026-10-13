@@ -62,11 +62,19 @@ function promptContext(project: StoryboardProject, index: number, locale: Locale
 }
 
 /**
- * Fill the five shot fields for every shot that has none (same draft as the single-shot mode)
+ * Fill the five shot fields for every shot that has none (same draft as the single-shot mode).
+ * Automatic callers pass retryFailed: false so a failed shot waits for the button.
  */
-export async function draftShotFields(ctx: JobContext, project: StoryboardProject, locale: Locale) {
+export async function draftShotFields(
+  ctx: JobContext,
+  project: StoryboardProject,
+  locale: Locale,
+  { retryFailed = true }: { retryFailed?: boolean } = {}
+) {
   const targets = project.shots.flatMap((shot, index) =>
-    !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" ? [{ shot, index }] : []
+    !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" && (retryFailed || shot.draftStatus !== "failed")
+      ? [{ shot, index }]
+      : []
   );
   for (const { shot } of targets) {
     updateShot(ctx, shot.id, (s) => ({ ...s, draftStatus: "drafting", draftError: undefined }));

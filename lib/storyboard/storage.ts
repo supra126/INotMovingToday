@@ -18,7 +18,15 @@ function openDb(): Promise<IDBDatabase> {
 async function run<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const request = action(db.transaction(STORE, mode).objectStore(STORE));
+    const tx = db.transaction(STORE, mode);
+    const request = action(tx.objectStore(STORE));
+    // A write only counts once the transaction commits: quota errors surface there, not on the request
+    if (mode === "readwrite") {
+      tx.oncomplete = () => resolve(request.result);
+      tx.onerror = () => reject(tx.error ?? request.error);
+      tx.onabort = () => reject(tx.error ?? request.error);
+      return;
+    }
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
