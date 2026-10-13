@@ -92,7 +92,7 @@
 - 頁面上方是專案層級設定：解析度（720p / 1080p / 4K，同單鏡模式）、音訊（**預設只有音效**，可改為音效＋背景音樂）。
 - 每鏡一張卡片：
   - 定稿圖（起始畫面）。
-  - 五個欄位（主體、場景、運鏡、光線、聲音），進入此步驟時 AI 依分鏡表與定稿圖一次填好全部鏡頭；沿用 `PromptEditor`，可改。
+  - 五個欄位（主體、場景、運鏡、光線、聲音），進入此步驟時 AI 依分鏡表與定稿圖填好全部鏡頭（每鏡重用單鏡模式的 `draftPrompt`，所以也有替代選項可點）；沿用 `PromptEditor`，可改。
   - 秒數（4 / 6 / 8 / 10，預設取分鏡表秒數往上取最近的選項）。
   - 結束畫面：無 / 下一鏡的定稿圖 / 自行上傳。依分鏡表「轉場」欄預設（轉場寫明是接續、溶接等時預設「下一鏡」，硬切預設「無」）。
 - **全部生成**（關卡 3）：先列出每鏡秒數、解析度、是否有結束畫面、總秒數與預估總額，確認後開始。併發上限 3。
@@ -153,7 +153,7 @@ interface Shot {
   };
 }
 
-interface StoredImage { blob: Blob; mimeType: string; width: number; height: number }
+interface StoredImage { blob: Blob; mimeType: string }
 ```
 
 - 每次狀態變更寫回 IndexedDB（debounce 500ms）。
@@ -174,9 +174,9 @@ hooks/
   useStoryboardProject.ts            載入／儲存專案、更新 shots
   useBatchJobs.ts                    併發控制的工作佇列（圖與影片共用）
 lib/storyboard/
-  storage.ts                         IndexedDB 存取（idb-keyval 或原生 API）
-  pricing.ts                         圖片與影片費用計算
+  storage.ts                         IndexedDB 存取（原生 API）
   shots.ts                           秒數取整、結束畫面預設、過期標示等純函式
+lib/pricing.ts                       圖片與影片費用計算（單鏡模式的 PriceEstimate 共用）
 lib/ai/
   storyboard-prompts.ts              ② 的提示詞（解析、修改、寫生圖 prompt、填欄位）
   image-prompts.ts                   搬自 cli/image-prompts.ts
@@ -187,17 +187,17 @@ services/
 
 ### AI 呼叫
 
-- **分鏡表（文字）**：沿用 `GeminiClient` 的 `generateJson`，新增方法 `parseScript`、`reviseScript`、`writeImagePrompts`、`fillShotFields`。走與 `videoService` 相同的 static / server 雙路徑，使用者的 key 優先。
+- **分鏡表（文字）**：沿用 `GeminiClient` 的 `generateJson`，新增方法 `parseScript`、`reviseScript`、`writeImagePrompts`、`rewriteImagePrompt`；④ 的欄位重用既有的 `draftPrompt`。走與 `videoService` 相同的 static / server 雙路徑，使用者的 key 優先。
 - **生圖**：一律從瀏覽器用使用者的 key 直接呼叫 `@google/genai` 的 `generateContent`（模型 `gemini-nano-banana-2.1`，`responseModalities: ["IMAGE","TEXT"]`，`imageConfig: { aspectRatio, imageSize }`），取最後一張非 thought 的圖片。原因：2K / 4K 圖的 base64 有數 MB，經過伺服器來回只會變慢，而 key 本來就在使用者手上。需要 key 而沒有設定時，開啟 API key 設定視窗（同單鏡模式）。
 - **生影片**：重用 `startVideoGeneration` / `checkVideoStatus` / `extendVideo` 與 `cropImageToRatio`。從 `useVideoGeneration` 抽出「單一工作」的執行函式（組 prompt → 送出 → 輪詢 → 回傳結果），單鏡模式與分鏡模式共用；單鏡模式的行為不變。
 - 每一鏡送出時帶專案的 `audioMode`。
 
 ### 費用
 
-`lib/storyboard/pricing.ts` 集中所有單價：
+`lib/pricing.ts` 集中所有單價：
 
 - 影片：沿用 `PriceEstimate` 的每秒 $0.10（720p），1080p / 4K 顯示「起」。實作時把常數移到 `pricing.ts`，`PriceEstimate` 改為 import。
-- 圖片：1K / 2K / 4K 各一個單價常數，實作時依 Google 官方 Gemini API 定價頁面填入，並在程式註解附上來源與日期。
+- 圖片（`gemini-nano-banana-2.1`，2026-10-13 定價頁）：1K $0.0336、2K $0.0504、4K $0.113。
 
 ## 錯誤處理
 
@@ -212,7 +212,7 @@ services/
 專案目前沒有測試框架，新增 Vitest（只跑 Node 環境的純邏輯）：
 
 - `lib/storyboard/shots.ts`：秒數取整、結束畫面預設、過期標示。
-- `lib/storyboard/pricing.ts`：各尺寸、張數、秒數、解析度的總額。
+- `lib/pricing.ts`：各尺寸、張數、秒數、解析度的總額。
 - `lib/ai/storyboard-prompts.ts`：分鏡表 JSON 解析（正常、欄位缺漏、秒數超出範圍）。
 - `lib/ai/image-prompts.ts`：prompt 組裝包含包裝文字與禁止加字的規則。
 - `hooks/useBatchJobs.ts` 的佇列核心抽成純函式，測併發上限、失敗不影響其他工作、429 重試。
