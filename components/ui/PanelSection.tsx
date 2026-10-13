@@ -12,7 +12,7 @@ export function PanelSection({
   defaultOpen = true,
   summary,
 }: {
-  title: string;
+  title: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   collapsible?: boolean;

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { PanelSection } from "@/components/ui/PanelSection";
 import { ImagePicker } from "./ImagePicker";
 import { ScriptChat } from "./ScriptChat";
+import { ShotId } from "./ShotId";
 import { ShotRail } from "./ShotRail";
 import { ShotTable } from "./ShotTable";
 import { Inspector, StepLayout } from "./StepLayout";
@@ -227,7 +228,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
               </Button>
             }
           >
-            <PanelSection title={`${selected.id}`}>
+            <PanelSection title={<ShotId id={selected.id} />}>
               <ShotTable
                 shots={[selected]}
                 layout="panel"

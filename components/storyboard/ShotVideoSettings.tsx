@@ -9,6 +9,7 @@ import type { EndFrame, Shot } from "@/lib/storyboard/types";
 import type { VideoResolution } from "@/types";
 import { ImagePicker } from "./ImagePicker";
 import { MusicSelect } from "./MusicSelect";
+import { ShotId } from "./ShotId";
 
 interface ShotVideoSettingsProps {
   shot: Shot;
@@ -23,7 +24,7 @@ export function ShotVideoSettings({ shot, isLast, resolution, onPatch }: ShotVid
 
   return (
     <>
-      <PanelSection title={`${t("storyboard.videos.settingsTitle")} · ${shot.id}`}>
+      <PanelSection title={<>{t("storyboard.videos.settingsTitle")} · <ShotId id={shot.id} /></>}>
         <div className="flex flex-col gap-4">
           <DurationSelector
             value={shot.duration}
@@ -65,6 +66,7 @@ export function ShotVideoSettings({ shot, isLast, resolution, onPatch }: ShotVid
             draft={shot.draft}
             fields={shot.fields}
             isBusy={busy}
+            embedded
             onFieldChange={(key, value) => onPatch((s) => (s.fields ? { ...s, fields: { ...s.fields, [key]: value } } : s))}
           />
         ) : shot.draftStatus === "failed" ? (

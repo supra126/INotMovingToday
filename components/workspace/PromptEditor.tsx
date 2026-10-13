@@ -11,6 +11,8 @@ interface PromptEditorProps {
   onFieldChange: (key: PromptFieldKey, value: string) => void;
   /** Omit to hide the generate button (storyboard cards have their own) */
   onGenerate?: () => void;
+  /** Inside a settings panel: no divider or heading, the section supplies them */
+  embedded?: boolean;
 }
 
 export function PromptEditor({
@@ -19,15 +21,16 @@ export function PromptEditor({
   isBusy,
   onFieldChange,
   onGenerate,
+  embedded = false,
 }: PromptEditorProps) {
   const { t } = useLocale();
   const canGenerate = !isBusy && fields.subject.trim().length > 0;
 
   return (
-    <section className="flex flex-col gap-4 border-t border-line pt-6">
+    <section className={embedded ? "flex flex-col gap-4" : "flex flex-col gap-4 border-t border-line pt-6"}>
       <div>
-        <h2 className="text-sm font-medium text-foreground">{t("prompt.title")}</h2>
-        {draft.summary && <p className="mt-1 text-sm text-muted">{draft.summary}</p>}
+        {!embedded && <h2 className="text-sm font-medium text-fg">{t("prompt.title")}</h2>}
+        {draft.summary && <p className="mt-1 text-sm text-fg-muted">{draft.summary}</p>}
       </div>
 
       {PROMPT_FIELD_KEYS.map((key) => {

@@ -17,6 +17,7 @@ import {
 import type { Shot } from "@/lib/storyboard/types";
 import type { ImageSize } from "@/types";
 import { ShotCandidates } from "./ShotCandidates";
+import { ShotId } from "./ShotId";
 import { ShotImageControls } from "./ShotImageControls";
 import { ShotRail } from "./ShotRail";
 import { Inspector, StepLayout } from "./StepLayout";
@@ -140,7 +141,7 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
           }
         >
           {selected && (
-            <PanelSection title={`${t("storyboard.images.shot")} · ${selected.id}`}>
+            <PanelSection title={<>{t("storyboard.images.shot")} · <ShotId id={selected.id} /></>}>
               <div className="flex flex-col gap-2">
                 {selected.stale && <p className="text-xs text-warning">{t("storyboard.images.stale")}</p>}
                 {selected.hasPackaging && <p className="text-xs text-fg-muted">{t("storyboard.images.packagingHint")}</p>}
