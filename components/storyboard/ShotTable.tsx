@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/contexts/LocaleContext";
+import { snapDuration } from "@/lib/storyboard/shots";
 import type { ScriptShot, Shot } from "@/lib/storyboard/types";
 
 type TextKey = "visual" | "camera" | "sound" | "music" | "onScreenText" | "transition";
@@ -56,10 +57,15 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
                 step={0.5}
                 value={shot.seconds}
                 disabled={disabled}
-                onChange={(e) => edit(shot, { seconds: Number(e.target.value) || shot.seconds })}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  // Script length, 1-10s; Omni generates the next 4/6/8/10 length and it is trimmed in editing
+                  if (value) edit(shot, { seconds: Math.min(10, Math.max(1, value)) });
+                }}
                 className="w-16 bg-surface border border-line rounded-md px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
               />
               {t("upload.duration.unit")}
+              <span className="text-xs">{t("storyboard.script.generates", { seconds: snapDuration(shot.seconds) })}</span>
             </label>
             <label className="flex items-center gap-1.5 text-muted">
               {t("storyboard.script.columns.transition")}

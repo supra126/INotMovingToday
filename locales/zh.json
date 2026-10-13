@@ -311,7 +311,8 @@
       "send": "送出",
       "confirm": "確認分鏡表，生成分鏡圖",
       "confirming": "撰寫生圖提示詞中…",
-      "needInput": "請上傳腳本圖或輸入文字"
+      "needInput": "請上傳腳本圖或輸入文字",
+      "generates": "→ 生成 {{seconds}} 秒"
     },
     "images": {
       "generating": "生成中…",

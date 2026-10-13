@@ -311,7 +311,8 @@
       "send": "Send",
       "confirm": "Confirm storyboard and make frames",
       "confirming": "Writing image prompts…",
-      "needInput": "Upload a script image or enter text"
+      "needInput": "Upload a script image or enter text",
+      "generates": "→ generates {{seconds}}s"
     },
     "images": {
       "generating": "Generating…",
