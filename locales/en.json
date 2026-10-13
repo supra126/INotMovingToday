@@ -120,7 +120,8 @@
       "optional": "(Optional)",
       "required": "*",
       "placeholder": "AIzaSy...",
-      "getKeyLink": "Get API Key from Google AI Studio"
+      "getKeyLink": "Get API Key from Google AI Studio",
+      "invalid": "This doesn't look like an API key: only letters, numbers and symbols, no spaces. Copy the key starting with AIza from Google AI Studio."
     },
     "showKeys": "Show keys",
     "hideKeys": "Hide keys",

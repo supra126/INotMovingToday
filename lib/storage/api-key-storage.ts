@@ -43,10 +43,19 @@ export function clearApiKeys(): void {
 }
 
 /**
- * Get a specific API key
+ * API keys are printable ASCII without spaces; anything else (e.g. a pasted file name)
+ * would break the request header with an unreadable ByteString error
+ */
+export function isValidApiKey(key: string): boolean {
+  return /^[\x21-\x7e]+$/.test(key);
+}
+
+/**
+ * Get a specific API key; an invalid stored value counts as missing
  */
 export function getApiKey(provider: keyof StoredApiKeys): string | undefined {
-  return getStoredApiKeys()[provider];
+  const key = getStoredApiKeys()[provider];
+  return key && isValidApiKey(key) ? key : undefined;
 }
 
 /**

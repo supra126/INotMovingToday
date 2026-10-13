@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Modal } from "../common/Modal";
 import { Button } from "../common/Button";
-import { getApiKey, setApiKey } from "@/lib/storage/api-key-storage";
+import { getApiKey, isValidApiKey, setApiKey } from "@/lib/storage/api-key-storage";
 import { useLocale } from "@/contexts/LocaleContext";
 
 interface ApiKeyModalProps {
@@ -24,6 +24,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
 
   const [geminiKey, setGeminiKey] = useState(initialKeys.gemini);
   const [showKeys, setShowKeys] = useState(false);
+  const [keyError, setKeyError] = useState(false);
 
   // Reset keys when modal opens
   const handleOpen = () => {
@@ -31,7 +32,12 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
   };
 
   const handleSave = () => {
-    setApiKey("gemini", geminiKey || undefined);
+    const key = geminiKey.trim();
+    if (key && !isValidApiKey(key)) {
+      setKeyError(true);
+      return;
+    }
+    setApiKey("gemini", key || undefined);
     onSave?.();
     onClose();
   };
@@ -123,11 +129,17 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
               id="gemini-key"
               type={showKeys ? "text" : "password"}
               value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
+              onChange={(e) => {
+                setGeminiKey(e.target.value);
+                setKeyError(false);
+              }}
               placeholder={t("apiKeyModal.geminiKey.placeholder")}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12 font-mono text-sm"
             />
           </div>
+          {keyError && (
+            <p role="alert" className="mt-1 text-xs text-red-400">{t("apiKeyModal.geminiKey.invalid")}</p>
+          )}
           <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"

@@ -120,7 +120,8 @@
       "optional": "（選填）",
       "required": "*",
       "placeholder": "AIzaSy...",
-      "getKeyLink": "前往 Google AI Studio 取得 API Key"
+      "getKeyLink": "前往 Google AI Studio 取得 API Key",
+      "invalid": "這不像 API Key：只能有英文、數字和符號，不能有中文或空白。請到 Google AI Studio 複製 AIza 開頭的金鑰。"
     },
     "showKeys": "顯示金鑰",
     "hideKeys": "隱藏金鑰",
