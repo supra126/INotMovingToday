@@ -1,7 +1,8 @@
 import type { ProjectUpdater } from "@/hooks/useStoryboardProject";
-import { buildKeyframeInstruction } from "@/lib/ai/image-prompts";
+import { buildFinalInstruction, buildKeyframeInstruction } from "@/lib/ai/image-prompts";
 import type { ScriptContext } from "@/lib/ai/storyboard-prompts";
 import { generateImage } from "@/services/imageService";
+import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
@@ -73,5 +74,70 @@ export async function generateCandidates(ctx: JobContext, project: StoryboardPro
         imageError: images.length > 0 || !failure || failure.ok ? undefined : errorKey(failure.error),
       };
     });
+  });
+}
+
+/**
+ * Regenerate one shot, optionally after editing its prompt or describing a change
+ */
+export async function regenerateShot(
+  ctx: JobContext,
+  project: StoryboardProject,
+  shotId: string,
+  change: { prompt?: string; note?: string },
+  locale: Locale
+) {
+  const shot = project.shots.find((s) => s.id === shotId);
+  if (!shot) return;
+  let prompt = change.prompt?.trim() || shot.imagePrompt;
+  if (change.note?.trim()) {
+    updateShot(ctx, shotId, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
+    try {
+      prompt = await rewriteImagePrompt(
+        { ...scriptContext(project, locale), shot, currentPrompt: prompt, note: change.note },
+        ctx.apiKey
+      );
+    } catch (err) {
+      updateShot(ctx, shotId, (s) => ({ ...s, imageStatus: "failed", imageError: errorKey(err) }));
+      return;
+    }
+  }
+  updateShot(ctx, shotId, (s) => ({ ...s, imagePrompt: prompt }));
+  const next = { ...project, shots: project.shots.map((s) => (s.id === shotId ? { ...s, imagePrompt: prompt } : s)) };
+  await generateCandidates(ctx, next, [shotId]);
+}
+
+/**
+ * Re-render the picked frames at 2K / 4K
+ */
+export async function finalizeImages(ctx: JobContext, project: StoryboardProject) {
+  const shots = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
+  for (const shot of shots) {
+    updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
+  }
+  const results = await runQueue(
+    shots.map((shot) => () =>
+      generateImage({
+        apiKey: ctx.apiKey,
+        instruction: buildFinalInstruction({
+          prompt: shot.imagePrompt,
+          ratio: project.ratio,
+          productCount: project.productImages.length,
+          packagingText: shot.hasPackaging ? project.packagingText : undefined,
+        }),
+        images: [shot.candidates[shot.selected!], ...project.productImages],
+        ratio: project.ratio,
+        size: project.finalSize,
+      })
+    ),
+    { concurrency: IMAGE_CONCURRENCY }
+  );
+  shots.forEach((shot, i) => {
+    const result = results[i];
+    updateShot(ctx, shot.id, (s) =>
+      result.ok
+        ? { ...s, finalImage: result.value, imageStatus: "idle" }
+        : { ...s, imageStatus: "failed", imageError: errorKey(result.error) }
+    );
   });
 }
