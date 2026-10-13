@@ -337,7 +337,11 @@
       "finalRerendered": "定稿（重出，請對照原圖）",
       "delete": "刪除",
       "count": "張數",
-      "countOption": "{{count}} 張"
+      "countOption": "{{count}} 張",
+      "viewSingle": "單鏡",
+      "viewOverview": "總覽",
+      "shot": "這一鏡",
+      "regenerateTitle": "重生"
     },
     "videos": {
       "settings": "整支影片的設定",

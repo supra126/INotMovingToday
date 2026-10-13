@@ -337,7 +337,11 @@
       "finalRerendered": "Final (re-rendered, compare with the pick)",
       "delete": "Delete",
       "count": "Count",
-      "countOption": "{{count}}"
+      "countOption": "{{count}}",
+      "viewSingle": "Shot",
+      "viewOverview": "Overview",
+      "shot": "This shot",
+      "regenerateTitle": "Regenerate"
     },
     "videos": {
       "settings": "Settings for all shots",
