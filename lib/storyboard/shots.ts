@@ -1,5 +1,5 @@
 import type { AudioMode, ImageSize, VideoDuration, VideoRatio, VideoResolution } from "@/types";
-import type { EndFrame, ScriptShot, Shot, Step, StoredImage, StoryboardProject } from "./types";
+import type { EndFrame, ScriptShot, Shot, Step, StoredImage, StoryboardProject, VideoMadeWith } from "./types";
 
 const DURATIONS: VideoDuration[] = [4, 6, 8, 10];
 
@@ -230,6 +230,43 @@ export function isVideoOutdated(shots: Shot[], index: number): boolean {
   const shot = shots[index];
   const video = shot?.video;
   if (!video || video.status !== "completed") return false;
-  if (!video.startFrame) return !!video.outdated;
-  return video.startFrame !== shot.finalImage?.blob || video.endFrame !== endFrameImage(shots, index)?.blob;
+  if (!video.startFrame && !video.made) return !!video.outdated;
+  const framesChanged =
+    !!video.startFrame &&
+    (video.startFrame !== shot.finalImage?.blob || video.endFrame !== endFrameImage(shots, index)?.blob);
+  const settingsChanged = !!video.made && JSON.stringify(madeWith(shot)) !== JSON.stringify(video.made);
+  return framesChanged || settingsChanged;
+}
+
+/** What a video generated now would be made with (length, music, resolution, prompt fields) */
+export function madeWith(shot: Shot): VideoMadeWith {
+  return {
+    duration: shot.duration,
+    audioMode: shotAudioMode(shot),
+    resolution: shot.resolution,
+    fields: JSON.stringify(shot.fields ?? null),
+  };
+}
+
+/** New product images make every existing frame show the old product */
+export function setProductImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
+  const same =
+    images.length === project.productImages.length &&
+    images.every((image, i) => image.blob === project.productImages[i].blob);
+  if (same) return { ...project, productImages: images };
+  return {
+    ...project,
+    productImages: images,
+    shots: project.shots.map((shot) =>
+      shot.candidates.length > 0 || shot.finalImage ? { ...shot, stale: true } : shot
+    ),
+  };
+}
+
+// Omni's total length with extensions (same cap as the single-shot mode)
+export const MAX_VIDEO_SECONDS = 40;
+const EXTEND_STEPS = [4, 6, 8];
+
+export function extensionOptions(duration: number): number[] {
+  return EXTEND_STEPS.filter((seconds) => duration + seconds <= MAX_VIDEO_SECONDS);
 }

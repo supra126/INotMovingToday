@@ -144,3 +144,12 @@ describe("code review fixes", () => {
   });
 });
 
+
+describe("codex review", () => {
+  it("records the settings a video was made with", async () => {
+    job.attempts = [async () => done];
+    const h = harness(project());
+    await generateShotVideos(h.ctx, h.get(), ["s01"], "zh", { retryDelayMs: 0 });
+    expect(h.get().shots[0].video?.made?.duration).toBe(h.get().shots[0].duration);
+  });
+});

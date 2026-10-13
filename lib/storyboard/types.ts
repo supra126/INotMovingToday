@@ -1,4 +1,5 @@
 import type {
+  AudioMode,
   ImageSize,
   PromptDraft,
   PromptFields,
@@ -37,6 +38,15 @@ export interface ScriptShot {
 
 export type EndFrame = { kind: "none" } | { kind: "next" } | { kind: "upload"; image: StoredImage };
 
+/** Settings a video was generated with, to tell when the shot changed afterwards */
+export interface VideoMadeWith {
+  duration: VideoDuration;
+  audioMode: AudioMode;
+  resolution?: VideoResolution;
+  /** JSON of the prompt fields */
+  fields: string;
+}
+
 export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted";
 
 export interface ShotVideo {
@@ -55,6 +65,7 @@ export interface ShotVideo {
   /** Frames the video was generated from, to tell when the shot or the next shot changed */
   startFrame?: Blob;
   endFrame?: Blob;
+  made?: VideoMadeWith;
 }
 
 export interface Shot extends ScriptShot {

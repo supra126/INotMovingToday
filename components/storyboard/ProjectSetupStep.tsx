@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { RatioSelector } from "@/components/upload/RatioSelector";
 import { useLocale } from "@/contexts/LocaleContext";
-import { canEnterStep, isRatioLocked } from "@/lib/storyboard/shots";
+import { canEnterStep, isRatioLocked, setProductImages } from "@/lib/storyboard/shots";
 import { ImagePicker } from "./ImagePicker";
 import type { StepProps } from "./types";
 
@@ -31,7 +31,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         <ImagePicker
           images={project.productImages}
           max={2}
-          onChange={(images) => update((p) => ({ ...p, productImages: images }))}
+          onChange={(images) => update((p) => setProductImages(p, images))}
         />
         <p className="text-xs text-muted">{t("storyboard.setup.productsHint")}</p>
       </div>

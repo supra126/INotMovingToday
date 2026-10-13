@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
-import { videoFileName } from "@/lib/storyboard/shots";
+import { extensionOptions, videoFileName } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
 import type { VideoRatio } from "@/types";
 import { BlobImage } from "./BlobImage";
-
-const EXTEND_STEPS = [4, 6, 8];
 
 /** Points a <video> at the stored Blob (or the fallback URL), revoking object URLs on change */
 function useVideoElement(shot: Shot) {
@@ -45,6 +43,9 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoP
   const videoRef = useVideoElement(shot);
   const video = shot.video;
   const hasVideo = !!(video?.blob || video?.url);
+  // Omni caps a shot at 40 seconds including extensions
+  const extendOptions = extensionOptions(video?.duration ?? 0);
+  const seconds = extendOptions.includes(extendSeconds) ? extendSeconds : extendOptions[extendOptions.length - 1];
 
   const frameClass =
     ratio === "9:16"
@@ -91,7 +92,10 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoP
             {t("storyboard.videos.download")}
           </Button>
         )}
-        {video?.status === "completed" && video.sourceVideoUri && (
+        {video?.status === "completed" && video.sourceVideoUri && extendOptions.length === 0 && (
+          <p className="text-center text-xs text-fg-subtle">{t("result.maxReached")}</p>
+        )}
+        {video?.status === "completed" && video.sourceVideoUri && seconds !== undefined && (
           <div className="flex gap-2">
             <input
               value={extendPrompt}
@@ -100,13 +104,13 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoP
               className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-sunken px-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none"
             />
             <select
-              value={extendSeconds}
+              value={seconds}
               onChange={(e) => setExtendSeconds(Number(e.target.value))}
               className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 font-mono text-xs text-fg"
             >
-              {EXTEND_STEPS.map((s) => <option key={s} value={s}>+{s}s</option>)}
+              {extendOptions.map((s) => <option key={s} value={s}>+{s}s</option>)}
             </select>
-            <Button disabled={!extendPrompt.trim()} onClick={() => onExtend(extendPrompt, extendSeconds)}>
+            <Button disabled={!extendPrompt.trim()} onClick={() => onExtend(extendPrompt, seconds)}>
               {t("storyboard.videos.extend")}
             </Button>
           </div>

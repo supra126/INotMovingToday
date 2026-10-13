@@ -7,7 +7,7 @@ import { toFile } from "./blob";
 import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
-import { endFrameImage, shotAudioMode, shotDescription, shotResolution } from "./shots";
+import { endFrameImage, madeWith, shotAudioMode, shotDescription, shotResolution } from "./shots";
 import type { StoryboardProject } from "./types";
 
 const fetchBlob = async (url: string) => {
@@ -174,6 +174,8 @@ export async function generateShotVideos(
           // Frames this video was made from, so a later change marks it outdated
           startFrame: shot.finalImage!.blob,
           endFrame: endFrameImage(project.shots, index)?.blob,
+          // Settings it was made with, so a later change marks it outdated
+          made: madeWith(shot),
         },
       }));
     }),

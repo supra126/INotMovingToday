@@ -25,6 +25,9 @@ import {
   matchesRatio,
   isVideoOutdated,
   hasMusic,
+  setProductImages,
+  madeWith,
+  extensionOptions,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -367,5 +370,48 @@ describe("rail status with derived outdated videos", () => {
     const shot = { ...toShot(row(), true), video: { status: "completed" as const, progress: 100, prompt: "", duration: 4 } };
     expect(shotStatus(shot, 4)).toBe("done");
     expect(shotStatus(shot, 4, true)).toBe("stale");
+  });
+});
+
+describe("codex review", () => {
+  it("marks shots with frames stale when the product images change", () => {
+    const p = newProject("id", 0);
+    p.productImages = [img("old")];
+    p.shots = [{ ...toShot(row(), false), candidates: [img("a")] }, toShot(row({ id: "s02" }), true)];
+    const next = setProductImages(p, [img("new")]);
+    expect(next.productImages).toHaveLength(1);
+    expect(next.shots[0].stale).toBe(true);
+    expect(next.shots[1].stale).toBe(false);
+    // Same images: nothing is invalidated
+    expect(setProductImages(p, p.productImages).shots[0].stale).toBe(false);
+  });
+
+  it("marks a video outdated when its length, music, resolution or fields change", () => {
+    const frame = img("f");
+    const fields = { subject: "s", setting: "", camera: "", lighting: "", sound: "" };
+    const shot = {
+      ...toShot(row(), true),
+      finalImage: frame,
+      fields,
+      video: {
+        status: "completed" as const,
+        progress: 100,
+        prompt: "",
+        duration: 4,
+        startFrame: frame.blob,
+        made: madeWith({ ...toShot(row(), true), fields }),
+      },
+    };
+    expect(isVideoOutdated([shot], 0)).toBe(false);
+    expect(isVideoOutdated([{ ...shot, duration: 8 as const }], 0)).toBe(true);
+    expect(isVideoOutdated([{ ...shot, music: "有" }], 0)).toBe(true);
+    expect(isVideoOutdated([{ ...shot, resolution: "1080p" as const }], 0)).toBe(true);
+    expect(isVideoOutdated([{ ...shot, fields: { ...fields, subject: "changed" } }], 0)).toBe(true);
+  });
+
+  it("offers only extensions that fit the 40-second total", () => {
+    expect(extensionOptions(8)).toEqual([4, 6, 8]);
+    expect(extensionOptions(34)).toEqual([4, 6]);
+    expect(extensionOptions(38)).toEqual([]);
   });
 });
