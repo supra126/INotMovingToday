@@ -153,3 +153,29 @@ describe("codex review", () => {
     expect(h.get().shots[0].video?.made?.duration).toBe(h.get().shots[0].duration);
   });
 });
+
+describe("draftShotFields retryFailed", () => {
+  const failedProject = () => ({ ...project(), shots: project().shots.map((s) => ({ ...s, fields: undefined, draftStatus: "failed" as const })) });
+  const okDraft = {
+    summary: "",
+    fields: Object.fromEntries(["subject", "setting", "camera", "lighting", "sound"].map((k) => [k, { value: "v", options: [] }])),
+  };
+
+  it("skips failed shots when retryFailed is false (automatic trigger)", async () => {
+    const draft = vi.fn(async () => okDraft);
+    drafts.next = draft;
+    const h = harness(failedProject());
+    await draftShotFields(h.ctx, h.get(), "zh", { retryFailed: false });
+    expect(draft).not.toHaveBeenCalled();
+    expect(h.get().shots[0].draftStatus).toBe("failed");
+  });
+
+  it("retries failed shots by default (the button)", async () => {
+    const draft = vi.fn(async () => okDraft);
+    drafts.next = draft;
+    const h = harness(failedProject());
+    await draftShotFields(h.ctx, h.get(), "zh");
+    expect(draft).toHaveBeenCalledTimes(1);
+    expect(h.get().shots[0].fields).toBeDefined();
+  });
+});
