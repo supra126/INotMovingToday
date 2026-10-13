@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { ChatMessage } from "@/lib/storyboard/types";
 
@@ -27,7 +28,7 @@ export function ScriptChat({ chat, disabled, onSend }: ScriptChatProps) {
           <li
             key={m.at}
             className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-              m.role === "user" ? "self-end bg-accent/20 text-foreground" : "self-start bg-surface text-foreground"
+              m.role === "user" ? "self-end bg-accent-soft text-fg" : "self-start border border-line bg-panel text-fg"
             }`}
           >
             {m.text}
@@ -43,16 +44,11 @@ export function ScriptChat({ chat, disabled, onSend }: ScriptChatProps) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) send();
           }}
-          className="flex-1 bg-surface border border-line rounded-lg px-3.5 py-2.5 text-sm text-foreground focus:border-accent focus:outline-none disabled:opacity-50"
+          className="flex-1 rounded-[var(--radius-control)] border border-line bg-sunken px-3 py-2 text-sm text-fg focus:border-line-strong focus:outline-none disabled:opacity-50"
         />
-        <button
-          type="button"
-          disabled={disabled || !message.trim()}
-          onClick={send}
-          className="h-10 px-4 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 disabled:opacity-40"
-        >
+        <Button size="lg" disabled={disabled || !message.trim()} onClick={send}>
           {t("storyboard.script.send")}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -6,12 +6,16 @@ import { formatUsd, imageCost } from "@/lib/pricing";
 import { toFile } from "@/lib/storyboard/blob";
 import { toDisplayError } from "@/lib/video/errors";
 import { CANDIDATES_PER_SHOT, generateCandidates, scriptContext } from "@/lib/storyboard/imageJobs";
-import { applyScriptEdit, mergeScriptShots } from "@/lib/storyboard/shots";
+import { applyScriptEdit, mergeScriptShots, resolveSelectedShot } from "@/lib/storyboard/shots";
 import type { ScriptShot, StoryboardProject } from "@/lib/storyboard/types";
 import { parseScript, polishShot, reviseScript, writeImagePrompts } from "@/services/storyboardService";
+import { Button } from "@/components/ui/Button";
+import { PanelSection } from "@/components/ui/PanelSection";
 import { ImagePicker } from "./ImagePicker";
 import { ScriptChat } from "./ScriptChat";
+import { ShotRail } from "./ShotRail";
 import { ShotTable } from "./ShotTable";
+import { Inspector, StepLayout } from "./StepLayout";
 import type { StepProps } from "./types";
 
 function toRows(project: StoryboardProject): ScriptShot[] {
@@ -20,13 +24,14 @@ function toRows(project: StoryboardProject): ScriptShot[] {
   }));
 }
 
-export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) {
+export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotId, selectShot }: StepProps) {
   const { t, locale } = useLocale();
   const [busy, setBusy] = useState<"analyze" | "chat" | "confirm" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [polishingId, setPolishingId] = useState<string | null>(null);
 
   const ctx = scriptContext(project, locale);
+  const selected = resolveSelectedShot(project.shots, selectedShotId);
   const hasInput = !!project.script.sourceImage || project.script.sourceText.trim().length > 0;
   const hasShots = project.shots.length > 0;
   const needsImages = project.shots.filter((s) => s.candidates.length === 0 || s.stale);
@@ -137,86 +142,104 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
       return { ...p, shots, script: { ...p.script, confirmed: p.script.confirmed && shots.every((s) => s.imagePrompt) } };
     });
 
+  const confirmLabel =
+    busy === "confirm"
+      ? t("storyboard.script.confirming")
+      : project.script.confirmed && needsImages.length === 0
+        ? t("storyboard.next")
+        : `${t("storyboard.script.confirm")}（${formatUsd(confirmCost.amount)}）`;
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted">{t("storyboard.script.sourceImage")}</span>
-          <ImagePicker
-            images={project.script.sourceImage ? [project.script.sourceImage] : []}
-            max={1}
-            disabled={!!busy}
-            onChange={(images) => update((p) => ({ ...p, script: { ...p.script, sourceImage: images[0] } }))}
-          />
-          <p className="text-xs text-muted">{t("storyboard.script.sourceImageHint")}</p>
+    <StepLayout
+      rail={
+        <ShotRail
+          shots={project.shots}
+          step={2}
+          ratio={project.ratio}
+          selectedId={selected?.id}
+          onSelect={selectShot}
+        />
+      }
+      main={
+        <div className="mx-auto flex max-w-3xl flex-col gap-5 p-6">
+          <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-fg-muted">{t("storyboard.script.sourceImage")}</span>
+              <ImagePicker
+                images={project.script.sourceImage ? [project.script.sourceImage] : []}
+                max={1}
+                disabled={!!busy}
+                onChange={(images) => update((p) => ({ ...p, script: { ...p.script, sourceImage: images[0] } }))}
+              />
+              <p className="text-xs text-fg-subtle">{t("storyboard.script.sourceImageHint")}</p>
+            </div>
+            <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
+              {t("storyboard.script.sourceText")}
+              <textarea
+                rows={6}
+                value={project.script.sourceText}
+                disabled={!!busy}
+                placeholder={t("storyboard.script.sourceTextPlaceholder")}
+                onChange={(e) => update((p) => ({ ...p, script: { ...p.script, sourceText: e.target.value } }))}
+                className="w-full resize-y rounded-[var(--radius-control)] border border-line bg-sunken px-3 py-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <Button size="lg" disabled={!hasInput || !!busy} onClick={analyze}>
+            {busy === "analyze"
+              ? t("storyboard.script.analyzing")
+              : hasShots
+                ? t("storyboard.script.reanalyze")
+                : t("storyboard.script.analyze")}
+          </Button>
+          {!hasInput && <p className="text-xs text-fg-subtle">{t("storyboard.script.needInput")}</p>}
+
+          {error && (
+            <p role="alert" className="rounded-[var(--radius-control)] border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          )}
+
+          {project.script.suggestions.length > 0 && (
+            <div className="rounded-[var(--radius-panel)] border border-line bg-panel px-4 py-3">
+              <h3 className="section-title mb-2">{t("storyboard.script.suggestions")}</h3>
+              <ul className="list-disc pl-5 text-sm text-fg-muted">
+                {project.script.suggestions.map((s) => <li key={s}>{s}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {hasShots && <ScriptChat chat={project.script.chat} disabled={!!busy} onSend={chat} />}
         </div>
-        <label className="flex flex-col gap-2 text-sm text-muted">
-          {t("storyboard.script.sourceText")}
-          <textarea
-            rows={5}
-            value={project.script.sourceText}
-            disabled={!!busy}
-            placeholder={t("storyboard.script.sourceTextPlaceholder")}
-            onChange={(e) => update((p) => ({ ...p, script: { ...p.script, sourceText: e.target.value } }))}
-            className="w-full bg-surface border border-line rounded-lg px-3.5 py-3 text-sm text-foreground focus:border-accent focus:outline-none resize-y"
-          />
-        </label>
-      </div>
-
-      <button
-        type="button"
-        disabled={!hasInput || !!busy}
-        onClick={analyze}
-        className="h-11 rounded-lg border border-line text-[15px] text-foreground hover:bg-white/5 disabled:opacity-40"
-      >
-        {busy === "analyze"
-          ? t("storyboard.script.analyzing")
-          : hasShots
-            ? t("storyboard.script.reanalyze")
-            : t("storyboard.script.analyze")}
-      </button>
-      {!hasInput && <p className="text-xs text-muted">{t("storyboard.script.needInput")}</p>}
-
-      {error && (
-        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
-          {error}
-        </p>
-      )}
-
-      {project.script.suggestions.length > 0 && (
-        <div className="rounded-lg border border-line px-4 py-3">
-          <h3 className="mb-2 text-sm font-medium text-foreground">{t("storyboard.script.suggestions")}</h3>
-          <ul className="list-disc pl-5 text-sm text-muted">
-            {project.script.suggestions.map((s) => <li key={s}>{s}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {hasShots && (
-        <>
-          <h3 className="text-sm font-medium text-foreground">{t("storyboard.script.table")}</h3>
-          <ShotTable
-            shots={project.shots}
-            disabled={!!busy}
-            onEdit={editRow}
-            onPolish={(shotId) => void polish(shotId)}
-            polishingId={polishingId}
-          />
-          <ScriptChat chat={project.script.chat} disabled={!!busy} onSend={chat} />
-          <button
-            type="button"
-            disabled={!!busy}
-            onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : confirm}
-            className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
+      }
+      inspector={
+        selected && (
+          <Inspector
+            footer={
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={!!busy}
+                onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : confirm}
+              >
+                {confirmLabel}
+              </Button>
+            }
           >
-            {busy === "confirm"
-              ? t("storyboard.script.confirming")
-              : project.script.confirmed && needsImages.length === 0
-                ? t("storyboard.next")
-                : `${t("storyboard.script.confirm")}（${t("storyboard.cost", { price: formatUsd(confirmCost.amount) })}）`}
-          </button>
-        </>
-      )}
-    </div>
+            <PanelSection title={`${selected.id}`}>
+              <ShotTable
+                shots={[selected]}
+                layout="panel"
+                disabled={!!busy}
+                onEdit={editRow}
+                onPolish={(shotId) => void polish(shotId)}
+                polishingId={polishingId}
+              />
+            </PanelSection>
+          </Inspector>
+        )
+      }
+    />
   );
 }
