@@ -81,7 +81,7 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
         type="button"
         disabled={unfinished.length === 0 || unfinished.some((s) => !s.fields)}
         onClick={() => confirmGenerate(unfinished.map((s) => s.id))}
-        className="h-11 rounded-lg bg-accent text-white text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
+        className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
       >
         {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
         {unfinished.length > 0 &&

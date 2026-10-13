@@ -173,7 +173,7 @@ export function InputPanel({
           className={`h-11 rounded-lg text-[15px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
             hasDraft
               ? "border border-line text-foreground hover:bg-white/5"
-              : "bg-accent text-white hover:bg-accent-hover"
+              : "bg-accent text-accent-fg hover:bg-accent-hover"
           }`}
         >
           {isDrafting && <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}

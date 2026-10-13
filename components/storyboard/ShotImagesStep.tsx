@@ -113,7 +113,7 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo }: StepPro
         type="button"
         disabled={!canEnterStep(project, 4)}
         onClick={() => goTo(4)}
-        className="h-11 rounded-lg bg-accent text-white text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
+        className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
       >
         {t("storyboard.next")}
       </button>

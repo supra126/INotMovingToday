@@ -41,7 +41,7 @@ export function BatchCostConfirm({ rows, onConfirm, onClose }: BatchCostConfirmP
         <button
           type="button"
           onClick={onConfirm}
-          className="h-10 px-4 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-hover"
+          className="h-10 px-4 rounded-lg bg-accent text-accent-fg text-sm font-medium hover:bg-accent-hover"
         >
           {t("storyboard.videos.confirm")}
         </button>

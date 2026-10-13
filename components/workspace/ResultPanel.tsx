@@ -126,7 +126,7 @@ export function ResultPanel({
       {videoUrl && !isWorking && (
         <>
           <div className="flex gap-2">
-            <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-white hover:bg-accent-hover transition-colors">
+            <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors">
               {t("result.download")}
             </button>
             <button onClick={onRegenerate} className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 transition-colors">

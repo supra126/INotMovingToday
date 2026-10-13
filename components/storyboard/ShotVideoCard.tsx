@@ -137,7 +137,7 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
             className={`h-9 px-3 rounded-lg text-sm disabled:opacity-40 ${
               video
                 ? "border border-line text-foreground hover:bg-white/5"
-                : "bg-accent text-white hover:bg-accent-hover"
+                : "bg-accent text-accent-fg hover:bg-accent-hover"
             }`}
           >
             {!video

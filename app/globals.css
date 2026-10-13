@@ -1,168 +1,141 @@
 @import "tailwindcss";
 
 /*
- * Jola Omni design tokens: restrained dark theme, single deep-blue accent.
- * Tailwind's gray and blue scales are remapped so existing utilities
- * (text-gray-400, bg-blue-600, ...) follow the system without per-component colors.
+ * Jola Omni design tokens, shared with IGiveUpOnLife (dark theme only):
+ * graphite neutrals and a near-white accent; colour is reserved for status
+ * (danger = error, success = done, warning = stale).
  */
-:root {
-  --background: #17171a;
-  --surface: #1e1e22;
-  --surface-raised: #26262b;
-  --line: rgb(255 255 255 / 0.08);
-  --foreground: #ededef;
-  --muted: #9b9ba4;
-  --accent: #2f5fd0;
-  --accent-hover: #2750b2;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-raised: var(--surface-raised);
-  --color-line: var(--line);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --font-sans: var(--font-geist), var(--font-noto-sans-tc), system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-}
-
 @theme {
-  /* Neutral charcoal greys (no blue tint) */
-  --color-gray-50: #fafafa;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-300: #d0d0d5;
-  --color-gray-400: #9b9ba4;
-  --color-gray-500: #74747d;
-  --color-gray-600: #55555d;
-  --color-gray-700: #3d3d44;
-  --color-gray-800: #2a2a30;
-  --color-gray-900: #1e1e22;
-  --color-gray-950: #17171a;
+  --font-sans: var(--font-plex-sans), var(--font-noto-sans-tc), "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
 
-  /* Deep blue accent */
-  --color-blue-50: #eef3fd;
-  --color-blue-100: #dce6fb;
-  --color-blue-200: #bacdf6;
-  --color-blue-300: #93b0ee;
-  --color-blue-400: #7096e6;
-  --color-blue-500: #4a77dc;
-  --color-blue-600: #2f5fd0;
-  --color-blue-700: #2750b2;
-  --color-blue-800: #213f8a;
-  --color-blue-900: #1c3368;
-  --color-blue-950: #142347;
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* Earlier names still used by some components, mapped onto the tokens above */
+  --color-background: var(--canvas);
+  --color-foreground: var(--fg);
+  --color-surface: var(--sunken);
+  --color-surface-raised: var(--raised);
+  --color-muted: var(--fg-muted);
+  --color-accent-hover: var(--accent-hover);
+
+  /* Tailwind greys and blues follow the graphite scale, so stray utilities stay neutral */
+  --color-gray-50: oklch(0.97 0.002 260);
+  --color-gray-100: oklch(0.94 0.004 260);
+  --color-gray-200: oklch(0.88 0.005 260);
+  --color-gray-300: oklch(0.8 0.006 260);
+  --color-gray-400: oklch(0.72 0.008 260);
+  --color-gray-500: oklch(0.6 0.008 260);
+  --color-gray-600: oklch(0.45 0.008 260);
+  --color-gray-700: oklch(0.37 0.008 260);
+  --color-gray-800: oklch(0.29 0.006 260);
+  --color-gray-900: oklch(0.205 0.005 260);
+  --color-gray-950: oklch(0.17 0.004 260);
+  --color-blue-300: oklch(0.88 0.005 260);
+  --color-blue-400: oklch(0.8 0.006 260);
+  --color-blue-500: oklch(0.72 0.008 260);
+  --color-blue-600: oklch(0.45 0.008 260);
+  --color-blue-700: oklch(0.37 0.008 260);
 }
 
-html {
-  background-color: var(--background);
-}
-
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3, p {
-  text-wrap: pretty;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-::-webkit-scrollbar-thumb {
-  background: #3d3d44;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #55555d;
-}
-
-/* Selectable option (ratio, resolution, duration...) */
-.glass-card {
-  background: var(--surface-raised);
-}
-
-.selection-glow {
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-.preview-glass {
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-
-/* Line clamp utilities */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* UploadPhase RWD - Mobile First */
-.upload-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.upload-layout .upload-settings {
-  width: 100%;
-  order: 2;
-}
-
-.upload-layout .upload-preview {
-  width: 100%;
-  order: 1;
-}
-
-.upload-layout .upload-preview-inner {
-  max-width: 280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Desktop: lg breakpoint (1024px+) */
-@media (min-width: 1024px) {
-  .upload-layout {
-    flex-direction: row;
-    gap: 2rem;
+@layer base {
+  :root {
+    color-scheme: dark;
+    --canvas: oklch(0.17 0.004 260);
+    --panel: oklch(0.205 0.005 260);
+    --raised: oklch(0.24 0.006 260);
+    --sunken: oklch(0.15 0.004 260);
+    --line: oklch(0.29 0.006 260);
+    --line-strong: oklch(0.37 0.008 260);
+    --fg: oklch(0.94 0.004 260);
+    --fg-muted: oklch(0.72 0.008 260);
+    --fg-subtle: oklch(0.66 0.008 260);
+    --accent: oklch(0.95 0.003 260);
+    --accent-hover: oklch(0.86 0.003 260);
+    --accent-fg: oklch(0.17 0.005 260);
+    --accent-soft: oklch(0.95 0.003 260 / 0.1);
+    --danger: oklch(0.68 0.16 25);
+    --danger-soft: oklch(0.68 0.16 25 / 0.14);
+    --success: oklch(0.72 0.13 155);
+    --warning: oklch(0.8 0.13 80);
+    --checker: oklch(0.19 0.005 260);
+    --radius-control: 6px;
+    --radius-panel: 10px;
   }
 
-  .upload-layout .upload-settings {
-    width: 40%;
-    flex-shrink: 0;
-    order: 1;
+  html,
+  body {
+    background: var(--canvas);
   }
 
-  .upload-layout .upload-preview {
-    flex: 1;
-    order: 2;
+  body {
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .upload-layout .upload-preview-inner {
-    max-width: none;
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  /* Small uppercase label for panel sections */
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+
+  /* Checkerboard behind images and empty previews */
+  .checker {
+    background-color: var(--sunken);
+    background-image:
+      linear-gradient(45deg, var(--checker) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--checker) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--checker) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--checker) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }
 }

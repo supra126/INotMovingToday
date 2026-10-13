@@ -207,7 +207,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo }: StepProps) 
             type="button"
             disabled={!!busy}
             onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : confirm}
-            className="h-11 rounded-lg bg-accent text-white text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
+            className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
           >
             {busy === "confirm"
               ? t("storyboard.script.confirming")

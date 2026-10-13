@@ -67,7 +67,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         type="button"
         disabled={!canEnterStep(project, 2)}
         onClick={() => goTo(2)}
-        className="h-11 rounded-lg bg-accent text-white text-[15px] font-medium hover:bg-accent-hover transition-colors disabled:opacity-40"
+        className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover transition-colors disabled:opacity-40"
       >
         {t("storyboard.next")}
       </button>

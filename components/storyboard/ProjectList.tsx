@@ -36,7 +36,7 @@ export function ProjectList({ projects, activeId, onOpen, onCreate, onDelete }: 
       <button
         type="button"
         onClick={onCreate}
-        className="h-8 px-3 rounded-md bg-accent text-white text-sm hover:bg-accent-hover transition-colors"
+        className="h-8 px-3 rounded-md bg-accent text-accent-fg text-sm hover:bg-accent-hover transition-colors"
       >
         {t("storyboard.newProject")}
       </button>
