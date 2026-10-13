@@ -84,10 +84,12 @@ export function ResultPanel({
     status === "composing" ? t("result.composing") : isExtending ? t("result.extending") : t("result.generating");
 
   return (
-    <div className="lg:sticky lg:top-20 flex flex-col gap-4">
+    <div className="flex w-full flex-col items-center gap-4">
       <div
-        className={`relative mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface ${
-          ratio === "9:16" ? "aspect-[9/16] max-w-[min(100%,calc((100vh-12rem)*9/16))]" : "aspect-video"
+        className={`relative overflow-hidden rounded-[var(--radius-panel)] border border-line checker ${
+          ratio === "9:16"
+            ? "aspect-[9/16] w-full max-w-sm lg:h-[calc(100dvh-14rem)] lg:w-auto lg:max-w-full"
+            : "aspect-video w-full max-w-5xl"
         }`}
       >
         {videoUrl ? (
@@ -118,14 +120,14 @@ export function ResultPanel({
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">
+        <p role="alert" className="w-full max-w-md rounded-[var(--radius-control)] border border-danger/40 bg-danger-soft px-3 py-2 text-sm text-danger">
           {translate(error)}
         </p>
       )}
 
       {videoUrl && !isWorking && (
         <>
-          <div className="flex gap-2">
+          <div className="flex w-full max-w-md gap-2">
             <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors">
               {t("result.download")}
             </button>
@@ -134,7 +136,7 @@ export function ResultPanel({
             </button>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border border-line p-3.5">
+          <div className="flex w-full max-w-md flex-col gap-2 rounded-[var(--radius-panel)] border border-line bg-panel p-3.5">
             <label htmlFor="extend-prompt" className="text-xs text-muted">
               {t("result.extendLabel", { total: totalDuration, max: MAX_TOTAL_DURATION })}
             </label>
@@ -178,7 +180,7 @@ export function ResultPanel({
       )}
 
       {finalPrompt && (
-        <details className="rounded-lg border border-line">
+        <details className="w-full max-w-md rounded-[var(--radius-panel)] border border-line bg-panel">
           <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-xs text-muted">
             <span>{t("result.finalPrompt")}</span>
             <button
