@@ -131,7 +131,7 @@ export function ResultPanel({
             <button onClick={handleDownload} className="h-10 flex-1 rounded-lg bg-accent text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors">
               {t("result.download")}
             </button>
-            <button onClick={onRegenerate} className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 transition-colors">
+            <button onClick={onRegenerate} className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-raised transition-colors">
               {t("result.regenerate")}
             </button>
           </div>
@@ -148,7 +148,7 @@ export function ResultPanel({
                   onChange={(e) => setExtendPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleExtend()}
                   placeholder={t("result.extendPlaceholder")}
-                  className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-foreground placeholder-gray-500 focus:border-accent focus:outline-none"
+                  className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-foreground placeholder:text-fg-subtle focus:border-accent focus:outline-none"
                 />
                 <div className="flex gap-2">
                   <select
@@ -166,7 +166,7 @@ export function ResultPanel({
                   <button
                     onClick={handleExtend}
                     disabled={!extendPrompt.trim()}
-                    className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-white/5 transition-colors disabled:opacity-40"
+                    className="h-10 flex-1 rounded-lg border border-line text-sm text-foreground hover:bg-raised transition-colors disabled:opacity-40"
                   >
                     {t("result.extendButton")}
                   </button>
@@ -194,7 +194,7 @@ export function ResultPanel({
               {copied ? t("result.copied") : t("result.copy")}
             </button>
           </summary>
-          <p className="px-3.5 pb-3 font-mono text-xs leading-relaxed text-gray-300">{finalPrompt}</p>
+          <p className="px-3.5 pb-3 font-mono text-xs leading-relaxed text-fg">{finalPrompt}</p>
         </details>
       )}
     </div>

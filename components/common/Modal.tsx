@@ -74,18 +74,18 @@ export function Modal({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`
               w-full ${sizeStyles[size]}
-              bg-gray-900 rounded-2xl shadow-2xl
-              border border-gray-800
+              bg-panel rounded-[var(--radius-panel)] shadow-2xl
+              border border-line
               overflow-hidden
             `}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-                <h2 className="text-xl font-semibold text-white">{title}</h2>
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-line">
+                <h2 className="text-base font-semibold text-fg">{title}</h2>
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-fg-muted hover:text-fg transition-colors"
                     aria-label={t("common.closeModal")}
                   >
                     <svg
@@ -105,7 +105,7 @@ export function Modal({
                 )}
               </div>
             )}
-            <div className="p-6">{children}</div>
+            <div className="p-5">{children}</div>
           </motion.div>
         </motion.div>
       )}
@@ -136,7 +136,7 @@ export function ConfirmModal({
   const { t } = useLocale();
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-gray-300 mb-6">{message}</p>
+      <p className="text-fg mb-6">{message}</p>
       <div className="flex gap-3 justify-end">
         <Button variant="ghost" onClick={onClose}>
           {cancelText || t("common.cancel")}

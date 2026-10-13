@@ -61,14 +61,14 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
       <div className="space-y-6">
         {/* Server has key: Show free mode info */}
         {serverHasKey && (
-          <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+          <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-green-300 font-bold text-sm">{t("apiKeyModal.freeMode.title")}</span>
+              <span className="text-success font-bold text-sm">{t("apiKeyModal.freeMode.title")}</span>
             </div>
-            <p className="text-green-300/70 text-xs">
+            <p className="text-success text-xs">
               {t("apiKeyModal.freeMode.description")}
               <br />
               {t("apiKeyModal.freeMode.hint")}
@@ -79,33 +79,33 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
         {/* Connection Status (only show when server doesn't have key) */}
         {!serverHasKey && (
           hasGeminiKey ? (
-            <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+            <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-green-300 font-bold text-sm">{t("apiKeyModal.connected.title")}</span>
+                <span className="text-success font-bold text-sm">{t("apiKeyModal.connected.title")}</span>
               </div>
-              <p className="text-green-300/70 text-xs">
+              <p className="text-success text-xs">
                 {t("apiKeyModal.connected.description")}
               </p>
             </div>
           ) : (
-            <div className="p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+            <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <span className="text-yellow-300 font-bold text-sm">{t("apiKeyModal.required.title")}</span>
+                <span className="text-warning font-bold text-sm">{t("apiKeyModal.required.title")}</span>
               </div>
-              <p className="text-yellow-300/70 text-xs">
+              <p className="text-warning text-xs">
                 {t("apiKeyModal.required.description")}
               </p>
             </div>
           )
         )}
 
-        <p className="text-gray-400 text-sm">
+        <p className="text-fg-muted text-sm">
           {serverHasKey
             ? t("apiKeyModal.descriptionFree")
             : t("apiKeyModal.description")}
@@ -115,13 +115,13 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
         <div>
           <label
             htmlFor="gemini-key"
-            className="block text-sm font-medium text-gray-300 mb-2"
+            className="block text-sm font-medium text-fg mb-2"
           >
             {t("apiKeyModal.geminiKey.label")}
             {serverHasKey ? (
-              <span className="text-gray-400 ml-1 text-xs">{t("apiKeyModal.geminiKey.optional")}</span>
+              <span className="text-fg-muted ml-1 text-xs">{t("apiKeyModal.geminiKey.optional")}</span>
             ) : (
-              <span className="text-red-400 ml-1">{t("apiKeyModal.geminiKey.required")}</span>
+              <span className="text-danger ml-1">{t("apiKeyModal.geminiKey.required")}</span>
             )}
           </label>
           <div className="relative">
@@ -134,17 +134,17 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
                 setKeyError(false);
               }}
               placeholder={t("apiKeyModal.geminiKey.placeholder")}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12 font-mono text-sm"
+              className="w-full px-4 py-3 bg-sunken border border-line rounded-[var(--radius-control)] text-white placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-transparent pr-12 font-mono text-sm"
             />
           </div>
           {keyError && (
-            <p role="alert" className="mt-1 text-xs text-red-400">{t("apiKeyModal.geminiKey.invalid")}</p>
+            <p role="alert" className="mt-1 text-xs text-danger">{t("apiKeyModal.geminiKey.invalid")}</p>
           )}
           <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 text-xs hover:text-blue-300 mt-1 inline-block"
+            className="text-fg text-xs hover:text-fg mt-1 inline-block"
           >
             {t("apiKeyModal.geminiKey.getKeyLink")}
           </a>
@@ -153,7 +153,7 @@ export function ApiKeyModal({ isOpen, onClose, onSave, serverHasKey = false }: A
         {/* Show/Hide Keys Toggle */}
         <button
           onClick={() => setShowKeys(!showKeys)}
-          className="text-gray-400 text-sm hover:text-gray-400 flex items-center gap-2"
+          className="text-fg-muted text-sm hover:text-fg-muted flex items-center gap-2"
         >
           <svg
             className="w-4 h-4"

@@ -37,7 +37,7 @@ interface InputPanelProps {
 }
 
 const textareaClass =
-  "w-full bg-surface border border-line rounded-lg px-3.5 py-3 text-foreground placeholder-gray-500 focus:border-accent focus:outline-none transition-colors resize-none text-sm leading-relaxed disabled:opacity-50";
+  "w-full bg-surface border border-line rounded-lg px-3.5 py-3 text-foreground placeholder:text-fg-subtle focus:border-accent focus:outline-none transition-colors resize-none text-sm leading-relaxed disabled:opacity-50";
 
 export function InputPanel({
   startFrame,
@@ -172,7 +172,7 @@ export function InputPanel({
           disabled={!canDraft}
           className={`h-11 rounded-lg text-[15px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
             hasDraft
-              ? "border border-line text-foreground hover:bg-white/5"
+              ? "border border-line text-foreground hover:bg-raised"
               : "bg-accent text-accent-fg hover:bg-accent-hover"
           }`}
         >
@@ -187,7 +187,7 @@ export function InputPanel({
           onClick={onGenerateDirect}
           disabled={!canGenerateDirect}
           title={t("workspace.directHint")}
-          className="h-11 px-4 rounded-lg border border-line text-[15px] text-foreground hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="h-11 px-4 rounded-lg border border-line text-[15px] text-foreground hover:bg-raised transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {t("workspace.directButton")}
         </button>
