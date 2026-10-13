@@ -208,3 +208,8 @@ export function parseRewrittenPrompt(raw: unknown): string {
   if (!prompt) throw new Error("Failed to parse AI response: missing prompt");
   return prompt;
 }
+
+export type ScriptParseInput = ScriptContext & { sourceText: string };
+export type ScriptReviseInput = ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string };
+export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[] };
+export type ImagePromptRewriteInput = ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string };

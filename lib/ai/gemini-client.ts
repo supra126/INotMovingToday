@@ -7,6 +7,20 @@ import {
   type PromptContext,
   type PromptDraftInput,
 } from "./prompts";
+import {
+  buildImagePromptRewritePrompt,
+  buildImagePromptsPrompt,
+  buildScriptParsePrompt,
+  buildScriptRevisePrompt,
+  parseImagePrompts,
+  parseRewrittenPrompt,
+  parseScriptResult,
+  type ImagePromptRewriteInput,
+  type ImagePromptsInput,
+  type ScriptParseInput,
+  type ScriptResult,
+  type ScriptReviseInput,
+} from "./storyboard-prompts";
 import { geminiLogger as logger } from "@/lib/logger";
 
 const MODEL_NAME = "gemini-3.8-flash";
@@ -186,6 +200,64 @@ export class GeminiClient {
       throw new Error("Failed to parse AI response: missing prompt");
     }
     return prompt;
+  }
+
+  /**
+   * Generate JSON and validate it; a malformed answer is retried once
+   */
+  private async generateParsed<T>(
+    prompt: string,
+    imageParts: Part[],
+    validate: (raw: unknown) => T,
+    thinkingLevel?: GeminiThinkingLevel
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const text = await this.generateJson(prompt, imageParts, thinkingLevel ?? this.thinkingLevel);
+      try {
+        return validate(this.parse<unknown>(text));
+      } catch (err) {
+        lastError = err;
+        logger.warn(`Invalid AI response (attempt ${attempt + 1}):`, err);
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("Failed to parse AI response");
+  }
+
+  /**
+   * Storyboard: turn a script image and/or text into a shot table with suggestions
+   */
+  async parseScript(input: ScriptParseInput, source: File | undefined, products: File[]): Promise<ScriptResult> {
+    const files = source ? [source, ...products] : products;
+    const imageParts = await Promise.all(files.map((file) => this.fileToGenerativePart(file)));
+    const prompt = buildScriptParsePrompt({
+      ...input,
+      hasSourceImage: !!source,
+      productCount: products.length,
+    });
+    return this.generateParsed(prompt, imageParts, parseScriptResult);
+  }
+
+  /**
+   * Storyboard: apply a chat request to the table
+   */
+  async reviseScript(input: ScriptReviseInput): Promise<ScriptResult> {
+    return this.generateParsed(buildScriptRevisePrompt(input), [], parseScriptResult);
+  }
+
+  /**
+   * Storyboard: write an English keyframe prompt for every shot
+   */
+  async writeImagePrompts(input: ImagePromptsInput): Promise<Record<string, string>> {
+    const ids = input.shots.map((shot) => shot.id);
+    return this.generateParsed(buildImagePromptsPrompt(input), [], (raw) => parseImagePrompts(raw, ids));
+  }
+
+  /**
+   * Storyboard: rewrite one keyframe prompt from a short note (fast, low thinking)
+   */
+  async rewriteImagePrompt(input: ImagePromptRewriteInput): Promise<string> {
+    return this.generateParsed(buildImagePromptRewritePrompt(input), [], parseRewrittenPrompt, "low");
   }
 
   private parse<T>(text: string): T {
