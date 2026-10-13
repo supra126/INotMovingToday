@@ -125,6 +125,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header
+        active="single"
         hasApiKey={apiKeyStatus.hasApiKey}
         serverHasKey={apiKeyStatus.serverHasKey}
         onGuideClick={() => setShowGuideModal(true)}

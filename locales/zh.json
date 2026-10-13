@@ -31,7 +31,9 @@
     "apiSettingsFree": "API 設定 (免費)",
     "apiSettingsCustom": "API 設定 (自訂)",
     "apiSettingsConnected": "API 設定 (已連線)",
-    "github": "GitHub"
+    "github": "GitHub",
+    "modeSingle": "單鏡生成",
+    "modeStoryboard": "分鏡模式"
   },
   "guide": {
     "title": "使用方式",
@@ -218,7 +220,8 @@
     "contentFilteredAdult": "內容因含有成人/不雅內容而被攔截，請使用其他圖片",
     "contentFilteredCopyright": "內容因潛在版權問題而被攔截，請使用其他圖片",
     "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定",
-    "promptRequired": "請先輸入描述或取得 AI 建議"
+    "promptRequired": "請先輸入描述或取得 AI 建議",
+    "imageGenerationFailed": "分鏡圖生成失敗，請重試"
   },
   "workspace": {
     "draftButton": "AI 建議提示詞",
@@ -253,5 +256,105 @@
     "finalPrompt": "送出的英文提示詞",
     "copy": "複製",
     "copied": "已複製"
+  },
+  "storyboard": {
+    "projects": "專案",
+    "newProject": "新專案",
+    "deleteProject": "刪除",
+    "deleteConfirm": "刪除「{{name}}」？圖片和影片都會一起刪除，無法復原。",
+    "empty": "還沒有專案，按「新專案」開始",
+    "loading": "載入中…",
+    "steps": {
+      "1": "專案設定",
+      "2": "分鏡表",
+      "3": "分鏡圖",
+      "4": "影片"
+    },
+    "next": "下一步",
+    "back": "上一步",
+    "cost": "預估 {{price}}",
+    "costMinimum": "預估 {{price}} 起",
+    "setup": {
+      "name": "專案名稱",
+      "products": "產品圖",
+      "productsHint": "1～2 張，每張分鏡圖都會帶上，請用清楚的正面包裝照",
+      "packagingText": "包裝上不能錯的字",
+      "packagingTextPlaceholder": "例如：PDRN 極潤修護黑面膜",
+      "ratio": "比例",
+      "ratioLocked": "分鏡表確認後比例就固定了",
+      "tone": "調性",
+      "tonePlaceholder": "例如：高級、乾淨、科技感"
+    },
+    "script": {
+      "sourceImage": "腳本圖",
+      "sourceImageHint": "選填，表格或分鏡截圖",
+      "sourceText": "腳本或想法",
+      "sourceTextPlaceholder": "貼上腳本，或描述你想做的影片：秒數、要強調的特色、風格…",
+      "analyze": "整理成分鏡表",
+      "reanalyze": "重新整理",
+      "analyzing": "AI 整理中…",
+      "suggestions": "AI 建議",
+      "table": "分鏡表",
+      "columns": {
+        "id": "鏡",
+        "seconds": "秒",
+        "visual": "畫面",
+        "camera": "運鏡",
+        "sound": "音效",
+        "music": "配樂",
+        "onScreenText": "畫面文字",
+        "transition": "轉場",
+        "hasPackaging": "包裝"
+      },
+      "chatPlaceholder": "想改什麼？例如：s03 改成手拿面膜展示",
+      "send": "送出",
+      "confirm": "確認分鏡表，生成分鏡圖",
+      "confirming": "撰寫生圖提示詞中…",
+      "needInput": "請上傳腳本圖或輸入文字"
+    },
+    "images": {
+      "generating": "生成中…",
+      "generateMissing": "生成缺少的分鏡圖",
+      "stale": "分鏡已修改，建議重生",
+      "packagingHint": "請放大檢查包裝上的字",
+      "regenerate": "重生 2 張",
+      "notePlaceholder": "想怎麼改？例如：人物換成短髮",
+      "editPrompt": "編輯英文提示詞",
+      "selected": "已選",
+      "finalSize": "定稿尺寸",
+      "finalSizeHint": "1K 直接使用選好的圖；2K／4K 會用同一個提示詞重出一張",
+      "finalize": "重出 {{count}} 張 {{size}}",
+      "finalizing": "重出中…",
+      "needSelection": "每一鏡都要選好圖",
+      "final": "定稿"
+    },
+    "videos": {
+      "settings": "整支影片的設定",
+      "drafting": "AI 填寫欄位中…",
+      "endFrame": "結束畫面",
+      "endFrameNone": "無",
+      "endFrameNext": "下一鏡的圖",
+      "endFrameUpload": "自己上傳",
+      "generateAll": "全部生成",
+      "generateMissing": "生成尚未完成的鏡頭",
+      "confirmTitle": "確認花費",
+      "confirmRow": "{{id}}　{{seconds}} 秒　{{resolution}}{{end}}",
+      "confirmEnd": "　有結束畫面",
+      "confirmTotal": "共 {{seconds}} 秒，預估 {{price}}",
+      "confirm": "確認生成",
+      "cancel": "取消",
+      "status": {
+        "generating": "生成中 {{progress}}%",
+        "completed": "完成",
+        "failed": "失敗",
+        "interrupted": "生成中斷，請重生"
+      },
+      "regenerate": "重生",
+      "retry": "重試",
+      "download": "下載",
+      "extend": "延伸",
+      "extendPlaceholder": "接下來發生什麼？",
+      "prompt": "送出的英文提示詞"
+    }
   }
 }

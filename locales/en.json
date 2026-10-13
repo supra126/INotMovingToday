@@ -31,7 +31,9 @@
     "apiSettingsFree": "API Settings (Free)",
     "apiSettingsCustom": "API Settings (Custom)",
     "apiSettingsConnected": "API Settings (Connected)",
-    "github": "GitHub"
+    "github": "GitHub",
+    "modeSingle": "Single shot",
+    "modeStoryboard": "Storyboard"
   },
   "guide": {
     "title": "How to use",
@@ -218,7 +220,8 @@
     "contentFilteredAdult": "Content was blocked due to adult/NSFW content. Please use a different image",
     "contentFilteredCopyright": "Content was blocked due to potential copyright issues. Please use a different image",
     "videoGenerationUnknown": "Video generation completed but no video was produced. Please try again with different settings",
-    "promptRequired": "Enter a description or get an AI suggestion first"
+    "promptRequired": "Enter a description or get an AI suggestion first",
+    "imageGenerationFailed": "Storyboard image failed, please retry"
   },
   "workspace": {
     "draftButton": "Suggest prompt",
@@ -253,5 +256,105 @@
     "finalPrompt": "English prompt sent to Omni",
     "copy": "Copy",
     "copied": "Copied"
+  },
+  "storyboard": {
+    "projects": "Projects",
+    "newProject": "New project",
+    "deleteProject": "Delete",
+    "deleteConfirm": "Delete \"{{name}}\"? Its images and videos are deleted too. This cannot be undone.",
+    "empty": "No projects yet. Click \"New project\" to start",
+    "loading": "Loading…",
+    "steps": {
+      "1": "Setup",
+      "2": "Storyboard",
+      "3": "Frames",
+      "4": "Videos"
+    },
+    "next": "Next",
+    "back": "Back",
+    "cost": "Est. {{price}}",
+    "costMinimum": "Est. from {{price}}",
+    "setup": {
+      "name": "Project name",
+      "products": "Product images",
+      "productsHint": "1–2 images, sent with every frame. Use a clear front view of the packaging",
+      "packagingText": "Packaging text that must stay exact",
+      "packagingTextPlaceholder": "e.g. PDRN Repair Black Mask",
+      "ratio": "Aspect ratio",
+      "ratioLocked": "The ratio is fixed once the storyboard is confirmed",
+      "tone": "Tone",
+      "tonePlaceholder": "e.g. premium, clean, high-tech"
+    },
+    "script": {
+      "sourceImage": "Script image",
+      "sourceImageHint": "Optional: a table or storyboard screenshot",
+      "sourceText": "Script or idea",
+      "sourceTextPlaceholder": "Paste a script, or describe the video: length, features to show, style…",
+      "analyze": "Build storyboard",
+      "reanalyze": "Rebuild",
+      "analyzing": "AI is working…",
+      "suggestions": "AI suggestions",
+      "table": "Storyboard",
+      "columns": {
+        "id": "Shot",
+        "seconds": "Sec",
+        "visual": "Picture",
+        "camera": "Camera",
+        "sound": "SFX",
+        "music": "Music",
+        "onScreenText": "On-screen text",
+        "transition": "Transition",
+        "hasPackaging": "Pack"
+      },
+      "chatPlaceholder": "What should change? e.g. make s03 a hand holding the mask",
+      "send": "Send",
+      "confirm": "Confirm storyboard and make frames",
+      "confirming": "Writing image prompts…",
+      "needInput": "Upload a script image or enter text"
+    },
+    "images": {
+      "generating": "Generating…",
+      "generateMissing": "Generate missing frames",
+      "stale": "Storyboard changed, regenerate recommended",
+      "packagingHint": "Zoom in and check the packaging text",
+      "regenerate": "Regenerate 2",
+      "notePlaceholder": "What to change? e.g. short hair",
+      "editPrompt": "Edit English prompt",
+      "selected": "Selected",
+      "finalSize": "Final size",
+      "finalSizeHint": "1K uses the picked frame as is; 2K / 4K re-render it with the same prompt",
+      "finalize": "Re-render {{count}} at {{size}}",
+      "finalizing": "Re-rendering…",
+      "needSelection": "Pick a frame for every shot",
+      "final": "Final"
+    },
+    "videos": {
+      "settings": "Settings for all shots",
+      "drafting": "AI is filling in fields…",
+      "endFrame": "End frame",
+      "endFrameNone": "None",
+      "endFrameNext": "Next shot's frame",
+      "endFrameUpload": "Upload",
+      "generateAll": "Generate all",
+      "generateMissing": "Generate unfinished shots",
+      "confirmTitle": "Confirm cost",
+      "confirmRow": "{{id}}  {{seconds}}s  {{resolution}}{{end}}",
+      "confirmEnd": "  with end frame",
+      "confirmTotal": "{{seconds}}s in total, est. {{price}}",
+      "confirm": "Generate",
+      "cancel": "Cancel",
+      "status": {
+        "generating": "Generating {{progress}}%",
+        "completed": "Done",
+        "failed": "Failed",
+        "interrupted": "Interrupted, please regenerate"
+      },
+      "regenerate": "Regenerate",
+      "retry": "Retry",
+      "download": "Download",
+      "extend": "Extend",
+      "extendPlaceholder": "What happens next?",
+      "prompt": "English prompt sent"
+    }
   }
 }

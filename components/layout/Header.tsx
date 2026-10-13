@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLocale } from "@/contexts/LocaleContext";
 
@@ -8,9 +9,10 @@ interface HeaderProps {
   serverHasKey: boolean;
   onGuideClick: () => void;
   onApiSettingsClick: () => void;
+  active?: "single" | "storyboard";
 }
 
-export function Header({ hasApiKey, serverHasKey, onGuideClick, onApiSettingsClick }: HeaderProps) {
+export function Header({ hasApiKey, serverHasKey, onGuideClick, onApiSettingsClick, active = "single" }: HeaderProps) {
   const { t } = useLocale();
 
   const getApiSettingsLabel = () => {
@@ -23,9 +25,24 @@ export function Header({ hasApiKey, serverHasKey, onGuideClick, onApiSettingsCli
   return (
     <header className="w-full h-14 border-b border-line bg-background/90 backdrop-blur sticky top-0 z-50">
       <div className="container mx-auto h-full px-4 lg:px-6 flex items-center justify-between">
-        <span className="text-[15px] font-semibold tracking-tight text-foreground">
-          {t("common.appName")}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
+            {t("common.appName")}
+          </span>
+          <div className="flex items-center gap-1 text-sm">
+            {(["single", "storyboard"] as const).map((mode) => (
+              <Link
+                key={mode}
+                href={mode === "single" ? "/" : "/storyboard"}
+                className={`h-8 px-2.5 inline-flex items-center rounded-md transition-colors ${
+                  active === mode ? "bg-white/10 text-foreground" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {t(mode === "single" ? "header.modeSingle" : "header.modeStoryboard")}
+              </Link>
+            ))}
+          </div>
+        </div>
 
         <nav className="flex items-center gap-1 text-sm">
           <LanguageToggle />
