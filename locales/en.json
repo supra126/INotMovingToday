@@ -371,6 +371,19 @@
       "needsFields": "Fields not filled in yet",
       "outdated": "The frame changed; regenerate recommended",
       "generateOne": "Generate this shot"
+    },
+    "rail": {
+      "title": "Shots",
+      "total": "{{seconds}}s total",
+      "empty": "Shots appear here once the storyboard is built"
+    },
+    "status": {
+      "empty": "Not started",
+      "unpicked": "Not picked",
+      "done": "Done",
+      "stale": "Outdated",
+      "failed": "Failed",
+      "busy": "Working"
     }
   }
 }

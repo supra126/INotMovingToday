@@ -371,6 +371,19 @@
       "needsFields": "尚未填寫欄位",
       "outdated": "分鏡圖已更換，建議重生",
       "generateOne": "生成這鏡"
+    },
+    "rail": {
+      "title": "鏡頭",
+      "total": "共 {{seconds}} 秒",
+      "empty": "整理出分鏡表後，鏡頭會列在這裡"
+    },
+    "status": {
+      "empty": "未處理",
+      "unpicked": "有圖未選",
+      "done": "完成",
+      "stale": "過期",
+      "failed": "失敗",
+      "busy": "處理中"
     }
   }
 }

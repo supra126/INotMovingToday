@@ -173,3 +173,30 @@ export function removeCandidate(shot: Shot, index: number): Shot {
 export function shotResolution(shot: Shot, project: StoryboardProject): VideoResolution {
   return shot.resolution ?? project.videoSettings.resolution;
 }
+
+export type ShotStatus = "empty" | "unpicked" | "done" | "stale" | "failed" | "busy";
+
+/** One status per shot for the rail: images up to step 3, the video in step 4 */
+export function shotStatus(shot: Shot, step: Step): ShotStatus {
+  if (step >= 4) {
+    if (shot.video?.status === "generating" || shot.draftStatus === "drafting") return "busy";
+    if (shot.video?.status === "failed" || shot.draftStatus === "failed") return "failed";
+    if (shot.video?.status === "completed") return shot.video.outdated ? "stale" : "done";
+    return "empty";
+  }
+  if (shot.imageStatus === "generating") return "busy";
+  if (shot.stale) return "stale";
+  if (shot.imageStatus === "failed" && shot.candidates.length === 0) return "failed";
+  if (shot.finalImage) return "done";
+  if (shot.candidates.length > 0) return "unpicked";
+  return "empty";
+}
+
+/** The selected shot, or the first one if the selection was removed or renumbered */
+export function resolveSelectedShot(shots: Shot[], id: string | null): Shot | undefined {
+  return shots.find((shot) => shot.id === id) ?? shots[0];
+}
+
+export function railThumbnail(shot: Shot): StoredImage | undefined {
+  return shot.finalImage ?? (shot.selected !== undefined ? shot.candidates[shot.selected] : shot.candidates[0]);
+}

@@ -17,6 +17,9 @@ import {
   shotAudioMode,
   removeCandidate,
   shotResolution,
+  shotStatus,
+  resolveSelectedShot,
+  railThumbnail,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -228,5 +231,47 @@ describe("shotResolution", () => {
     const p = newProject("id", 0);
     expect(shotResolution(toShot(row(), true), p)).toBe("720p");
     expect(shotResolution({ ...toShot(row(), true), resolution: "1080p" }, p)).toBe("1080p");
+  });
+});
+
+describe("workspace helpers", () => {
+  it("summarises a shot for the rail before videos", () => {
+    const shot = toShot(row(), true);
+    expect(shotStatus(shot, 2)).toBe("empty");
+    expect(shotStatus({ ...shot, imageStatus: "generating" }, 3)).toBe("busy");
+    expect(shotStatus({ ...shot, candidates: [img("a")] }, 3)).toBe("unpicked");
+    expect(shotStatus({ ...shot, candidates: [img("a")], selected: 0, finalImage: img("a") }, 3)).toBe("done");
+    expect(shotStatus({ ...shot, candidates: [img("a")], stale: true }, 3)).toBe("stale");
+    expect(shotStatus({ ...shot, imageStatus: "failed" }, 3)).toBe("failed");
+  });
+
+  it("summarises a shot's video in step 4", () => {
+    const shot = toShot(row(), true);
+    const video = { progress: 0, prompt: "", duration: 4 };
+    expect(shotStatus(shot, 4)).toBe("empty");
+    expect(shotStatus({ ...shot, draftStatus: "drafting" }, 4)).toBe("busy");
+    expect(shotStatus({ ...shot, video: { ...video, status: "generating" } }, 4)).toBe("busy");
+    expect(shotStatus({ ...shot, video: { ...video, status: "failed" } }, 4)).toBe("failed");
+    expect(shotStatus({ ...shot, video: { ...video, status: "completed" } }, 4)).toBe("done");
+    expect(shotStatus({ ...shot, video: { ...video, status: "completed", outdated: true } }, 4)).toBe("stale");
+  });
+
+  it("falls back to the first shot when the selection is gone", () => {
+    const shots = [toShot(row(), false), toShot(row({ id: "s02" }), true)];
+    expect(resolveSelectedShot(shots, "s02")?.id).toBe("s02");
+    expect(resolveSelectedShot(shots, "s09")?.id).toBe("s01");
+    expect(resolveSelectedShot(shots, null)?.id).toBe("s01");
+    expect(resolveSelectedShot([], "s01")).toBeUndefined();
+  });
+
+  it("picks the final, then the selected, then the first candidate as thumbnail", () => {
+    const a = img("a");
+    const b = img("b");
+    const shot = { ...toShot(row(), true), candidates: [a, b] };
+    expect(railThumbnail(shot)).toBe(a);
+    expect(railThumbnail({ ...shot, selected: 1 })).toBe(b);
+    const final = img("final");
+    expect(railThumbnail({ ...shot, selected: 1, finalImage: final })).toBe(final);
+    expect(railThumbnail(toShot(row(), true))).toBeUndefined();
   });
 });
