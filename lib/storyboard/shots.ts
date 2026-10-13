@@ -1,4 +1,4 @@
-import type { ImageSize, VideoDuration } from "@/types";
+import type { AudioMode, ImageSize, VideoDuration } from "@/types";
 import type { EndFrame, ScriptShot, Shot, Step, StoredImage, StoryboardProject } from "./types";
 
 const DURATIONS: VideoDuration[] = [4, 6, 8, 10];
@@ -129,7 +129,7 @@ export function newProject(id: string, now: number): StoryboardProject {
     script: { sourceText: "", chat: [], suggestions: [], confirmed: false },
     shots: [],
     finalSize: "1K",
-    videoSettings: { resolution: "720p", audioMode: "sfx" },
+    videoSettings: { resolution: "720p" },
     step: 1,
   };
 }
@@ -149,4 +149,15 @@ export function shotDescription(shot: ScriptShot): string {
 export function videoFileName(shot: ScriptShot): string {
   const label = shot.visual.replace(/[\s\\/:*?"<>|,，。.!！]/g, "").slice(0, 10);
   return `${shot.id}${label ? `-${label}` : ""}.mp4`;
+}
+
+const NO_MUSIC = /^(無|无|none|no)?$/i;
+
+export function hasMusic(music: string): boolean {
+  return !NO_MUSIC.test(music.trim());
+}
+
+/** Music is decided per shot: only shots with music get an Omni soundtrack */
+export function shotAudioMode(shot: ScriptShot): AudioMode {
+  return hasMusic(shot.music) ? "sfx_music" : "sfx";
 }

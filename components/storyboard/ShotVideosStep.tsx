@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioModeSelector } from "@/components/upload/AudioModeSelector";
 import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { useLocale } from "@/contexts/LocaleContext";
 import { getApiKey } from "@/lib/storage/api-key-storage";
@@ -68,7 +67,6 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
       <div className="grid gap-4 rounded-lg border border-line p-4 md:grid-cols-2">
         <span className="text-sm font-medium text-foreground md:col-span-2">{t("storyboard.videos.settings")}</span>
         <ResolutionSelector value={project.videoSettings.resolution} onChange={(resolution) => setSettings({ resolution })} />
-        <AudioModeSelector value={project.videoSettings.audioMode} onChange={(audioMode) => setSettings({ audioMode })} />
       </div>
 
       {needDraft.length > 0 && (

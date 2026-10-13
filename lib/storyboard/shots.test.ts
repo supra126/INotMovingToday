@@ -14,6 +14,7 @@ import {
   toShot,
   videoFileName,
   withFinalImage,
+  shotAudioMode,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -186,5 +187,15 @@ describe("review fixes", () => {
     const p = newProject("id", 0);
     p.shots = [{ ...toShot(row(), true), draftStatus: "drafting" }];
     expect(normalizeOnLoad(p).shots[0].draftStatus).toBeUndefined();
+  });
+});
+
+describe("shot music", () => {
+  it("decides the audio of each shot", () => {
+    expect(shotAudioMode(row({ music: "無" }))).toBe("sfx");
+    expect(shotAudioMode(row({ music: "" }))).toBe("sfx");
+    expect(shotAudioMode(row({ music: "none" }))).toBe("sfx");
+    expect(shotAudioMode(row({ music: "有" }))).toBe("sfx_music");
+    expect(shotAudioMode(row({ music: "輕快電子" }))).toBe("sfx_music");
   });
 });

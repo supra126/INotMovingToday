@@ -7,7 +7,7 @@ import { toFile } from "./blob";
 import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
-import { endFrameImage, shotDescription } from "./shots";
+import { endFrameImage, shotAudioMode, shotDescription } from "./shots";
 import type { StoryboardProject } from "./types";
 
 const fetchBlob = async (url: string) => {
@@ -56,7 +56,7 @@ function promptContext(project: StoryboardProject, index: number, locale: Locale
     mode: hasEnd ? "frames_to_video" : "single_image",
     ratio: project.ratio,
     duration: shot.duration,
-    audioMode: project.videoSettings.audioMode,
+    audioMode: shotAudioMode(shot),
     locale,
   };
 }
@@ -140,7 +140,7 @@ export async function generateShotVideos(
           ratio: project.ratio,
           resolution: project.videoSettings.resolution,
           duration: shot.duration,
-          audioMode: project.videoSettings.audioMode,
+          audioMode: shotAudioMode(shot),
           startImage: shot.finalImage!.blob,
           endImage: endFrameImage(project.shots, index)?.blob,
         },
@@ -197,7 +197,7 @@ export async function extendShotVideo(
         sourceVideoUri: previous.sourceVideoUri,
         ratio: project.ratio,
         resolution: project.videoSettings.resolution,
-        audioMode: project.videoSettings.audioMode,
+        audioMode: shotAudioMode(shot),
         extensionDuration: seconds,
       },
       {

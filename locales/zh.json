@@ -312,7 +312,10 @@
       "confirm": "確認分鏡表，生成分鏡圖",
       "confirming": "撰寫生圖提示詞中…",
       "needInput": "請上傳腳本圖或輸入文字",
-      "generates": "→ 生成 {{seconds}} 秒"
+      "scriptSeconds": "（腳本 {{seconds}} 秒，後製剪短）",
+      "musicNo": "無",
+      "musicYes": "有",
+      "musicStylePlaceholder": "風格（選填），例如：輕快電子"
     },
     "images": {
       "generating": "生成中…",

@@ -1,10 +1,12 @@
 "use client";
 
 import { useLocale } from "@/contexts/LocaleContext";
-import { snapDuration } from "@/lib/storyboard/shots";
+import { hasMusic, snapDuration } from "@/lib/storyboard/shots";
 import type { ScriptShot, Shot } from "@/lib/storyboard/types";
 
-type TextKey = "visual" | "camera" | "sound" | "music" | "onScreenText" | "transition";
+type TextKey = "visual" | "camera" | "sound" | "onScreenText" | "transition";
+
+const DURATIONS = [4, 6, 8, 10] as const;
 
 interface ShotTableProps {
   shots: Shot[];
@@ -49,24 +51,28 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
         <li key={shot.id} className="flex flex-col gap-3 rounded-lg border border-line p-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
             <span className="font-medium text-foreground">{shot.id}</span>
-            <label className="flex items-center gap-1.5 text-muted">
-              <input
-                type="number"
-                min={1}
-                max={10}
-                step={0.5}
-                value={shot.seconds}
-                disabled={disabled}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  // Script length, 1-10s; Omni generates the next 4/6/8/10 length and it is trimmed in editing
-                  if (value) edit(shot, { seconds: Math.min(10, Math.max(1, value)) });
-                }}
-                className="w-16 bg-surface border border-line rounded-md px-2 py-1 text-sm text-foreground focus:border-accent focus:outline-none"
-              />
-              {t("upload.duration.unit")}
-              <span className="text-xs">{t("storyboard.script.generates", { seconds: snapDuration(shot.seconds) })}</span>
-            </label>
+            <div className="flex items-center gap-1.5 text-muted">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => edit(shot, { seconds: d })}
+                  className={`h-8 min-w-10 rounded-md border px-2 text-sm transition-colors disabled:opacity-50 ${
+                    snapDuration(shot.seconds) === d
+                      ? "border-accent bg-surface-raised text-foreground"
+                      : "border-line text-muted hover:text-foreground"
+                  }`}
+                >
+                  {d}
+                  {t("upload.duration.unit")}
+                </button>
+              ))}
+              {/* The script asked for a length Omni cannot make: it is generated longer and trimmed in editing */}
+              {snapDuration(shot.seconds) !== shot.seconds && (
+                <span className="text-xs">{t("storyboard.script.scriptSeconds", { seconds: shot.seconds })}</span>
+              )}
+            </div>
             <label className="flex items-center gap-1.5 text-muted">
               {t("storyboard.script.columns.transition")}
               <input
@@ -95,7 +101,29 @@ export function ShotTable({ shots, disabled, onEdit }: ShotTableProps) {
           <div className="grid gap-3 sm:grid-cols-3">
             {text(shot, "camera", 18)}
             {text(shot, "sound", 18)}
-            {text(shot, "music", 18)}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted">{t("storyboard.script.columns.music")}</span>
+              <div className="flex gap-2">
+                <select
+                  value={hasMusic(shot.music) ? "yes" : "no"}
+                  disabled={disabled}
+                  onChange={(e) => edit(shot, { music: e.target.value === "yes" ? t("storyboard.script.musicYes") : "無" })}
+                  className="bg-surface border border-line rounded-md px-2 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
+                >
+                  <option value="no">{t("storyboard.script.musicNo")}</option>
+                  <option value="yes">{t("storyboard.script.musicYes")}</option>
+                </select>
+                {hasMusic(shot.music) && (
+                  <input
+                    value={shot.music === t("storyboard.script.musicYes") ? "" : shot.music}
+                    disabled={disabled}
+                    placeholder={t("storyboard.script.musicStylePlaceholder")}
+                    onChange={(e) => edit(shot, { music: e.target.value.trim() ? e.target.value : t("storyboard.script.musicYes") })}
+                    className="min-w-0 flex-1 bg-surface border border-line rounded-md px-2.5 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </li>
       ))}

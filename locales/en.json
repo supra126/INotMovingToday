@@ -312,7 +312,10 @@
       "confirm": "Confirm storyboard and make frames",
       "confirming": "Writing image prompts…",
       "needInput": "Upload a script image or enter text",
-      "generates": "→ generates {{seconds}}s"
+      "scriptSeconds": "(script {{seconds}}s, trim in editing)",
+      "musicNo": "None",
+      "musicYes": "Yes",
+      "musicStylePlaceholder": "Style (optional), e.g. upbeat electronic"
     },
     "images": {
       "generating": "Generating…",

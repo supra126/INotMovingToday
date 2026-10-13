@@ -1,5 +1,4 @@
 import type {
-  AudioMode,
   ImageSize,
   PromptDraft,
   PromptFields,
@@ -90,7 +89,7 @@ export interface StoryboardProject {
   };
   shots: Shot[];
   finalSize: ImageSize;
-  videoSettings: { resolution: VideoResolution; audioMode: AudioMode };
+  videoSettings: { resolution: VideoResolution };
   step: Step;
 }
 
