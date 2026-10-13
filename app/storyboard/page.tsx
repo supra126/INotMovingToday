@@ -45,7 +45,7 @@ export default function StoryboardPage() {
   const stepProps: StepProps | null = project
     ? {
         project,
-        update: (fn) => store.update(project.id, fn),
+        update: (fn, options) => store.update(project.id, fn, options),
         requireApiKey,
         goTo: (step: Step) => store.update(project.id, (p) => ({ ...p, step })),
       }

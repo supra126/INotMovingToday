@@ -1,114 +1,62 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { newProject, normalizeOnLoad } from "@/lib/storyboard/shots";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { createProjectStore, type ProjectStore, type StoreSnapshot, type UpdateOptions } from "@/lib/storyboard/store";
 import { deleteProject, listProjects, loadProject, saveProject } from "@/lib/storyboard/storage";
-import type { ProjectSummary, StoryboardProject } from "@/lib/storyboard/types";
+import type { StoryboardProject } from "@/lib/storyboard/types";
 
 const LAST_PROJECT_KEY = "storyboard:lastProject";
-const SAVE_DELAY = 500;
 
-export type ProjectUpdater = (fn: (project: StoryboardProject) => StoryboardProject) => void;
+export type ProjectUpdater = (
+  fn: (project: StoryboardProject) => StoryboardProject,
+  options?: UpdateOptions
+) => void;
+
+// One store per browser tab, so jobs keep their project after the page unmounts
+let store: ProjectStore | null = null;
+function getStore(): ProjectStore {
+  store ??= createProjectStore({ list: listProjects, load: loadProject, save: saveProject, remove: deleteProject });
+  return store;
+}
+
+const SERVER_SNAPSHOT: StoreSnapshot = { projects: [], project: null, isLoading: true };
 
 export function useStoryboardProject() {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [project, setProject] = useState<StoryboardProject | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const projectStore = getStore();
+  const snapshot = useSyncExternalStore(projectStore.subscribe, projectStore.getSnapshot, () => SERVER_SNAPSHOT);
 
-  const projectRef = useRef<StoryboardProject | null>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Writes to projects that are not open are applied in order, straight to IndexedDB
-  const backgroundChain = useRef<Promise<void>>(Promise.resolve());
-
-  const refreshList = useCallback(() => {
-    listProjects().then(setProjects).catch(() => setProjects([]));
-  }, []);
-
-  const flush = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = null;
-    if (projectRef.current) saveProject(projectRef.current).then(refreshList).catch(() => {});
-  }, [refreshList]);
-
-  const scheduleSave = useCallback(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(flush, SAVE_DELAY);
-  }, [flush]);
-
-  const show = useCallback((next: StoryboardProject | null) => {
-    projectRef.current = next;
-    setProject(next);
-  }, []);
+  useEffect(() => {
+    projectStore.init(localStorage.getItem(LAST_PROJECT_KEY));
+    const flush = () => void projectStore.flush();
+    window.addEventListener("beforeunload", flush);
+    return () => window.removeEventListener("beforeunload", flush);
+  }, [projectStore]);
 
   const open = useCallback(
     (id: string) => {
-      flush();
-      setIsLoading(true);
-      loadProject(id)
-        .then((loaded) => {
-          show(loaded ? normalizeOnLoad(loaded) : null);
-          if (loaded) localStorage.setItem(LAST_PROJECT_KEY, id);
-        })
-        .finally(() => setIsLoading(false));
+      localStorage.setItem(LAST_PROJECT_KEY, id);
+      projectStore.open(id);
     },
-    [flush, show]
+    [projectStore]
   );
 
   const create = useCallback(() => {
-    flush();
-    const created = newProject(crypto.randomUUID(), Date.now());
-    show(created);
-    localStorage.setItem(LAST_PROJECT_KEY, created.id);
-    saveProject(created).then(refreshList).catch(() => {});
-  }, [flush, refreshList, show]);
+    localStorage.setItem(LAST_PROJECT_KEY, projectStore.create().id);
+  }, [projectStore]);
 
   const remove = useCallback(
     async (id: string) => {
-      await deleteProject(id);
-      if (projectRef.current?.id === id) {
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        show(null);
-        localStorage.removeItem(LAST_PROJECT_KEY);
-      }
-      refreshList();
+      if (localStorage.getItem(LAST_PROJECT_KEY) === id) localStorage.removeItem(LAST_PROJECT_KEY);
+      await projectStore.remove(id);
     },
-    [refreshList, show]
+    [projectStore]
   );
 
   const update = useCallback(
-    (projectId: string, fn: (p: StoryboardProject) => StoryboardProject) => {
-      const current = projectRef.current;
-      if (current?.id === projectId) {
-        show({ ...fn(current), updatedAt: Date.now() });
-        scheduleSave();
-        return;
-      }
-      // A background job finished after the user switched projects
-      backgroundChain.current = backgroundChain.current.then(async () => {
-        const stored = await loadProject(projectId);
-        if (stored) await saveProject({ ...fn(stored), updatedAt: Date.now() });
-      }).catch(() => {});
-    },
-    [scheduleSave, show]
+    (projectId: string, fn: (p: StoryboardProject) => StoryboardProject, options?: UpdateOptions) =>
+      projectStore.update(projectId, fn, options),
+    [projectStore]
   );
 
-  // Load the list and the last opened project once; state is only set in promise callbacks
-  useEffect(() => {
-    const last = localStorage.getItem(LAST_PROJECT_KEY);
-    Promise.all([listProjects(), last ? loadProject(last) : Promise.resolve(undefined)])
-      .then(([list, loaded]) => {
-        setProjects(list);
-        show(loaded ? normalizeOnLoad(loaded) : null);
-      })
-      .catch(() => setProjects([]))
-      .finally(() => setIsLoading(false));
-
-    window.addEventListener("beforeunload", flush);
-    return () => {
-      window.removeEventListener("beforeunload", flush);
-      flush();
-    };
-  }, [flush, show]);
-
-  return { projects, project, isLoading, open, create, remove, update };
+  return { ...snapshot, open, create, remove, update };
 }
