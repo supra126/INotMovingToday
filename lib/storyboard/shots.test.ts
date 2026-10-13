@@ -13,6 +13,7 @@ import {
   snapDuration,
   toShot,
   videoFileName,
+  withFinalImage,
 } from "./shots";
 import type { ScriptShot, StoredImage } from "./types";
 
@@ -155,5 +156,35 @@ describe("shotDescription / videoFileName", () => {
     expect(videoFileName(toShot(row({ visual: "布膜/貼合:臉部 展現高度服貼力很長很長" }), true))).toBe(
       "s01-布膜貼合臉部展現高度.mp4"
     );
+  });
+});
+
+describe("review fixes", () => {
+  it("marks a shot stale when its picture changes while its first images are generating", () => {
+    const shot = { ...toShot(row(), true), imagePrompt: "p", imageStatus: "generating" as const };
+    expect(applyScriptEdit(shot, row({ visual: "新畫面" }), true).stale).toBe(true);
+  });
+
+  it("clears fields and flags the video when the final image changes", () => {
+    const a = img("a");
+    const shot = {
+      ...toShot(row(), true),
+      candidates: [a, img("b")],
+      selected: 0,
+      finalImage: a,
+      fields: { subject: "s", setting: "", camera: "", lighting: "", sound: "" },
+      video: { status: "completed" as const, progress: 100, prompt: "p", duration: 4 },
+    };
+    const same = withFinalImage(shot, a);
+    expect(same).toBe(shot);
+    const changed = selectCandidate(shot, 1, "1K");
+    expect(changed.fields).toBeUndefined();
+    expect(changed.video?.outdated).toBe(true);
+  });
+
+  it("resets field drafting that was running when the page closed", () => {
+    const p = newProject("id", 0);
+    p.shots = [{ ...toShot(row(), true), draftStatus: "drafting" }];
+    expect(normalizeOnLoad(p).shots[0].draftStatus).toBeUndefined();
   });
 });

@@ -96,8 +96,15 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
       <div className="min-w-0">
         {shot.draft && shot.fields ? (
           <PromptEditor draft={shot.draft} fields={shot.fields} isBusy={busy} onFieldChange={props.onFieldChange} />
+        ) : shot.draftStatus === "failed" ? (
+          <p role="alert" className="text-sm text-red-300">
+            {t("storyboard.videos.draftFailed")}
+            {shot.draftError && `（${shot.draftError.startsWith("errors.") ? t(shot.draftError) : shot.draftError}）`}
+          </p>
         ) : (
-          <p className="text-sm text-muted">{t("storyboard.videos.drafting")}</p>
+          <p className="text-sm text-muted">
+            {shot.draftStatus === "drafting" ? t("storyboard.videos.drafting") : t("storyboard.videos.needsFields")}
+          </p>
         )}
       </div>
 
@@ -106,6 +113,9 @@ export function ShotVideoCard(props: ShotVideoCardProps) {
           <p className={`text-xs ${video.status === "failed" ? "text-red-300" : "text-muted"}`}>
             {t(`storyboard.videos.status.${video.status}`, { progress: video.progress })}
           </p>
+        )}
+        {video?.outdated && video.status === "completed" && (
+          <p className="text-xs text-amber-300">{t("storyboard.videos.outdated")}</p>
         )}
         {video?.error && <p role="alert" className="text-xs text-red-300">{video.error.startsWith("errors.") ? t(video.error) : video.error}</p>}
         {hasVideo && <video ref={videoRef} controls playsInline className={`${ratioClass} w-full rounded-md bg-black`} />}

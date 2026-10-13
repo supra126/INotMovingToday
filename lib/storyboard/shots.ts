@@ -38,7 +38,8 @@ export function applyScriptEdit(shot: Shot, row: ScriptShot, isLast: boolean): S
     ...shot,
     ...row,
     imagePrompt: pictureChanged ? "" : shot.imagePrompt,
-    stale: shot.stale || (pictureChanged && shot.candidates.length > 0),
+    // Images still being generated were made from the old row too
+    stale: shot.stale || (pictureChanged && (shot.candidates.length > 0 || shot.imageStatus === "generating")),
     duration: shot.seconds === row.seconds ? shot.duration : snapDuration(row.seconds),
     endFrame: shot.transition === row.transition ? shot.endFrame : defaultEndFrame(row.transition, isLast),
   };
@@ -61,6 +62,7 @@ export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
     shots: project.shots.map((shot) => ({
       ...shot,
       imageStatus: shot.imageStatus === "generating" ? "idle" : shot.imageStatus,
+      draftStatus: shot.draftStatus === "drafting" ? undefined : shot.draftStatus,
       video: shot.video?.status === "generating" ? { ...shot.video, status: "interrupted" } : shot.video,
     })),
   };
@@ -83,24 +85,34 @@ export function canEnterStep(project: StoryboardProject, step: Step): boolean {
   return scriptReady && project.shots.every((shot) => shot.finalImage && !shot.stale);
 }
 
-/** Picking a candidate accepts it, even if the row changed after it was made */
-export function selectCandidate(shot: Shot, index: number, finalSize: ImageSize): Shot {
+/** A new final frame means the shot's fields and video describe the old picture */
+export function withFinalImage(shot: Shot, image: StoredImage | undefined): Shot {
+  if (image === shot.finalImage) return shot;
   return {
     ...shot,
-    selected: index,
-    stale: false,
-    finalImage: finalSize === "1K" ? shot.candidates[index] : undefined,
+    finalImage: image,
+    draft: undefined,
+    fields: undefined,
+    draftStatus: undefined,
+    video: shot.video && { ...shot.video, outdated: true },
   };
+}
+
+/** Picking a candidate accepts it, even if the row changed after it was made */
+export function selectCandidate(shot: Shot, index: number, finalSize: ImageSize): Shot {
+  return withFinalImage(
+    { ...shot, selected: index, stale: false },
+    finalSize === "1K" ? shot.candidates[index] : undefined
+  );
 }
 
 export function setFinalSize(project: StoryboardProject, size: ImageSize): StoryboardProject {
   return {
     ...project,
     finalSize: size,
-    shots: project.shots.map((shot) => ({
-      ...shot,
-      finalImage: size === "1K" && shot.selected !== undefined ? shot.candidates[shot.selected] : undefined,
-    })),
+    shots: project.shots.map((shot) =>
+      withFinalImage(shot, size === "1K" && shot.selected !== undefined ? shot.candidates[shot.selected] : undefined)
+    ),
   };
 }
 

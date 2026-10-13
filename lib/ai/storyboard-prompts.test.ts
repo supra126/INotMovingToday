@@ -75,3 +75,17 @@ describe("prompt builders", () => {
     expect(buildImagePromptsPrompt({ ...ctx, shots })).toContain('"s01"');
   });
 });
+
+describe("shot ids", () => {
+  it("keeps valid AI ids so revised tables match the right shots", () => {
+    const result = parseScriptResult({
+      shots: [
+        { id: "s01", visual: "a" },
+        { id: "s06", visual: "inserted" },
+        { id: "s02", visual: "b" },
+        { id: "s01", visual: "duplicate" },
+      ],
+    });
+    expect(result.shots.map((s) => s.id)).toEqual(["s01", "s06", "s02", "s07"]);
+  });
+});

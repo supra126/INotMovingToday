@@ -5,6 +5,8 @@ import { generateImage } from "@/services/imageService";
 import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
+import { withFinalImage } from "./shots";
+import type { UpdateOptions } from "./store";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
 
 export const CANDIDATES_PER_SHOT = 2;
@@ -19,8 +21,8 @@ export function scriptContext(project: StoryboardProject, locale: Locale): Scrip
   return { ratio: project.ratio, tone: project.tone, packagingText: project.packagingText, locale };
 }
 
-export function updateShot(ctx: JobContext, shotId: string, fn: (shot: Shot) => Shot) {
-  ctx.update((p) => ({ ...p, shots: p.shots.map((shot) => (shot.id === shotId ? fn(shot) : shot)) }));
+export function updateShot(ctx: JobContext, shotId: string, fn: (shot: Shot) => Shot, options?: UpdateOptions) {
+  ctx.update((p) => ({ ...p, shots: p.shots.map((shot) => (shot.id === shotId ? fn(shot) : shot)) }), options);
 }
 
 function errorKey(err: unknown): string {
@@ -64,12 +66,13 @@ export async function generateCandidates(ctx: JobContext, project: StoryboardPro
     updateShot(ctx, shot.id, (s) => {
       // New candidates after a change or a regenerate replace the earlier pick
       const replacing = images.length > 0 && s.candidates.length > 0;
+      // The row was edited while these were generating: they show the old picture
+      const promptChanged = s.imagePrompt !== shot.imagePrompt;
+      const base = replacing ? withFinalImage({ ...s, selected: undefined }, undefined) : s;
       return {
-        ...s,
+        ...base,
         candidates: [...s.candidates, ...images],
-        selected: replacing ? undefined : s.selected,
-        finalImage: replacing ? undefined : s.finalImage,
-        stale: images.length > 0 ? false : s.stale,
+        stale: promptChanged || (images.length > 0 ? false : s.stale),
         imageStatus: images.length > 0 ? "idle" : "failed",
         imageError: images.length > 0 || !failure || failure.ok ? undefined : errorKey(failure.error),
       };
@@ -136,7 +139,7 @@ export async function finalizeImages(ctx: JobContext, project: StoryboardProject
     const result = results[i];
     updateShot(ctx, shot.id, (s) =>
       result.ok
-        ? { ...s, finalImage: result.value, imageStatus: "idle" }
+        ? { ...withFinalImage(s, result.value), imageStatus: "idle" }
         : { ...s, imageStatus: "failed", imageError: errorKey(result.error) }
     );
   });

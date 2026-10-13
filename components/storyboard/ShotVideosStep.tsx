@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AudioModeSelector } from "@/components/upload/AudioModeSelector";
 import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { useLocale } from "@/contexts/LocaleContext";
+import { getApiKey } from "@/lib/storage/api-key-storage";
 import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import type { Shot } from "@/lib/storyboard/types";
@@ -18,14 +19,23 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
 
   const ratioClass = project.ratio === "9:16" ? "aspect-[9/16]" : "aspect-video";
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
-  const unfinished = project.shots.filter((s) => s.video?.status !== "completed" && s.video?.status !== "generating");
+  const unfinished = project.shots.filter(
+    (s) => s.video?.status !== "generating" && (s.video?.status !== "completed" || s.video.outdated)
+  );
+  // Shots whose fields are missing and not being filled right now (never drafted, failed, or image changed)
+  const needDraft = project.shots.filter((s) => !s.fields && s.finalImage && s.draftStatus !== "drafting");
 
-  // Fill fields once when the step opens
-  useEffect(() => {
-    if (drafted.current || project.shots.every((s) => s.fields)) return;
-    drafted.current = true;
+  const draftFields = () => {
     const apiKey = requireApiKey();
     if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale);
+  };
+
+  // Fill fields once when the step opens, if the key is already set; otherwise the button below does it
+  useEffect(() => {
+    if (drafted.current) return;
+    drafted.current = true;
+    const apiKey = getApiKey("gemini");
+    if (apiKey && needDraft.length > 0) void draftShotFields(jobCtx(apiKey), project, locale);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -60,6 +70,16 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
         <ResolutionSelector value={project.videoSettings.resolution} onChange={(resolution) => setSettings({ resolution })} />
         <AudioModeSelector value={project.videoSettings.audioMode} onChange={(audioMode) => setSettings({ audioMode })} />
       </div>
+
+      {needDraft.length > 0 && (
+        <button
+          type="button"
+          onClick={draftFields}
+          className="h-10 self-start px-4 rounded-lg border border-line text-sm text-foreground hover:bg-white/5"
+        >
+          {t("storyboard.videos.draftFields")}
+        </button>
+      )}
 
       <button
         type="button"

@@ -104,7 +104,8 @@ export function buildScriptRevisePrompt(
     history ? `Conversation so far:\n${history}\n` : "",
     `User's request: ${ctx.message.trim()}`,
     "",
-    "Apply the request and return the whole updated table. Keep shots the user did not mention unchanged, including their ids. New shots get new ids; renumber ids in order (s01, s02, ...) only if shots were inserted or removed.",
+    "Apply the request and return the whole updated table in the new order. Keep shots the user did not mention unchanged.",
+    "Ids identify shots: keep every existing shot's id even when shots are inserted, removed or reordered, and give each new shot an id that is not used yet (for example s06).",
     "Rules:",
     STORYBOARD_RULES,
     "",
@@ -168,12 +169,19 @@ function record(raw: unknown): Record<string, unknown> {
 export function parseScriptResult(raw: unknown): ScriptResult {
   const data = record(raw);
   const rows = Array.isArray(data.shots) ? data.shots : [];
-  const shots = rows
-    .map(record)
-    .filter((row) => str(row.visual))
-    .slice(0, MAX_SHOTS)
+  const kept = rows.map(record).filter((row) => str(row.visual)).slice(0, MAX_SHOTS);
+  // Keep the AI's ids (they match shots to their images); fix missing or duplicate ones
+  const ids = new Set<string>();
+  const given = kept.map((row) => {
+    const id = str(row.id);
+    if (!/^s\d{2,}$/.test(id) || ids.has(id)) return "";
+    ids.add(id);
+    return id;
+  });
+  let next = Math.max(0, ...[...ids].map((id) => Number(id.slice(1))));
+  const shots = kept
     .map((row, index): ScriptShot => ({
-      id: `s${String(index + 1).padStart(2, "0")}`,
+      id: given[index] || `s${String(++next).padStart(2, "0")}`,
       seconds: seconds(row.seconds),
       visual: str(row.visual),
       camera: str(row.camera),

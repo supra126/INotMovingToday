@@ -4,6 +4,7 @@ import { runExtendJob, runVideoJob } from "@/lib/video/job";
 import { composePrompt, draftPrompt } from "@/services/videoService";
 import type { Locale, VideoResolution } from "@/types";
 import { toFile } from "./blob";
+import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
 import { endFrameImage, shotDescription } from "./shots";
@@ -64,18 +65,26 @@ function promptContext(project: StoryboardProject, index: number, locale: Locale
  * Fill the five shot fields for every shot that has none (same draft as the single-shot mode)
  */
 export async function draftShotFields(ctx: JobContext, project: StoryboardProject, locale: Locale) {
-  const targets = project.shots.flatMap((shot, index) => (!shot.fields && shot.finalImage ? [{ shot, index }] : []));
-  await runQueue(
+  const targets = project.shots.flatMap((shot, index) =>
+    !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" ? [{ shot, index }] : []
+  );
+  for (const { shot } of targets) {
+    updateShot(ctx, shot.id, (s) => ({ ...s, draftStatus: "drafting", draftError: undefined }));
+  }
+  const results = await runQueue(
     targets.map(({ shot, index }) => async () => {
       const pc = promptContext(project, index, locale);
+      // Analysis does not need 2K / 4K; a smaller image keeps the request well under the size limit
+      const image = await downscaleImage(shot.finalImage!);
       const draft = await draftPrompt(
-        [toFile(shot.finalImage!, shot.id)],
+        [toFile(image, shot.id)],
         { description: shotDescription(shot), mode: "single_image", ratio: pc.ratio, duration: pc.duration, audioMode: pc.audioMode, locale },
         ctx.apiKey
       );
       updateShot(ctx, shot.id, (s) => ({
         ...s,
         draft,
+        draftStatus: undefined,
         fields: s.fields ?? {
           subject: draft.fields.subject.value,
           setting: draft.fields.setting.value,
@@ -87,75 +96,84 @@ export async function draftShotFields(ctx: JobContext, project: StoryboardProjec
     }),
     { concurrency: DRAFT_CONCURRENCY }
   );
+  results.forEach((result, i) => {
+    if (result.ok) return;
+    const message = result.error instanceof Error ? result.error.message : "";
+    updateShot(ctx, targets[i].shot.id, (s) => ({ ...s, draftStatus: "failed", draftError: toDisplayError(message) }));
+  });
 }
 
 /**
- * Compose, generate and store the video of each shot; shots fail independently
+ * Compose, generate and store the video of each shot; shots fail independently.
+ * A shot keeps its previous video until the new one is ready.
  */
-export async function generateShotVideos(ctx: JobContext, project: StoryboardProject, shotIds: string[], locale: Locale) {
+export async function generateShotVideos(
+  ctx: JobContext,
+  project: StoryboardProject,
+  shotIds: string[],
+  locale: Locale,
+  options: { retryDelayMs?: number } = {}
+) {
   const targets = project.shots.flatMap((shot, index) =>
     shotIds.includes(shot.id) && shot.fields && shot.finalImage ? [{ shot, index }] : []
   );
-  for (const { shot } of targets) {
+  const previous = new Map(
+    targets.map(({ shot }) => [shot.id, shot.video?.status === "completed" ? shot.video : undefined])
+  );
+  // Set at the start of every attempt, so a rate-limit retry never shows as failed
+  const start = (shotId: string, duration: number) =>
+    updateShot(ctx, shotId, (s) => ({
+      ...s,
+      video: { ...previous.get(shotId), status: "generating", progress: 0, prompt: "", duration, error: undefined, outdated: false },
+    }));
+  for (const { shot } of targets) start(shot.id, shot.duration);
+
+  const results = await runQueue(
+    targets.map(({ shot, index }) => async () => {
+      start(shot.id, shot.duration);
+      const pc = promptContext(project, index, locale);
+      const prompt = await composePrompt(shot.fields!, pc, ctx.apiKey);
+      updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, prompt } }));
+      const result = await runVideoJob(
+        {
+          prompt,
+          ratio: project.ratio,
+          resolution: project.videoSettings.resolution,
+          duration: shot.duration,
+          audioMode: project.videoSettings.audioMode,
+          startImage: shot.finalImage!.blob,
+          endImage: endFrameImage(project.shots, index)?.blob,
+        },
+        {
+          apiKey: ctx.apiKey,
+          isCancelled: () => false,
+          // Progress stays in memory; IndexedDB is written on status changes only
+          onProgress: (progress) =>
+            updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
+        }
+      );
+      if (!result) return;
+      const stored = await toStoredVideo(result.videoUrl);
+      updateShot(ctx, shot.id, (s) => ({
+        ...s,
+        video: { status: "completed", progress: 100, prompt, ...stored, sourceVideoUri: result.sourceVideoUri, duration: shot.duration },
+      }));
+    }),
+    { concurrency: VIDEO_CONCURRENCY, retryDelayMs: options.retryDelayMs }
+  );
+
+  results.forEach((result, i) => {
+    if (result.ok) return;
+    const { shot } = targets[i];
+    const error = toDisplayError(result.error instanceof Error ? result.error.message : "");
+    const before = previous.get(shot.id);
     updateShot(ctx, shot.id, (s) => ({
       ...s,
-      video: { status: "generating", progress: 0, prompt: "", duration: s.duration },
+      video: before
+        ? { ...before, error }
+        : { status: "failed", progress: 0, prompt: s.video?.prompt ?? "", duration: shot.duration, error },
     }));
-  }
-
-  await runQueue(
-    targets.map(({ shot, index }) => async () => {
-      try {
-        const pc = promptContext(project, index, locale);
-        const prompt = await composePrompt(shot.fields!, pc, ctx.apiKey);
-        updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, prompt } }));
-        const result = await runVideoJob(
-          {
-            prompt,
-            ratio: project.ratio,
-            resolution: project.videoSettings.resolution,
-            duration: shot.duration,
-            audioMode: project.videoSettings.audioMode,
-            startImage: shot.finalImage!.blob,
-            endImage: endFrameImage(project.shots, index)?.blob,
-          },
-          {
-            apiKey: ctx.apiKey,
-            isCancelled: () => false,
-            onProgress: (progress) =>
-              updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, progress } })),
-          }
-        );
-        if (!result) return;
-        const stored = await toStoredVideo(result.videoUrl);
-        updateShot(ctx, shot.id, (s) => ({
-          ...s,
-          video: {
-            status: "completed",
-            progress: 100,
-            prompt,
-            ...stored,
-            sourceVideoUri: result.sourceVideoUri,
-            duration: shot.duration,
-          },
-        }));
-      } catch (err) {
-        updateShot(ctx, shot.id, (s) => ({
-          ...s,
-          video: {
-            status: "failed",
-            progress: 0,
-            prompt: s.video?.prompt ?? "",
-            duration: shot.duration,
-            error: toDisplayError(err instanceof Error ? err.message : ""),
-          },
-        }));
-        // Let the queue retry rate limits
-        throw err;
-      }
-    }),
-    { concurrency: VIDEO_CONCURRENCY }
-  );
+  });
 }
 
 /**
@@ -185,7 +203,8 @@ export async function extendShotVideo(
       {
         apiKey: ctx.apiKey,
         isCancelled: () => false,
-        onProgress: (progress) => updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, progress } })),
+        onProgress: (progress) =>
+          updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
       }
     );
     if (!result) return;

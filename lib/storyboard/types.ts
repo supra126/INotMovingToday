@@ -49,6 +49,8 @@ export interface ShotVideo {
   sourceVideoUri?: string;
   duration: number;
   error?: string;
+  /** The final image changed after this video was made */
+  outdated?: boolean;
 }
 
 export interface Shot extends ScriptShot {
@@ -65,6 +67,8 @@ export interface Shot extends ScriptShot {
   endFrame: EndFrame;
   draft?: PromptDraft;
   fields?: PromptFields;
+  draftStatus?: "drafting" | "failed";
+  draftError?: string;
   video?: ShotVideo;
 }
 

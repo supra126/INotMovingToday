@@ -26,7 +26,8 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
  * rate-limited tasks are retried with a growing delay.
  */
 export async function runQueue<T>(tasks: (() => Promise<T>)[], options: QueueOptions): Promise<TaskResult<T>[]> {
-  const { concurrency, retries = 2, retryDelayMs = 5000, sleep = defaultSleep } = options;
+  const { concurrency, retries = 2, sleep = defaultSleep } = options;
+  const retryDelayMs = options.retryDelayMs ?? 5000;
   const results: TaskResult<T>[] = new Array(tasks.length);
   let next = 0;
 

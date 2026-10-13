@@ -355,7 +355,11 @@
       "download": "下載",
       "extend": "延伸",
       "extendPlaceholder": "接下來發生什麼？",
-      "prompt": "送出的英文提示詞"
+      "prompt": "送出的英文提示詞",
+      "draftFields": "AI 填寫欄位",
+      "draftFailed": "欄位填寫失敗，請按「AI 填寫欄位」重試",
+      "needsFields": "尚未填寫欄位",
+      "outdated": "分鏡圖已更換，建議重生"
     }
   }
 }
