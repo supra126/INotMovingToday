@@ -329,11 +329,12 @@
       "editPrompt": "Edit English prompt",
       "selected": "Selected",
       "finalSize": "Final size",
-      "finalSizeHint": "1K uses the picked frame as is; 2K / 4K re-render it with the same prompt",
+      "finalSizeHint": "1K is enough for video (frames are scaled to 1080px before Omni). 2K / 4K re-render the pick, so details may differ slightly; useful for posters or posts",
       "finalize": "Re-render {{count}} at {{size}}",
       "finalizing": "Re-rendering…",
       "needSelection": "Pick a frame for every shot",
-      "final": "Final"
+      "final": "Final",
+      "finalRerendered": "Final (re-rendered, compare with the pick)"
     },
     "videos": {
       "settings": "Settings for all shots",

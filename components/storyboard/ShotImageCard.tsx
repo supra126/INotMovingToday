@@ -17,7 +17,13 @@ export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: Shot
   const { t } = useLocale();
   const [note, setNote] = useState("");
   const [prompt, setPrompt] = useState(shot.imagePrompt);
-  const [zoom, setZoom] = useState<number | null>(null);
+  // Candidate index, or "final" for a re-rendered 2K / 4K frame
+  const [zoom, setZoom] = useState<number | "final" | null>(null);
+  const rerendered =
+    shot.finalImage && shot.selected !== undefined && shot.finalImage !== shot.candidates[shot.selected]
+      ? shot.finalImage
+      : undefined;
+  const zoomed = zoom === "final" ? rerendered : zoom !== null ? shot.candidates[zoom] : undefined;
   const busy = shot.imageStatus === "generating";
 
   return (
@@ -58,6 +64,19 @@ export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: Shot
             </button>
           </div>
         ))}
+        {rerendered && (
+          <div className="flex flex-col gap-1">
+            <BlobImage
+              blob={rerendered.blob}
+              alt={`${shot.id}-final`}
+              onClick={() => setZoom("final")}
+              className={`${ratioClass} w-full cursor-zoom-in rounded-md object-cover ring-2 ring-emerald-400/70`}
+            />
+            <span className="rounded-md border border-emerald-400/40 px-2 py-1 text-center text-xs text-emerald-300">
+              {t("storyboard.images.finalRerendered")}
+            </span>
+          </div>
+        )}
         {busy && (
           <div className={`${ratioClass} flex items-center justify-center rounded-md border border-dashed border-line text-xs text-muted`}>
             {t("storyboard.images.generating")}
@@ -104,8 +123,8 @@ export function ShotImageCard({ shot, ratioClass, onSelect, onRegenerate }: Shot
       </details>
 
       <Modal isOpen={zoom !== null} onClose={() => setZoom(null)} size="xl">
-        {zoom !== null && shot.candidates[zoom] && (
-          <BlobImage blob={shot.candidates[zoom].blob} alt="" className="w-full rounded-md" />
+        {zoomed && (
+          <BlobImage blob={zoomed.blob} alt="" className="w-full rounded-md" />
         )}
       </Modal>
     </article>

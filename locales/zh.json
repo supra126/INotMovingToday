@@ -329,11 +329,12 @@
       "editPrompt": "編輯英文提示詞",
       "selected": "已選",
       "finalSize": "定稿尺寸",
-      "finalSizeHint": "1K 直接使用選好的圖；2K／4K 會用同一個提示詞重出一張",
+      "finalSizeHint": "做影片用 1K 就夠（送進 Omni 前會縮到 1080px）。2K／4K 會用選好的圖重畫一張，細節可能略有不同，適合另外拿去當海報或貼文圖",
       "finalize": "重出 {{count}} 張 {{size}}",
       "finalizing": "重出中…",
       "needSelection": "每一鏡都要選好圖",
-      "final": "定稿"
+      "final": "定稿",
+      "finalRerendered": "定稿（重出，請對照原圖）"
     },
     "videos": {
       "settings": "整支影片的設定",
