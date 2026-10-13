@@ -1,22 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
-import { getApiKey } from "@/lib/storage/api-key-storage";
-import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
-import { shotResolution } from "@/lib/storyboard/shots";
+import { getApiKey } from "@/lib/storage/api-key-storage";
+import { resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
+import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
-import { ShotVideoCard } from "./ShotVideoCard";
+import { ShotRail } from "./ShotRail";
+import { ShotVideoPreview } from "./ShotVideoPreview";
+import { ShotVideoSettings } from "./ShotVideoSettings";
+import { Inspector, StepLayout } from "./StepLayout";
 import type { StepProps } from "./types";
 
-export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
+export function ShotVideosStep({ project, update, requireApiKey, selectedShotId, selectShot }: StepProps) {
   const { t, locale } = useLocale();
   const [pending, setPending] = useState<{ rows: CostRow[]; run: () => void } | null>(null);
   const drafted = useRef(false);
 
-  const ratioClass = project.ratio === "9:16" ? "aspect-[9/16]" : "aspect-video";
+  const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
   const unfinished = project.shots.filter(
     (s) => s.video?.status !== "generating" && (s.video?.status !== "completed" || s.video.outdated)
@@ -29,7 +33,7 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
     if (apiKey) void draftShotFields(jobCtx(apiKey), project, locale);
   };
 
-  // Fill fields once when the step opens, if the key is already set; otherwise the button below does it
+  // Fill fields once when the step opens, if the key is already set; otherwise the button does it
   useEffect(() => {
     if (drafted.current) return;
     drafted.current = true;
@@ -47,67 +51,92 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
     });
   };
 
-  const shotResolutionOf = (shotId: string) => {
-    const shot = project.shots.find((s) => s.id === shotId);
-    return shot ? shotResolution(shot, project) : project.videoSettings.resolution;
-  };
-
-  const confirmExtend = (shotId: string, prompt: string, seconds: number) => {
+  const confirmExtend = (shot: Shot, prompt: string, seconds: number) => {
     const apiKey = requireApiKey();
     if (!apiKey) return;
     setPending({
-      rows: [{ id: shotId, seconds, resolution: shotResolutionOf(shotId), hasEnd: false }],
-      run: () => void extendShotVideo(jobCtx(apiKey), project, shotId, prompt, seconds),
+      rows: [{ id: shot.id, seconds, resolution: shotResolution(shot, project), hasEnd: false }],
+      run: () => void extendShotVideo(jobCtx(apiKey), project, shot.id, prompt, seconds),
     });
   };
 
   const patchShot = (shotId: string, fn: (shot: Shot) => Shot) =>
     update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? fn(s) : s)) }));
 
-  return (
-    <div className="flex flex-col gap-6">
-
-      {needDraft.length > 0 && (
-        <button
-          type="button"
-          onClick={draftFields}
-          className="h-10 self-start px-4 rounded-lg border border-line text-sm text-foreground hover:bg-white/5"
-        >
-          {t("storyboard.videos.draftFields")}
-        </button>
-      )}
-
-      <button
-        type="button"
+  const allCost = sumCosts(unfinished.map((s) => videoCost(s.duration, shotResolution(s, project))));
+  const railHeader = (
+    <div className="flex flex-col gap-1.5">
+      <Button
+        variant="primary"
         disabled={unfinished.length === 0 || unfinished.some((s) => !s.fields)}
         onClick={() => confirmGenerate(unfinished.map((s) => s.id))}
-        className="h-11 rounded-lg bg-accent text-accent-fg text-[15px] font-medium hover:bg-accent-hover disabled:opacity-40"
       >
         {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
-        {unfinished.length > 0 &&
-          `（${t("storyboard.cost", {
-            price: formatUsd(sumCosts(unfinished.map((s) => videoCost(s.duration, shotResolution(s, project)))).amount),
-          })}）`}
-      </button>
+        {unfinished.length > 0 && <span className="font-mono">{formatUsd(allCost.amount)}</span>}
+      </Button>
+      {needDraft.length > 0 && (
+        <Button size="sm" variant="ghost" onClick={draftFields}>
+          {t("storyboard.videos.draftFields")}
+        </Button>
+      )}
+    </div>
+  );
 
-      {project.shots.map((shot, index) => (
-        <ShotVideoCard
-          key={shot.id}
-          shot={shot}
-          isLast={index === project.shots.length - 1}
-          ratioClass={ratioClass}
-          onFieldChange={(key, value) =>
-            patchShot(shot.id, (s) => (s.fields ? { ...s, fields: { ...s.fields, [key]: value } } : s))
-          }
-          onDurationChange={(duration) => patchShot(shot.id, (s) => ({ ...s, duration }))}
-          onMusicChange={(music) => patchShot(shot.id, (s) => ({ ...s, music }))}
-          resolution={shotResolution(shot, project)}
-          onResolutionChange={(resolution) => patchShot(shot.id, (s) => ({ ...s, resolution }))}
-          onEndFrameChange={(endFrame) => patchShot(shot.id, (s) => ({ ...s, endFrame }))}
-          onGenerate={() => confirmGenerate([shot.id])}
-          onExtend={(prompt, seconds) => confirmExtend(shot.id, prompt, seconds)}
-        />
-      ))}
+  const selectedVideo = selected?.video;
+  const generateLabel = !selectedVideo
+    ? t("storyboard.videos.generateOne")
+    : selectedVideo.status === "failed"
+      ? t("storyboard.videos.retry")
+      : t("storyboard.videos.regenerate");
+
+  return (
+    <>
+      <StepLayout
+        rail={
+          <ShotRail
+            shots={project.shots}
+            step={4}
+            ratio={project.ratio}
+            selectedId={selected?.id}
+            onSelect={selectShot}
+            header={railHeader}
+          />
+        }
+        main={
+          selected && (
+            <ShotVideoPreview
+              shot={selected}
+              ratio={project.ratio}
+              onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}
+            />
+          )
+        }
+        inspector={
+          selected && (
+            <Inspector
+              footer={
+                <Button
+                  variant={selectedVideo ? "secondary" : "primary"}
+                  size="lg"
+                  disabled={selectedVideo?.status === "generating" || !selected.fields}
+                  onClick={() => confirmGenerate([selected.id])}
+                >
+                  {generateLabel}
+                  <span className="font-mono">{formatUsd(videoCost(selected.duration, shotResolution(selected, project)).amount)}</span>
+                </Button>
+              }
+            >
+              <ShotVideoSettings
+                key={selected.id}
+                shot={selected}
+                isLast={selected.id === project.shots[project.shots.length - 1]?.id}
+                resolution={shotResolution(selected, project)}
+                onPatch={(fn) => patchShot(selected.id, fn)}
+              />
+            </Inspector>
+          )
+        }
+      />
 
       <BatchCostConfirm
         rows={pending?.rows ?? null}
@@ -117,6 +146,6 @@ export function ShotVideosStep({ project, update, requireApiKey }: StepProps) {
           setPending(null);
         }}
       />
-    </div>
+    </>
   );
 }

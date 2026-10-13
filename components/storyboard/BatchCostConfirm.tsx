@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/common/Modal";
+import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
@@ -21,7 +22,7 @@ export function BatchCostConfirm({ rows, onConfirm, onClose }: BatchCostConfirmP
 
   return (
     <Modal isOpen onClose={onClose} title={t("storyboard.videos.confirmTitle")}>
-      <ul className="mb-4 flex flex-col gap-1 text-sm text-foreground">
+      <ul className="mb-4 flex flex-col gap-1 font-mono text-[13px] text-fg">
         {rows.map((r) => (
           <li key={r.id}>
             {t("storyboard.videos.confirmRow", {
@@ -33,18 +34,12 @@ export function BatchCostConfirm({ rows, onConfirm, onClose }: BatchCostConfirmP
           </li>
         ))}
       </ul>
-      <p className="mb-4 text-sm text-muted">{t("storyboard.videos.confirmTotal", { seconds, price })}</p>
+      <p className="mb-4 text-sm text-fg-muted">{t("storyboard.videos.confirmTotal", { seconds, price })}</p>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="h-10 px-4 rounded-lg border border-line text-sm text-foreground">
-          {t("storyboard.videos.cancel")}
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="h-10 px-4 rounded-lg bg-accent text-accent-fg text-sm font-medium hover:bg-accent-hover"
-        >
+        <Button onClick={onClose}>{t("storyboard.videos.cancel")}</Button>
+        <Button variant="primary" onClick={onConfirm}>
           {t("storyboard.videos.confirm")}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

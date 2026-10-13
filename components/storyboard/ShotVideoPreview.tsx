@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useLocale } from "@/contexts/LocaleContext";
+import { videoFileName } from "@/lib/storyboard/shots";
+import type { Shot } from "@/lib/storyboard/types";
+import type { VideoRatio } from "@/types";
+import { BlobImage } from "./BlobImage";
+
+const EXTEND_STEPS = [4, 6, 8];
+
+/** Points a <video> at the stored Blob (or the fallback URL), revoking object URLs on change */
+function useVideoElement(shot: Shot) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const blob = shot.video?.blob;
+  const fallbackUrl = shot.video?.url;
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    if (!blob) {
+      element.src = fallbackUrl ?? "";
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    element.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [blob, fallbackUrl]);
+  return ref;
+}
+
+interface ShotVideoPreviewProps {
+  shot: Shot;
+  ratio: VideoRatio;
+  onExtend: (prompt: string, seconds: number) => void;
+}
+
+export function ShotVideoPreview({ shot, ratio, onExtend }: ShotVideoPreviewProps) {
+  const { t } = useLocale();
+  const [extendPrompt, setExtendPrompt] = useState("");
+  const [extendSeconds, setExtendSeconds] = useState(4);
+  const videoRef = useVideoElement(shot);
+  const video = shot.video;
+  const hasVideo = !!(video?.blob || video?.url);
+
+  const frameClass =
+    ratio === "9:16"
+      ? "aspect-[9/16] w-full max-w-sm lg:h-[calc(100dvh-15rem)] lg:w-auto lg:max-w-full"
+      : "aspect-video w-full max-w-5xl";
+
+  const download = () => {
+    const blob = video?.blob;
+    const href = blob ? URL.createObjectURL(blob) : video?.url;
+    if (!href) return;
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = videoFileName(shot);
+    a.click();
+    if (blob) setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4 p-6">
+      <div className={`checker relative overflow-hidden rounded-[var(--radius-panel)] border border-line ${frameClass}`}>
+        {hasVideo ? (
+          <video ref={videoRef} controls playsInline className="absolute inset-0 size-full bg-black object-contain" />
+        ) : shot.finalImage ? (
+          <BlobImage blob={shot.finalImage.blob} alt={shot.id} className="absolute inset-0 size-full object-cover opacity-70" />
+        ) : null}
+        {video?.status === "generating" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas/70 backdrop-blur-sm">
+            <div className="size-7 animate-spin rounded-full border-2 border-line border-t-accent" />
+            <p className="font-mono text-xs text-fg">{t("storyboard.videos.status.generating", { progress: video.progress })}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex w-full max-w-md flex-col gap-2">
+        {!hasVideo && video?.status !== "generating" && <p className="text-center text-xs text-fg-subtle">{t("storyboard.videos.noVideo")}</p>}
+        {video?.status === "interrupted" && <p className="text-xs text-warning">{t("storyboard.videos.status.interrupted")}</p>}
+        {video?.outdated && video.status === "completed" && <p className="text-xs text-warning">{t("storyboard.videos.outdated")}</p>}
+        {video?.error && (
+          <p role="alert" className="text-xs text-danger">{video.error.startsWith("errors.") ? t(video.error) : video.error}</p>
+        )}
+        {hasVideo && (
+          <Button onClick={download}>
+            <Download size={14} aria-hidden="true" />
+            {t("storyboard.videos.download")}
+          </Button>
+        )}
+        {video?.status === "completed" && video.sourceVideoUri && (
+          <div className="flex gap-2">
+            <input
+              value={extendPrompt}
+              placeholder={t("storyboard.videos.extendPlaceholder")}
+              onChange={(e) => setExtendPrompt(e.target.value)}
+              className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-sunken px-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none"
+            />
+            <select
+              value={extendSeconds}
+              onChange={(e) => setExtendSeconds(Number(e.target.value))}
+              className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 font-mono text-xs text-fg"
+            >
+              {EXTEND_STEPS.map((s) => <option key={s} value={s}>+{s}s</option>)}
+            </select>
+            <Button disabled={!extendPrompt.trim()} onClick={() => onExtend(extendPrompt, extendSeconds)}>
+              {t("storyboard.videos.extend")}
+            </Button>
+          </div>
+        )}
+        {video?.prompt && (
+          <details className="rounded-[var(--radius-panel)] border border-line bg-panel px-3 py-2 text-xs text-fg-muted">
+            <summary className="cursor-pointer select-none">{t("storyboard.videos.prompt")}</summary>
+            <p className="mt-1 whitespace-pre-wrap font-mono leading-relaxed">{video.prompt}</p>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}

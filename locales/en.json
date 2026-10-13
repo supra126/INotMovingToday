@@ -374,7 +374,10 @@
       "draftFailed": "Couldn't fill in the fields; click \"Fill in fields with AI\" to retry",
       "needsFields": "Fields not filled in yet",
       "outdated": "The frame changed; regenerate recommended",
-      "generateOne": "Generate this shot"
+      "generateOne": "Generate this shot",
+      "settingsTitle": "Shot settings",
+      "fieldsTitle": "Prompt fields",
+      "noVideo": "No video yet. Set up the shot on the right and click \"Generate this shot\""
     },
     "rail": {
       "title": "Shots",

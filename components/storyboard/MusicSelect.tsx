@@ -16,13 +16,13 @@ export function MusicSelect({ value, disabled = false, onChange }: MusicSelectPr
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs text-muted">{t("storyboard.script.columns.music")}</span>
+      <span className="text-xs text-fg-muted">{t("storyboard.script.columns.music")}</span>
       <div className="flex gap-2">
         <select
           value={hasMusic(value) ? "yes" : "no"}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value === "yes" ? yes : "無")}
-          className="bg-surface border border-line rounded-md px-2 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
+          className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 text-sm text-fg focus:border-line-strong focus:outline-none"
         >
           <option value="no">{t("storyboard.script.musicNo")}</option>
           <option value="yes">{yes}</option>
@@ -33,7 +33,7 @@ export function MusicSelect({ value, disabled = false, onChange }: MusicSelectPr
             disabled={disabled}
             placeholder={t("storyboard.script.musicStylePlaceholder")}
             onChange={(e) => onChange(e.target.value.trim() ? e.target.value : yes)}
-            className="min-w-0 flex-1 bg-surface border border-line rounded-md px-2.5 py-1.5 text-sm text-foreground focus:border-accent focus:outline-none"
+            className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-sunken px-2.5 text-sm text-fg focus:border-line-strong focus:outline-none"
           />
         )}
       </div>
