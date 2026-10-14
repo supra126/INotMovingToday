@@ -361,7 +361,8 @@ export class OmniProvider implements VideoGenerationProvider {
 
   async cancelJob(jobId: string): Promise<void> {
     const job = jobStore.get(jobId);
-    if (!job) return;
+    // Server jobs are shared across users: only the key that started a job may stop it
+    if (!job || job.apiKey !== this.apiKey) return;
     cleanupVideoJob(jobId);
     try {
       await this.ai.interactions.cancel(job.interactionId);

@@ -69,7 +69,7 @@ export async function concatVideos(blobs: Blob[]): Promise<Blob> {
   await output.start();
 
   let offset = 0;
-  // Each AAC clip starts with priming audio stamped slightly before 0; it would overlap the previous clip
+  // Audio must never step back into the previous clip
   let lastAudio = -Infinity;
   for (const [i, clip] of clips.entries()) {
     let firstPacket = i === 0;
@@ -83,7 +83,9 @@ export async function concatVideos(blobs: Blob[]): Promise<Blob> {
       for await (const packet of new EncodedPacketSink(clip.audio).packets()) {
         // Audio past the end of its own clip would overlap the next one
         if (packet.timestamp >= clip.duration) break;
-        const timestamp = Math.max(0, packet.timestamp + offset);
+        // AAC priming sits before 0; the real audio starts at 0
+        if (packet.timestamp < 0) continue;
+        const timestamp = packet.timestamp + offset;
         if (timestamp <= lastAudio) continue;
         const meta = firstPacket && clip.audioConfig ? { decoderConfig: clip.audioConfig } : undefined;
         await audioSource.add(packet.clone({ timestamp }), meta);

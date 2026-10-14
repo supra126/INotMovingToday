@@ -6,6 +6,7 @@ import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
 import { toDisplayError } from "@/lib/video/errors";
+import { downscaleImage } from "./resize";
 import { keyframeRefs, withFinalImage } from "./shots";
 import type { UpdateOptions } from "./store";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
@@ -67,8 +68,22 @@ export async function generateCandidates(
       { persist: false }
     );
 
+  // Reference photos and borrowed frames (possibly 4K or straight from a phone) only guide the look;
+  // shrinking them keeps each request under the inline size limit. Product photos stay sharp for the label.
+  const refsByShot = new Map(
+    await Promise.all(
+      shots.map(async (shot) => {
+        const refs = keyframeRefs(project, shot);
+        const [products, others] = [refs.images.slice(0, refs.productCount), refs.images.slice(refs.productCount)];
+        const images = [...products, ...(await Promise.all(others.map((i) => downscaleImage(i))))];
+        return [shot.id, { ...refs, images }] satisfies [string, typeof refs];
+      })
+    )
+  );
+  const owners: string[] = [];
   const tasks = shots.flatMap((shot) => {
-    const { images, ...refs } = keyframeRefs(project, shot);
+    const { images, ...refs } = refsByShot.get(shot.id)!;
+    owners.push(...Array.from({ length: count }, () => shot.id));
     return Array.from({ length: count }, (_, index) => () =>
       generateImage({
         apiKey: ctx.apiKey,
@@ -83,10 +98,10 @@ export async function generateCandidates(
         images,
         ratio: project.ratio,
         size: "1K",
-      }).finally(() => tick(shot.id))
+      })
     );
   });
-  const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY });
+  const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY, onSettled: (i) => tick(owners[i]) });
 
   shots.forEach((shot, shotIndex) => {
     const mine = results.slice(shotIndex * count, (shotIndex + 1) * count);

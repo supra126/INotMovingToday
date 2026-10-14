@@ -50,4 +50,12 @@ describe("redraftShotFields", () => {
     await draftShotFields(ctx, state, "zh");
     expect(calls.descriptions.at(-1)).toContain("手把瓶子轉過來");
   });
+
+  it("writes the storyboard note in English for English users", async () => {
+    let state = project();
+    state.shots[0] = { ...state.shots[0], fields: undefined, brief: "turn the bottle" };
+    const ctx = { projectId: "p", apiKey: "k", update: (fn: (p: StoryboardProject) => StoryboardProject) => { state = fn(state); } };
+    await draftShotFields(ctx, state, "en");
+    expect(calls.descriptions.at(-1)).not.toContain("分鏡原本的設定");
+  });
 });

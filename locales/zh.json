@@ -215,6 +215,7 @@
     "quotaExceeded": "API 配額已用完，請稍後再試或檢查您的帳單設定",
     "rateLimited": "請求太頻繁，請稍後再試",
     "failedToCheckStatus": "檢查影片狀態失敗",
+    "exportFetchFailed": "有幾鏡的影片已經讀不到了（例如重新整理後連結失效），請重生這幾鏡後再下載",
     "mergeMismatch": "有幾鏡的影片規格不同（例如解析度不一樣），無法直接接起來。請把這幾鏡改成相同解析度後重生，或用「全部下載」到剪輯軟體裡接",
     "contentFiltered": "內容被安全過濾器攔截，請修改圖片或提示詞後重試",
     "contentFilteredChildren": "無法從包含真實兒童的圖片生成影片，請使用其他圖片",

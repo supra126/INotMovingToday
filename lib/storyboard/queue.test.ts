@@ -63,3 +63,22 @@ describe("isRateLimitError", () => {
     expect(isRateLimitError(new Error("invalid argument"))).toBe(false);
   });
 });
+
+describe("runQueue onSettled", () => {
+  it("reports each task once, after its last retry", async () => {
+    let attempts = 0;
+    const settled: number[] = [];
+    await runQueue(
+      [
+        async () => {
+          attempts++;
+          if (attempts < 3) throw Object.assign(new Error("429"), { status: 429 });
+          return "ok";
+        },
+        async () => "ok",
+      ],
+      { concurrency: 1, sleep: async () => {}, onSettled: (index) => settled.push(index) }
+    );
+    expect(settled).toEqual([0, 1]);
+  });
+});

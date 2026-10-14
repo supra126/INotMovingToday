@@ -125,7 +125,7 @@ export async function draftShotFields(
     updateShot(ctx, shot.id, (s) => ({ ...s, draftStatus: "drafting", draftError: undefined }));
   }
   const results = await runQueue(
-    targets.map(({ shot, index }) => () => draftOne(ctx, project, index, locale, describe(shot), false)),
+    targets.map(({ shot, index }) => () => draftOne(ctx, project, index, locale, describe(shot, locale), false)),
     { concurrency: DRAFT_CONCURRENCY }
   );
   results.forEach((result, i) => {
@@ -146,16 +146,20 @@ export async function redraftShotFields(
   if (!shot?.finalImage) return;
   updateShot(ctx, shotId, (s) => ({ ...s, brief, draftStatus: "drafting", draftError: undefined }));
   try {
-    await draftOne(ctx, project, index, locale, describe({ ...shot, brief }), true);
+    await draftOne(ctx, project, index, locale, describe({ ...shot, brief }, locale), true);
   } catch (err) {
     markDraftFailed(ctx, shot, err);
   }
 }
 
 // The storyboard row stays as background; the user's own words decide what happens
-function describe(shot: StoryboardProject["shots"][number]): string {
+function describe(shot: StoryboardProject["shots"][number], locale: Locale): string {
   if (!shot.brief) return shotDescription(shot);
-  return `${shot.brief}\n\n分鏡原本的設定（僅供參考，以上面的描述為準）：\n${shotDescription(shot)}`;
+  const note =
+    locale === "zh"
+      ? "分鏡原本的設定（僅供參考，以上面的描述為準）："
+      : "The storyboard row (background only; the description above wins):";
+  return `${shot.brief}\n\n${note}\n${shotDescription(shot)}`;
 }
 
 async function draftOne(
@@ -254,6 +258,8 @@ export async function generateShotVideos(
       );
       if (!result || token.stopped) return;
       const stored = await toStoredVideo(result.videoUrl);
+      // Stop may land while the video downloads
+      if (token.stopped) return;
       updateShot(ctx, shot.id, (s) => ({
         ...s,
         video: {
@@ -324,6 +330,7 @@ export async function extendShotVideo(
     );
     if (!result || token.stopped) return;
     const stored = await toStoredVideo(result.videoUrl);
+    if (token.stopped) return;
     updateShot(ctx, shotId, (s) => ({
       ...s,
       video: {

@@ -85,4 +85,19 @@ describe("stopShotVideos", () => {
     await running;
     expect(h.get().shots[0].video).toMatchObject({ status: "completed", prompt: "old" });
   });
+
+  it("stays stopped when Stop lands while the finished video downloads", async () => {
+    let releaseFetch: () => void = () => {};
+    vi.stubGlobal("fetch", () => new Promise((resolve) => (releaseFetch = () => resolve(new Response(new Blob(["v"]))))));
+    const h = harness(project(1));
+    const running = generateShotVideos(h.ctx, h.get(), ["s01"], "zh");
+    await tick();
+    job.release.get("job-1")!();
+    await tick();
+    stopShotVideos(h.ctx, ["s01"]);
+    releaseFetch();
+    await running;
+    vi.unstubAllGlobals();
+    expect(h.status("s01")).toBe("stopped");
+  });
 });

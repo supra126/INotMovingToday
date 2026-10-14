@@ -34,8 +34,11 @@ export function VideoExport({ project }: { project: StoryboardProject }) {
     try {
       const files = await Promise.all(
         entries.map(async ({ name, shot }) => {
-          const blob: Blob = shot.video?.blob ?? (await fetch(shot.video!.url!).then((r) => r.blob()));
-          return { name, blob };
+          if (shot.video?.blob) return { name, blob: shot.video.blob };
+          // Videos that could not be downloaded keep only a URL, which may have expired since
+          const response = await fetch(shot.video!.url!).catch(() => null);
+          if (!response?.ok) throw new Error("errors.exportFetchFailed");
+          return { name, blob: await response.blob() };
         })
       );
       // Loaded on demand: only people who export pay for the media library
