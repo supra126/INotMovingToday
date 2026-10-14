@@ -319,6 +319,7 @@
       "frameSource": "分鏡圖來源",
       "frameSourceAi": "AI 產圖",
       "frameSourceUpload": "自己上傳",
+      "frameSourceExisting": "這鏡已經有分鏡圖，切換來源不會刪除它們。要換成自己的圖，到第 ③ 步上傳（上傳的會變成選用的圖）；要 AI 重產，到第 ③ 步按「重生」",
       "frameSourceHint": "設為自己上傳的鏡頭不會自動生圖，到第 ③ 步再上傳",
       "confirming": "撰寫生圖提示詞中…",
       "needInput": "請上傳腳本圖或輸入文字",

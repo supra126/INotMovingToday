@@ -263,6 +263,10 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
                   ]}
                 />
                 <p className="text-xs text-fg-subtle">{t("storyboard.script.frameSourceHint")}</p>
+                {/* Switching never deletes frames that were already paid for or uploaded */}
+                {(selected.candidates.length > 0 || selected.finalImage) && (
+                  <p className="text-xs text-warning">{t("storyboard.script.frameSourceExisting")}</p>
+                )}
               </div>
             </PanelSection>
           </Inspector>

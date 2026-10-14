@@ -319,6 +319,7 @@
       "frameSource": "Frame source",
       "frameSourceAi": "AI",
       "frameSourceUpload": "My own",
+      "frameSourceExisting": "This shot already has frames; switching the source keeps them. To use your own, upload it in step 3 (it becomes the pick); for new AI frames, click Regenerate in step 3",
       "frameSourceHint": "Shots set to My own are not generated; upload their frames in step 3",
       "confirming": "Writing image prompts…",
       "needInput": "Upload a script image or enter text",
