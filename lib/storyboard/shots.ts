@@ -153,6 +153,15 @@ export function shotDescription(shot: ScriptShot): string {
     .join("\n");
 }
 
+/** Finished videos for download, numbered by their place in the storyboard so files sort in order */
+export function exportEntries(shots: Shot[]): { name: string; shot: Shot }[] {
+  return shots.flatMap((shot, index) =>
+    shot.video?.status === "completed" && (shot.video.blob || shot.video.url)
+      ? [{ name: `${String(index + 1).padStart(2, "0")}_${videoFileName(shot)}`, shot }]
+      : []
+  );
+}
+
 export function videoFileName(shot: ScriptShot): string {
   const label = shot.visual.replace(/[\s\\/:*?"<>|,，。.!！]/g, "").slice(0, 10);
   return `${shot.id}${label ? `-${label}` : ""}.mp4`;

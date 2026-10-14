@@ -12,6 +12,7 @@ import { BatchCostConfirm } from "./BatchCostConfirm";
 import { ShotRail } from "./ShotRail";
 import { ShotVideoPreview } from "./ShotVideoPreview";
 import { ShotVideoSettings } from "./ShotVideoSettings";
+import { VideoExport } from "./VideoExport";
 import { Inspector, StepLayout } from "./StepLayout";
 import type { StepProps } from "./types";
 
@@ -89,6 +90,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
           {t("storyboard.videos.draftFields")}
         </Button>
       )}
+      <VideoExport project={project} />
     </div>
   );
 

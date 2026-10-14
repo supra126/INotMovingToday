@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyScriptEdit,
   canEnterStep,
+  exportEntries,
   needsFrames,
   defaultEndFrame,
   endFrameImage,
@@ -424,5 +425,17 @@ describe("codex review", () => {
     expect(extensionOptions(8)).toEqual([4, 6, 8]);
     expect(extensionOptions(34)).toEqual([4, 6]);
     expect(extensionOptions(38)).toEqual([]);
+  });
+});
+
+describe("exportEntries", () => {
+  it("numbers finished videos in storyboard order and skips the rest", () => {
+    const done = { status: "completed" as const, progress: 100, prompt: "", duration: 4, blob: new Blob(["v"]) };
+    const shots = [
+      { ...toShot({ ...row(), id: "s03", visual: "晨光" }, false), video: done },
+      { ...toShot({ ...row(), id: "s01", visual: "x" }, false), video: { ...done, status: "failed" as const, blob: undefined } },
+      { ...toShot({ ...row(), id: "s02", visual: "收尾" }, true), video: done },
+    ];
+    expect(exportEntries(shots).map((e) => e.name)).toEqual(["01_s03-晨光.mp4", "03_s02-收尾.mp4"]);
   });
 });
