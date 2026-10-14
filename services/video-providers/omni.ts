@@ -363,12 +363,14 @@ export class OmniProvider implements VideoGenerationProvider {
     const job = jobStore.get(jobId);
     // Server jobs are shared across users: only the key that started a job may stop it
     if (!job || job.apiKey !== this.apiKey) return;
-    cleanupVideoJob(jobId);
     try {
       await this.ai.interactions.cancel(job.interactionId);
     } catch (err) {
-      logger.debug("Cancel not available or failed:", err);
+      // Keep the job so the caller can retry; Google may still be generating (and billing)
+      logger.warn("Cancel failed:", err);
+      throw err;
     }
+    cleanupVideoJob(jobId);
   }
 }
 

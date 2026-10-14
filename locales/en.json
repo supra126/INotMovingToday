@@ -215,6 +215,7 @@
     "quotaExceeded": "API quota exceeded. Please try again later or check your billing settings",
     "rateLimited": "Too many requests. Please try again later",
     "failedToCheckStatus": "Failed to check video status",
+    "cancelFailed": "Google could not cancel this shot; it may still be generating and billed",
     "exportFetchFailed": "Some shots' videos can no longer be read (e.g. the link expired after a reload). Regenerate them, then download again",
     "mergeMismatch": "Some shots were made with different settings (e.g. resolution) and cannot be joined directly. Regenerate them at the same resolution, or use Download all and join them in an editor",
     "contentFiltered": "Content was blocked by safety filters. Please modify your image or prompt and try again",

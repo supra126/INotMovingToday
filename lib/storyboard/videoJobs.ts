@@ -30,11 +30,18 @@ function untrack(ctx: JobContext, shotId: string, token: RunToken) {
   if (runs.get(runKey(ctx.projectId, shotId)) === token) runs.delete(runKey(ctx.projectId, shotId));
 }
 
+/** Cancel at Google; if that fails the job may still run and be billed, so the shot says so */
+function cancelRemote(ctx: JobContext, shotId: string, jobId: string) {
+  void cancelVideoGeneration(jobId, ctx.apiKey).catch(() =>
+    updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, error: "errors.cancelFailed" } }))
+  );
+}
+
 /** The job id is known only after the request returns; a stop that came first cancels it then */
-function onJobId(ctx: JobContext, token: RunToken) {
+function onJobId(ctx: JobContext, shotId: string, token: RunToken) {
   return (jobId: string) => {
     token.jobId = jobId;
-    if (token.stopped) void cancelVideoGeneration(jobId, ctx.apiKey).catch(() => {});
+    if (token.stopped) cancelRemote(ctx, shotId, jobId);
   };
 }
 
@@ -47,7 +54,7 @@ export function stopShotVideos(ctx: JobContext, shotIds: string[]) {
     const token = runs.get(runKey(ctx.projectId, shotId));
     if (!token || token.stopped) continue;
     token.stopped = true;
-    if (token.jobId) void cancelVideoGeneration(token.jobId, ctx.apiKey).catch(() => {});
+    if (token.jobId) cancelRemote(ctx, shotId, token.jobId);
     updateShot(ctx, shotId, (s) => ({
       ...s,
       video: token.previous ?? { status: "stopped", progress: 0, prompt: s.video?.prompt ?? "", duration: s.duration },
@@ -250,7 +257,7 @@ export async function generateShotVideos(
         {
           apiKey: ctx.apiKey,
           isCancelled: () => token.stopped,
-          onJobId: onJobId(ctx, token),
+          onJobId: onJobId(ctx, shot.id, token),
           // Progress stays in memory; IndexedDB is written on status changes only
           onProgress: (progress) =>
             updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
@@ -323,7 +330,7 @@ export async function extendShotVideo(
       {
         apiKey: ctx.apiKey,
         isCancelled: () => token.stopped,
-        onJobId: onJobId(ctx, token),
+        onJobId: onJobId(ctx, shotId, token),
         onProgress: (progress) =>
           updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
       }

@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const svc = vi.hoisted(() => ({ cancelled: [] as string[] }));
+const svc = vi.hoisted(() => ({ cancelled: [] as string[], fail: false }));
 vi.mock("@/services/videoService", () => ({
   composePrompt: async () => "prompt",
   draftPrompt: async () => { throw new Error("unused"); },
-  cancelVideoGeneration: async (jobId: string) => { svc.cancelled.push(jobId); },
+  cancelVideoGeneration: async (jobId: string) => {
+    svc.cancelled.push(jobId);
+    if (svc.fail) throw new Error("503 unavailable");
+  },
 }));
 // Each started job gets an id and waits until the test releases it
 const job = vi.hoisted(() => ({ started: [] as string[], release: new Map<string, () => void>() }));
@@ -48,6 +51,7 @@ describe("stopShotVideos", () => {
     job.started = [];
     job.release.clear();
     svc.cancelled = [];
+    svc.fail = false;
   });
 
   it("never sends a queued shot once it is stopped", async () => {
@@ -99,5 +103,17 @@ describe("stopShotVideos", () => {
     await running;
     vi.unstubAllGlobals();
     expect(h.status("s01")).toBe("stopped");
+  });
+
+  it("says so when Google could not cancel a running shot", async () => {
+    svc.fail = true;
+    const h = harness(project(1));
+    const running = generateShotVideos(h.ctx, h.get(), ["s01"], "zh");
+    await tick();
+    stopShotVideos(h.ctx, ["s01"]);
+    await tick();
+    expect(h.get().shots[0].video).toMatchObject({ status: "stopped", error: "errors.cancelFailed" });
+    job.release.get("job-1")!();
+    await running;
   });
 });
