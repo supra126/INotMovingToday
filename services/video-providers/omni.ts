@@ -147,6 +147,16 @@ export function mapErrorToCode(message: string): string {
 }
 
 /**
+ * Map a thrown API error; Omni sometimes puts the real block reason in error.code
+ */
+export function errorFromException(err: unknown): string {
+  if (!(err instanceof Error)) return "errors.failedToCheckStatus";
+  const code = (err as { error?: { code?: unknown } }).error?.code;
+  const mapped = mapErrorToCode(typeof code === "string" ? `${err.message} ${code}` : err.message);
+  return mapped.startsWith("errors.") ? mapped : err.message;
+}
+
+/**
  * Permanent API errors (bad key, bad request, not found, quota) should not be retried
  */
 function isPermanentError(error: unknown): boolean {
@@ -313,7 +323,7 @@ export class OmniProvider implements VideoGenerationProvider {
 
       if (isPermanentError(err) || job.pollErrors >= MAX_POLL_ERRORS) {
         job.completedAt = Date.now();
-        return { status: "failed", error: err instanceof Error ? err.message : "errors.failedToCheckStatus" };
+        return { status: "failed", error: errorFromException(err) };
       }
 
       return { status: "processing", progress: job.lastProgress ?? 0 };
