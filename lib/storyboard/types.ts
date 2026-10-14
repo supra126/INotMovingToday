@@ -81,6 +81,8 @@ export interface Shot extends ScriptShot {
   /** The storyboard row changed after images were made */
   stale: boolean;
   imageStatus: "idle" | "generating" | "failed";
+  /** Finished images of the running batch (kept in memory only) */
+  imageProgress?: { done: number; total: number };
   imageError?: string;
   duration: VideoDuration;
   /** Overrides the project default */

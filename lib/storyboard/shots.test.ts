@@ -3,6 +3,7 @@ import {
   applyScriptEdit,
   canEnterStep,
   exportEntries,
+  imageProgress,
   keyframeRefs,
   setReferenceImages,
   needsFrames,
@@ -469,5 +470,17 @@ describe("setReferenceImages", () => {
     const p = newProject("id", 0);
     p.shots = [{ ...toShot(row(), true), candidates: [img("c")] }];
     expect(setReferenceImages(p, [img("face")]).shots[0].stale).toBe(true);
+  });
+});
+
+describe("imageProgress", () => {
+  it("adds up finished images of running shots", () => {
+    const shots = [
+      { ...toShot(row(), false), imageStatus: "generating" as const, imageProgress: { done: 1, total: 2 } },
+      { ...toShot(row(), false), imageStatus: "generating" as const, imageProgress: { done: 2, total: 2 } },
+      { ...toShot(row(), true), imageProgress: { done: 0, total: 2 } },
+    ];
+    expect(imageProgress(shots)).toEqual({ done: 3, total: 4, percent: 75 });
+    expect(imageProgress([toShot(row(), true)])).toBeUndefined();
   });
 });

@@ -64,6 +64,7 @@ export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
     shots: project.shots.map((shot) => ({
       ...shot,
       imageStatus: shot.imageStatus === "generating" ? "idle" : shot.imageStatus,
+      imageProgress: undefined,
       draftStatus: shot.draftStatus === "drafting" ? undefined : shot.draftStatus,
       video: shot.video?.status === "generating" ? { ...shot.video, status: "interrupted" } : shot.video,
     })),
@@ -154,6 +155,15 @@ export function shotDescription(shot: ScriptShot): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/** Finished / total images of running batches; undefined when nothing is generating */
+export function imageProgress(shots: Shot[]): { done: number; total: number; percent: number } | undefined {
+  const running = shots.flatMap((s) => (s.imageStatus === "generating" && s.imageProgress ? [s.imageProgress] : []));
+  if (!running.length) return undefined;
+  const done = running.reduce((sum, p) => sum + p.done, 0);
+  const total = running.reduce((sum, p) => sum + p.total, 0);
+  return { done, total, percent: Math.round((done / total) * 100) };
 }
 
 /** Finished videos for download, numbered by their place in the storyboard so files sort in order */

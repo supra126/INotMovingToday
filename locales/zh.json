@@ -329,6 +329,8 @@
     },
     "images": {
       "generating": "生成中…",
+      "generatingProgress": "生成中 {{percent}}%（{{done}}/{{total}} 張）",
+      "batchProgress": "分鏡圖生成中 {{percent}}%（{{done}}/{{total}} 張）",
       "generateMissing": "生成缺少的分鏡圖",
       "stale": "分鏡已修改，建議重生",
       "packagingHint": "請放大檢查包裝上的字",

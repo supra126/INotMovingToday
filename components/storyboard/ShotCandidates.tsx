@@ -100,7 +100,13 @@ export function ShotCandidates({ shot, ratio, size, onSelect, onDelete }: ShotCa
 
       {busy && (
         <div className={`flex items-center justify-center rounded-[var(--radius-control)] border border-dashed border-line text-xs text-fg-subtle ${aspect} ${tile}`}>
-          {t("storyboard.images.generating")}
+          {shot.imageProgress
+            ? t("storyboard.images.generatingProgress", {
+                percent: Math.round((shot.imageProgress.done / shot.imageProgress.total) * 100),
+                done: shot.imageProgress.done,
+                total: shot.imageProgress.total,
+              })
+            : t("storyboard.images.generating")}
         </div>
       )}
 

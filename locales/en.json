@@ -329,6 +329,8 @@
     },
     "images": {
       "generating": "Generating…",
+      "generatingProgress": "Generating {{percent}}% ({{done}}/{{total}} images)",
+      "batchProgress": "Frames {{percent}}% ({{done}}/{{total}} images)",
       "generateMissing": "Generate missing frames",
       "stale": "Storyboard changed, regenerate recommended",
       "packagingHint": "Zoom in and check the packaging text",

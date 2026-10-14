@@ -51,8 +51,21 @@ export async function generateCandidates(
     (shot) => shotIds.includes(shot.id) && shot.imagePrompt && shot.imageStatus !== "generating"
   );
   for (const shot of shots) {
-    updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
+    updateShot(ctx, shot.id, (s) => ({
+      ...s,
+      imageStatus: "generating",
+      imageError: undefined,
+      imageProgress: { done: 0, total: count },
+    }));
   }
+  // Each image is one request with no progress of its own, so progress counts finished images
+  const tick = (shotId: string) =>
+    updateShot(
+      ctx,
+      shotId,
+      (s) => ({ ...s, imageProgress: s.imageProgress && { ...s.imageProgress, done: s.imageProgress.done + 1 } }),
+      { persist: false }
+    );
 
   const tasks = shots.flatMap((shot) => {
     const { images, ...refs } = keyframeRefs(project, shot);
@@ -70,7 +83,7 @@ export async function generateCandidates(
         images,
         ratio: project.ratio,
         size: "1K",
-      })
+      }).finally(() => tick(shot.id))
     );
   });
   const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY });
@@ -87,6 +100,7 @@ export async function generateCandidates(
       const base = replacing ? withFinalImage({ ...s, selected: undefined }, undefined) : s;
       return {
         ...base,
+        imageProgress: undefined,
         candidates: [...s.candidates, ...images],
         stale: promptChanged || (images.length > 0 ? false : s.stale),
         imageStatus: images.length > 0 ? "idle" : "failed",

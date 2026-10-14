@@ -13,6 +13,7 @@ import {
   addUploadedFrames,
   canEnterStep,
   matchesRatio,
+  imageProgress,
   needsFrames,
   refShotImage,
   removeCandidate,
@@ -44,6 +45,7 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
   const toFinalize = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
   const allSelected = project.shots.every((s) => s.selected !== undefined);
   const anyBusy = project.shots.some((s) => s.imageStatus === "generating");
+  const progress = imageProgress(project.shots);
 
   const withKey = (work: (apiKey: string) => void) => {
     const apiKey = requireApiKey();
@@ -103,6 +105,11 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
           ]}
         />
       </div>
+      {progress && (
+        <span role="status" className="font-mono text-xs text-fg-muted">
+          {t("storyboard.images.batchProgress", progress)}
+        </span>
+      )}
       {missing.length > 0 && (
         <Button
           size="sm"
