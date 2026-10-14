@@ -31,9 +31,16 @@ export const AUDIO_DIRECTION: Record<AudioMode, string> = {
 };
 
 const SOUND_GUIDE: Record<AudioMode, string> = {
-  sfx: "- sound: ambience and sound effects only (no music)",
-  sfx_music: "- sound: ambience and sound effects, plus the style of background music",
+  sfx: "- sound: ambience and sound effects only (no music), plus any spoken lines word for word in quotes",
+  sfx_music: "- sound: ambience and sound effects, the style of background music, plus any spoken lines word for word in quotes",
 };
+
+// Omni follows the prompt's language for speech, so an English prompt makes everyone speak English
+function speechRule(locale: Locale): string {
+  return locale === "zh"
+    ? "- Spoken lines (dialogue, voice-over): keep them word for word in quotes in their original language and say they are spoken in Mandarin Chinese with a Taiwanese accent. Never translate spoken lines. If someone talks but no words are given, they speak Mandarin Chinese."
+    : "- Spoken lines (dialogue, voice-over): keep them word for word in quotes in their original language and name that language. Never translate spoken lines.";
+}
 
 function fieldGuide(audioMode: AudioMode): string {
   return [
@@ -106,12 +113,13 @@ export function buildPromptComposePrompt(fields: PromptFields, ctx: PromptContex
     fieldText,
     "",
     "Rules:",
-    "- English only, 3 to 5 natural sentences, about 50-90 words, one continuous shot.",
+    "- English only (except spoken lines), 3 to 5 natural sentences, about 50-90 words, one continuous shot.",
     "- Keep every detail the user wrote; translate faithfully, do not add new subjects.",
     "- Order: subject and motion, setting, camera, lighting and mood, sound.",
     ctx.audioMode === "sfx"
       ? "- Sound: sound effects and ambience only. Drop any music from the plan and do not mention music."
       : "- Sound: sound effects and ambience plus background music; keep the music style from the plan or pick one that fits.",
+    speechRule(ctx.locale),
     "- No keyword lists, no \"4K, masterpiece\" style tags, no negatives, no on-screen text.",
     "",
     'Return JSON only: {"prompt": "..."}',
