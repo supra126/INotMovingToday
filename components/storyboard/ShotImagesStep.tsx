@@ -7,6 +7,7 @@ import { PanelSection } from "@/components/ui/PanelSection";
 import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, imageCost } from "@/lib/pricing";
+import { copyImageFile } from "@/lib/storyboard/blob";
 import { CANDIDATES_PER_SHOT, finalizeImages, generateCandidates, regenerateShot } from "@/lib/storyboard/imageJobs";
 import {
   addUploadedFrames,
@@ -56,9 +57,8 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
 
   // The user's own frames: no AI, no cost; the last one becomes the pick
   const uploadFrames = async (shotId: string, files: FileList | null) => {
-    const images = Array.from(files ?? [])
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({ blob: file as Blob, mimeType: file.type, uploaded: true }));
+    const picked = Array.from(files ?? []).filter((file) => file.type.startsWith("image/"));
+    const images = (await Promise.all(picked.map(copyImageFile))).map((image) => ({ ...image, uploaded: true }));
     if (images.length === 0) return;
     const sizes = await Promise.all(
       images.map(async (image) => {
