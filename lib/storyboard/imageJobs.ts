@@ -113,7 +113,13 @@ export async function regenerateShot(
     updateShot(ctx, shotId, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
     try {
       prompt = await rewriteImagePrompt(
-        { ...scriptContext(project, locale), shot, currentPrompt: prompt, note: change.note },
+        {
+          ...scriptContext(project, locale),
+          shot,
+          currentPrompt: prompt,
+          note: change.note,
+          otherPrompts: Object.fromEntries(project.shots.filter((s) => s.id !== shotId).map((s) => [s.id, s.imagePrompt])),
+        },
         ctx.apiKey
       );
     } catch (err) {

@@ -97,7 +97,14 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
     run("confirm", async (apiKey) => {
       const missing = project.shots.filter((s) => !s.imagePrompt);
       const prompts = missing.length
-        ? await writeImagePrompts({ ...ctx, shots: toRows(project) }, apiKey)
+        ? await writeImagePrompts(
+            {
+              ...ctx,
+              shots: toRows(project),
+              existingPrompts: Object.fromEntries(project.shots.filter((s) => s.imagePrompt).map((s) => [s.id, s.imagePrompt])),
+            },
+            apiKey
+          )
         : {};
       let confirmed: StoryboardProject | null = null;
       update((p) => {

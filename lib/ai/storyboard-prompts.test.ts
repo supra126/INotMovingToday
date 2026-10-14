@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildImagePromptRewritePrompt,
   buildImagePromptsPrompt,
   buildShotPolishPrompt,
   buildScriptParsePrompt,
@@ -80,6 +81,15 @@ describe("prompt builders", () => {
     expect(parse).not.toContain("ends on the product");
     expect(buildImagePromptsPrompt({ ...broll, shots })).not.toContain("product image(s) are attached");
     expect(buildScriptParsePrompt({ ...ctx, sourceText: "x", hasSourceImage: false, productCount: 1 })).toContain("ends on the product");
+  });
+  it("show the prompts of other shots so people are described the same way", () => {
+    const shots = parseScriptResult({ shots: [{ visual: "a" }, { visual: "b" }] }).shots;
+    const text = buildImagePromptsPrompt({ ...ctx, shots: [shots[1]], existingPrompts: { s01: "a man in a light blue shirt" } });
+    expect(text).toContain("a man in a light blue shirt");
+    const rewrite = buildImagePromptRewritePrompt({
+      ...ctx, shot: shots[1], currentPrompt: "x", note: "y", otherPrompts: { s01: "a man in a light blue shirt" },
+    });
+    expect(rewrite).toContain("a man in a light blue shirt");
   });
   it("asks for English image prompts keyed by shot id", () => {
     const shots = parseScriptResult({ shots: [{ visual: "布膜展開" }] }).shots;

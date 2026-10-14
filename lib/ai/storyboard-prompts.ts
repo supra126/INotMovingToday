@@ -129,7 +129,18 @@ export function buildScriptRevisePrompt(
   ].join("\n");
 }
 
-export function buildImagePromptsPrompt(ctx: ScriptContext & { shots: ScriptShot[] }): string {
+// Prompts already written for other shots: new ones must describe recurring people the same way
+function otherPromptLines(prompts?: Record<string, string>): string[] {
+  const entries = Object.entries(prompts ?? {}).filter(([, prompt]) => prompt.trim());
+  if (!entries.length) return [];
+  return [
+    "Prompts already used for other shots (describe recurring people, clothing and setting exactly as they do):",
+    ...entries.map(([id, prompt]) => `- ${id}: ${prompt}`),
+    "",
+  ];
+}
+
+export function buildImagePromptsPrompt(ctx: ImagePromptsInput): string {
   return [
     "Write one English image prompt per shot for Nano Banana, to make the storyboard keyframe (the first frame of each shot).",
     "",
@@ -142,6 +153,7 @@ export function buildImagePromptsPrompt(ctx: ScriptContext & { shots: ScriptShot
     "Storyboard:",
     JSON.stringify(ctx.shots, null, 2),
     "",
+    ...otherPromptLines(ctx.existingPrompts),
     "Rules:",
     "- 2 to 4 sentences per shot: subject and pose, setting, camera framing and angle, lighting and color mood. A still frame, not motion.",
     "- Keep people, setting and lighting consistent across shots; describe a recurring person the same way every time.",
@@ -152,9 +164,7 @@ export function buildImagePromptsPrompt(ctx: ScriptContext & { shots: ScriptShot
   ].join("\n");
 }
 
-export function buildImagePromptRewritePrompt(
-  ctx: ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string }
-): string {
+export function buildImagePromptRewritePrompt(ctx: ImagePromptRewriteInput): string {
   return [
     "Revise an English image prompt for a storyboard keyframe.",
     "",
@@ -165,6 +175,7 @@ export function buildImagePromptRewritePrompt(
     `Current prompt: ${ctx.currentPrompt}`,
     `User's change (may be in any language): ${ctx.note.trim()}`,
     "",
+    ...otherPromptLines(ctx.otherPrompts),
     "Apply the change, keep everything else, 2 to 4 sentences, English, no on-screen text.",
     'Return JSON only: {"prompt": "..."}',
   ].join("\n");
@@ -264,8 +275,13 @@ export function parseRewrittenPrompt(raw: unknown): string {
 
 export type ScriptParseInput = ScriptContext & { sourceText: string };
 export type ScriptReviseInput = ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string };
-export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[] };
-export type ImagePromptRewriteInput = ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string };
+export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[]; existingPrompts?: Record<string, string> };
+export type ImagePromptRewriteInput = ScriptContext & {
+  shot: ScriptShot;
+  currentPrompt: string;
+  note: string;
+  otherPrompts?: Record<string, string>;
+};
 
 export function parsePolishedShot(raw: unknown): { visual: string; camera: string } {
   const data = record(raw);
