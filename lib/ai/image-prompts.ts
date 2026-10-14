@@ -174,6 +174,12 @@ function referenceRoles(options: { productCount: number; characterCount: number;
     options.shotRef ? 1 : 0,
     "an earlier frame of this storyboard. Keep the same people, clothing, setting, lighting and color mood, but compose the new shot as described below; do not copy its framing."
   );
+  if (options.characterCount || options.shotRef) {
+    // The shot text may describe people differently (e.g. written before the references existed)
+    roles.push(
+      "If the shot description below disagrees with the references about how a person looks or dresses (face, hair, glasses, clothing), the references win."
+    );
+  }
   return roles.join("\n");
 }
 

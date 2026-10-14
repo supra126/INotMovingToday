@@ -30,6 +30,7 @@ describe("keyframe references", () => {
     expect(text).toContain("IMAGE 1: the real product");
     expect(text).toContain("IMAGES 2–3: character and setting references");
     expect(text).toContain("IMAGE 4: an earlier frame of this storyboard");
+    expect(text).toContain("the references win");
   });
   it("mentions no references when none are attached", () => {
     const text = buildKeyframeInstruction({ prompt: "p", ratio: "9:16", productCount: 0, characterCount: 0, shotRef: false, index: 0, count: 1 });
