@@ -70,16 +70,25 @@ export async function generateCandidates(
 
   // Reference photos and borrowed frames (possibly 4K or straight from a phone) only guide the look;
   // shrinking them keeps each request under the inline size limit. Product photos stay sharp for the label.
-  const refsByShot = new Map(
-    await Promise.all(
-      shots.map(async (shot) => {
-        const refs = keyframeRefs(project, shot);
-        const [products, others] = [refs.images.slice(0, refs.productCount), refs.images.slice(refs.productCount)];
-        const images = [...products, ...(await Promise.all(others.map((i) => downscaleImage(i))))];
-        return [shot.id, { ...refs, images }] satisfies [string, typeof refs];
-      })
-    )
-  );
+  let refsByShot: Map<string, ReturnType<typeof keyframeRefs>>;
+  try {
+    refsByShot = new Map(
+      await Promise.all(
+        shots.map(async (shot) => {
+          const refs = keyframeRefs(project, shot);
+          const [products, others] = [refs.images.slice(0, refs.productCount), refs.images.slice(refs.productCount)];
+          const images = [...products, ...(await Promise.all(others.map((i) => downscaleImage(i))))];
+          return [shot.id, { ...refs, images }] satisfies [string, typeof refs];
+        })
+      )
+    );
+  } catch (err) {
+    // The shots are already marked generating; never leave them stuck
+    for (const shot of shots) {
+      updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "failed", imageProgress: undefined, imageError: errorKey(err) }));
+    }
+    return;
+  }
   const owners: string[] = [];
   const tasks = shots.flatMap((shot) => {
     const { images, ...refs } = refsByShot.get(shot.id)!;
