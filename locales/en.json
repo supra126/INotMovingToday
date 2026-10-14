@@ -369,7 +369,8 @@
         "generating": "Generating {{progress}}%",
         "completed": "Done",
         "failed": "Failed",
-        "interrupted": "Interrupted, please regenerate"
+        "interrupted": "Interrupted, please regenerate",
+        "stopped": "Stopped. Shots not yet sent are not billed; running ones were cancelled at Google, which decides whether they are billed"
       },
       "regenerate": "Regenerate",
       "retry": "Retry",
@@ -382,6 +383,8 @@
       "needsFields": "Fields not filled in yet",
       "outdated": "The frame changed; regenerate recommended",
       "generateOne": "Generate this shot",
+      "stop": "Stop",
+      "stopAll": "Stop all",
       "settingsTitle": "Shot settings",
       "fieldsTitle": "Prompt fields",
       "brief": "Describe this shot in your own words",

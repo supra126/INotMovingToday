@@ -47,7 +47,7 @@ export interface VideoMadeWith {
   fields: string;
 }
 
-export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted";
+export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted" | "stopped";
 
 export interface ShotVideo {
   status: ShotVideoStatus;

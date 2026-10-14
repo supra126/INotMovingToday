@@ -1,14 +1,59 @@
 import type { PromptContext } from "@/lib/ai/prompts";
 import { toDisplayError } from "@/lib/video/errors";
 import { runExtendJob, runVideoJob } from "@/lib/video/job";
-import { composePrompt, draftPrompt } from "@/services/videoService";
+import { cancelVideoGeneration, composePrompt, draftPrompt } from "@/services/videoService";
 import type { Locale, VideoResolution } from "@/types";
 import { toFile } from "./blob";
 import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
 import { endFrameImage, madeWith, shotAudioMode, shotDescription, shotResolution } from "./shots";
-import type { StoryboardProject } from "./types";
+import type { ShotVideo, StoryboardProject } from "./types";
+
+/** Shots queued or running in this tab, so the user can stop them */
+interface RunToken {
+  stopped: boolean;
+  jobId?: string;
+  /** The finished video to bring back if this run is stopped */
+  previous?: ShotVideo;
+}
+const runs = new Map<string, RunToken>();
+const runKey = (projectId: string, shotId: string) => `${projectId}/${shotId}`;
+
+function track(ctx: JobContext, shotId: string, previous?: ShotVideo): RunToken {
+  const token: RunToken = { stopped: false, previous };
+  runs.set(runKey(ctx.projectId, shotId), token);
+  return token;
+}
+
+function untrack(ctx: JobContext, shotId: string, token: RunToken) {
+  if (runs.get(runKey(ctx.projectId, shotId)) === token) runs.delete(runKey(ctx.projectId, shotId));
+}
+
+/** The job id is known only after the request returns; a stop that came first cancels it then */
+function onJobId(ctx: JobContext, token: RunToken) {
+  return (jobId: string) => {
+    token.jobId = jobId;
+    if (token.stopped) void cancelVideoGeneration(jobId, ctx.apiKey).catch(() => {});
+  };
+}
+
+/**
+ * Stop queued and running videos. Queued shots are never sent; running ones are cancelled at Google,
+ * whose billing for a cancelled job is not documented. A stopped regeneration keeps the earlier video.
+ */
+export function stopShotVideos(ctx: JobContext, shotIds: string[]) {
+  for (const shotId of shotIds) {
+    const token = runs.get(runKey(ctx.projectId, shotId));
+    if (!token || token.stopped) continue;
+    token.stopped = true;
+    if (token.jobId) void cancelVideoGeneration(token.jobId, ctx.apiKey).catch(() => {});
+    updateShot(ctx, shotId, (s) => ({
+      ...s,
+      video: token.previous ?? { status: "stopped", progress: 0, prompt: s.video?.prompt ?? "", duration: s.duration },
+    }));
+  }
+}
 
 const fetchBlob = async (url: string) => {
   const response = await fetch(url);
@@ -175,13 +220,18 @@ export async function generateShotVideos(
       ...s,
       video: { ...previous.get(shotId), status: "generating", progress: 0, prompt: "", duration, error: undefined, outdated: false },
     }));
+  const tokens = targets.map(({ shot }) => track(ctx, shot.id, previous.get(shot.id)));
   for (const { shot } of targets) start(shot.id, shot.duration);
 
   const results = await runQueue(
-    targets.map(({ shot, index }) => async () => {
+    targets.map(({ shot, index }, i) => async () => {
+      const token = tokens[i];
+      // Checked on every attempt, so a rate-limit retry never restarts a stopped shot
+      if (token.stopped) return;
       start(shot.id, shot.duration);
       const pc = promptContext(project, index, locale);
       const prompt = await composePrompt(shot.fields!, pc, ctx.apiKey);
+      if (token.stopped) return;
       updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, prompt } }));
       const result = await runVideoJob(
         {
@@ -195,13 +245,14 @@ export async function generateShotVideos(
         },
         {
           apiKey: ctx.apiKey,
-          isCancelled: () => false,
+          isCancelled: () => token.stopped,
+          onJobId: onJobId(ctx, token),
           // Progress stays in memory; IndexedDB is written on status changes only
           onProgress: (progress) =>
             updateShot(ctx, shot.id, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
         }
       );
-      if (!result) return;
+      if (!result || token.stopped) return;
       const stored = await toStoredVideo(result.videoUrl);
       updateShot(ctx, shot.id, (s) => ({
         ...s,
@@ -223,8 +274,9 @@ export async function generateShotVideos(
     { concurrency: VIDEO_CONCURRENCY, retryDelayMs: options.retryDelayMs }
   );
 
+  targets.forEach(({ shot }, i) => untrack(ctx, shot.id, tokens[i]));
   results.forEach((result, i) => {
-    if (result.ok) return;
+    if (result.ok || tokens[i].stopped) return;
     const { shot } = targets[i];
     const error = toDisplayError(result.error instanceof Error ? result.error.message : "");
     const before = previous.get(shot.id);
@@ -250,6 +302,7 @@ export async function extendShotVideo(
   const shot = project.shots.find((s) => s.id === shotId);
   const previous = shot?.video;
   if (!shot || !previous?.sourceVideoUri) return;
+  const token = track(ctx, shotId, previous);
   updateShot(ctx, shotId, (s) => ({ ...s, video: { ...previous, status: "generating", progress: 0, error: undefined } }));
   try {
     const result = await runExtendJob(
@@ -263,12 +316,13 @@ export async function extendShotVideo(
       },
       {
         apiKey: ctx.apiKey,
-        isCancelled: () => false,
+        isCancelled: () => token.stopped,
+        onJobId: onJobId(ctx, token),
         onProgress: (progress) =>
           updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
       }
     );
-    if (!result) return;
+    if (!result || token.stopped) return;
     const stored = await toStoredVideo(result.videoUrl);
     updateShot(ctx, shotId, (s) => ({
       ...s,
@@ -284,9 +338,12 @@ export async function extendShotVideo(
       },
     }));
   } catch (err) {
+    if (token.stopped) return;
     updateShot(ctx, shotId, (s) => ({
       ...s,
       video: { ...previous, status: "completed", error: toDisplayError(err instanceof Error ? err.message : "") },
     }));
+  } finally {
+    untrack(ctx, shotId, token);
   }
 }

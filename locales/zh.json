@@ -369,7 +369,8 @@
         "generating": "生成中 {{progress}}%",
         "completed": "完成",
         "failed": "失敗",
-        "interrupted": "生成中斷，請重生"
+        "interrupted": "生成中斷，請重生",
+        "stopped": "已停止。還沒送出的不會計費；已送到 Google 的已要求取消，是否計費以 Google 帳單為準"
       },
       "regenerate": "重生",
       "retry": "重試",
@@ -382,6 +383,8 @@
       "needsFields": "尚未填寫欄位",
       "outdated": "分鏡圖已更換，建議重生",
       "generateOne": "生成這鏡",
+      "stop": "停止",
+      "stopAll": "停止全部",
       "settingsTitle": "鏡頭設定",
       "fieldsTitle": "提示詞欄位",
       "brief": "用白話描述這一鏡",
