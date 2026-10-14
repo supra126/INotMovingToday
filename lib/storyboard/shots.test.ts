@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   applyScriptEdit,
   canEnterStep,
+  exportEntries,
+  imageProgress,
+  keyframeRefs,
+  setReferenceImages,
+  needsFrames,
   defaultEndFrame,
   endFrameImage,
   mergeScriptShots,
@@ -117,8 +122,7 @@ describe("normalizeOnLoad", () => {
 describe("canEnterStep", () => {
   it("gates each step", () => {
     const p = newProject("id", 0);
-    expect(canEnterStep(p, 2)).toBe(false);
-    p.productImages = [img("product")];
+    // Product images are optional: without them the storyboard is B-roll
     expect(canEnterStep(p, 2)).toBe(true);
     p.shots = [{ ...toShot(row(), true), imagePrompt: "p" }];
     expect(canEnterStep(p, 3)).toBe(false);
@@ -129,6 +133,17 @@ describe("canEnterStep", () => {
     expect(canEnterStep(p, 4)).toBe(true);
     p.shots[0] = { ...p.shots[0], stale: true };
     expect(canEnterStep(p, 4)).toBe(false);
+  });
+});
+
+describe("needsFrames", () => {
+  it("skips shots the user will upload frames for", () => {
+    const shot = toShot(row(), true);
+    expect(needsFrames(shot)).toBe(true);
+    expect(needsFrames({ ...shot, frameSource: "upload" })).toBe(false);
+    expect(needsFrames({ ...shot, imageStatus: "generating" })).toBe(false);
+    expect(needsFrames({ ...shot, candidates: [img("c")] })).toBe(false);
+    expect(needsFrames({ ...shot, candidates: [img("c")], stale: true })).toBe(true);
   });
 });
 
@@ -413,5 +428,59 @@ describe("codex review", () => {
     expect(extensionOptions(8)).toEqual([4, 6, 8]);
     expect(extensionOptions(34)).toEqual([4, 6]);
     expect(extensionOptions(38)).toEqual([]);
+  });
+});
+
+describe("exportEntries", () => {
+  it("numbers finished videos in storyboard order and skips the rest", () => {
+    const done = { status: "completed" as const, progress: 100, prompt: "", duration: 4, blob: new Blob(["v"]) };
+    const shots = [
+      { ...toShot({ ...row(), id: "s03", visual: "晨光" }, false), video: done },
+      { ...toShot({ ...row(), id: "s01", visual: "x" }, false), video: { ...done, status: "failed" as const, blob: undefined } },
+      { ...toShot({ ...row(), id: "s02", visual: "收尾" }, true), video: done },
+    ];
+    expect(exportEntries(shots).map((e) => e.name)).toEqual(["01_s03-晨光.mp4", "03_s02-收尾.mp4"]);
+  });
+});
+
+describe("keyframeRefs", () => {
+  it("sends products, then character references, then the chosen earlier frame", () => {
+    const p = newProject("id", 0);
+    p.productImages = [img("product")];
+    p.referenceImages = [img("face")];
+    const s01 = { ...toShot({ ...row(), id: "s01" }, false), finalImage: img("s01-final") };
+    const s02 = { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" };
+    p.shots = [s01, s02];
+    const refs = keyframeRefs(p, s02);
+    expect(refs.images).toEqual([p.productImages[0], p.referenceImages[0], s01.finalImage]);
+    expect(refs).toMatchObject({ productCount: 1, characterCount: 1, shotRef: true });
+  });
+  it("falls back to the picked candidate and ignores a missing or own shot", () => {
+    const p = newProject("id", 0);
+    const s01 = { ...toShot({ ...row(), id: "s01" }, false), candidates: [img("a"), img("b")], selected: 1 };
+    p.shots = [s01, { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" }];
+    expect(keyframeRefs(p, p.shots[1]).images).toEqual([s01.candidates[1]]);
+    expect(keyframeRefs(p, { ...p.shots[1], refShotId: "s09" }).shotRef).toBe(false);
+    expect(keyframeRefs(p, { ...s01, refShotId: "s01" }).shotRef).toBe(false);
+  });
+});
+
+describe("setReferenceImages", () => {
+  it("marks frames made with the old references as stale", () => {
+    const p = newProject("id", 0);
+    p.shots = [{ ...toShot(row(), true), candidates: [img("c")] }];
+    expect(setReferenceImages(p, [img("face")]).shots[0].stale).toBe(true);
+  });
+});
+
+describe("imageProgress", () => {
+  it("adds up finished images of running shots", () => {
+    const shots = [
+      { ...toShot(row(), false), imageStatus: "generating" as const, imageProgress: { done: 1, total: 2 } },
+      { ...toShot(row(), false), imageStatus: "generating" as const, imageProgress: { done: 2, total: 2 } },
+      { ...toShot(row(), true), imageProgress: { done: 0, total: 2 } },
+    ];
+    expect(imageProgress(shots)).toEqual({ done: 3, total: 4, percent: 75 });
+    expect(imageProgress([toShot(row(), true)])).toBeUndefined();
   });
 });

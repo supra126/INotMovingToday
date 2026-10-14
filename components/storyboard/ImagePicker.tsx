@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useLocale } from "@/contexts/LocaleContext";
+import { copyImageFile } from "@/lib/storyboard/blob";
 import type { StoredImage } from "@/lib/storyboard/types";
 import { BlobImage } from "./BlobImage";
 
@@ -16,12 +17,9 @@ export function ImagePicker({ images, max, onChange, disabled = false }: ImagePi
   const { t } = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const add = (files: FileList | null) => {
-    if (!files) return;
-    const added = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({ blob: file as Blob, mimeType: file.type }));
-    onChange([...images, ...added].slice(0, max));
+  const add = async (files: File[]) => {
+    const added = await Promise.all(files.filter((file) => file.type.startsWith("image/")).map(copyImageFile));
+    if (added.length) onChange([...images, ...added].slice(0, max));
   };
 
   return (
@@ -57,7 +55,7 @@ export function ImagePicker({ images, max, onChange, disabled = false }: ImagePi
         multiple={max > 1}
         className="hidden"
         onChange={(e) => {
-          add(e.target.files);
+          void add(Array.from(e.target.files ?? []));
           e.target.value = "";
         }}
       />

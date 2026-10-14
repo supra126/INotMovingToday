@@ -6,7 +6,8 @@ import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
 import { toDisplayError } from "@/lib/video/errors";
-import { withFinalImage } from "./shots";
+import { downscaleImage } from "./resize";
+import { keyframeRefs, withFinalImage } from "./shots";
 import type { UpdateOptions } from "./store";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
 
@@ -19,7 +20,13 @@ export interface JobContext {
 }
 
 export function scriptContext(project: StoryboardProject, locale: Locale): ScriptContext {
-  return { ratio: project.ratio, tone: project.tone, packagingText: project.packagingText, locale };
+  return {
+    ratio: project.ratio,
+    tone: project.tone,
+    packagingText: project.packagingText,
+    locale,
+    hasProduct: project.productImages.length > 0,
+  };
 }
 
 export function updateShot(ctx: JobContext, shotId: string, fn: (shot: Shot) => Shot, options?: UpdateOptions) {
@@ -45,28 +52,65 @@ export async function generateCandidates(
     (shot) => shotIds.includes(shot.id) && shot.imagePrompt && shot.imageStatus !== "generating"
   );
   for (const shot of shots) {
-    updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
+    updateShot(ctx, shot.id, (s) => ({
+      ...s,
+      imageStatus: "generating",
+      imageError: undefined,
+      imageProgress: { done: 0, total: count },
+    }));
   }
+  // Each image is one request with no progress of its own, so progress counts finished images
+  const tick = (shotId: string) =>
+    updateShot(
+      ctx,
+      shotId,
+      (s) => ({ ...s, imageProgress: s.imageProgress && { ...s.imageProgress, done: s.imageProgress.done + 1 } }),
+      { persist: false }
+    );
 
-  const tasks = shots.flatMap((shot) =>
-    Array.from({ length: count }, (_, index) => () =>
+  // Reference photos and borrowed frames (possibly 4K or straight from a phone) only guide the look;
+  // shrinking them keeps each request under the inline size limit. Product photos stay sharp for the label.
+  let refsByShot: Map<string, ReturnType<typeof keyframeRefs>>;
+  try {
+    refsByShot = new Map(
+      await Promise.all(
+        shots.map(async (shot) => {
+          const refs = keyframeRefs(project, shot);
+          const [products, others] = [refs.images.slice(0, refs.productCount), refs.images.slice(refs.productCount)];
+          const images = [...products, ...(await Promise.all(others.map((i) => downscaleImage(i))))];
+          return [shot.id, { ...refs, images }] satisfies [string, typeof refs];
+        })
+      )
+    );
+  } catch (err) {
+    // The shots are already marked generating; never leave them stuck
+    for (const shot of shots) {
+      updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "failed", imageProgress: undefined, imageError: errorKey(err) }));
+    }
+    return;
+  }
+  const owners: string[] = [];
+  const tasks = shots.flatMap((shot) => {
+    const { images, ...refs } = refsByShot.get(shot.id)!;
+    owners.push(...Array.from({ length: count }, () => shot.id));
+    return Array.from({ length: count }, (_, index) => () =>
       generateImage({
         apiKey: ctx.apiKey,
         instruction: buildKeyframeInstruction({
           prompt: shot.imagePrompt,
           ratio: project.ratio,
-          refCount: project.productImages.length,
+          ...refs,
           index,
           count,
           packagingText: shot.hasPackaging ? project.packagingText : undefined,
         }),
-        images: project.productImages,
+        images,
         ratio: project.ratio,
         size: "1K",
       })
-    )
-  );
-  const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY });
+    );
+  });
+  const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY, onSettled: (i) => tick(owners[i]) });
 
   shots.forEach((shot, shotIndex) => {
     const mine = results.slice(shotIndex * count, (shotIndex + 1) * count);
@@ -80,6 +124,7 @@ export async function generateCandidates(
       const base = replacing ? withFinalImage({ ...s, selected: undefined }, undefined) : s;
       return {
         ...base,
+        imageProgress: undefined,
         candidates: [...s.candidates, ...images],
         stale: promptChanged || (images.length > 0 ? false : s.stale),
         imageStatus: images.length > 0 ? "idle" : "failed",
@@ -106,7 +151,13 @@ export async function regenerateShot(
     updateShot(ctx, shotId, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
     try {
       prompt = await rewriteImagePrompt(
-        { ...scriptContext(project, locale), shot, currentPrompt: prompt, note: change.note },
+        {
+          ...scriptContext(project, locale),
+          shot,
+          currentPrompt: prompt,
+          note: change.note,
+          otherPrompts: Object.fromEntries(project.shots.filter((s) => s.id !== shotId).map((s) => [s.id, s.imagePrompt])),
+        },
         ctx.apiKey
       );
     } catch (err) {

@@ -59,9 +59,12 @@ export function mergeScriptShots(prev: Shot[], rows: ScriptShot[]): Shot[] {
 export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
   return {
     ...project,
+    // Projects saved before reference images existed
+    referenceImages: project.referenceImages ?? [],
     shots: project.shots.map((shot) => ({
       ...shot,
       imageStatus: shot.imageStatus === "generating" ? "idle" : shot.imageStatus,
+      imageProgress: undefined,
       draftStatus: shot.draftStatus === "drafting" ? undefined : shot.draftStatus,
       video: shot.video?.status === "generating" ? { ...shot.video, status: "interrupted" } : shot.video,
     })),
@@ -76,13 +79,16 @@ export function endFrameImage(shots: Shot[], index: number): StoredImage | undef
 }
 
 export function canEnterStep(project: StoryboardProject, step: Step): boolean {
-  if (step === 1) return true;
-  if (project.productImages.length === 0) return false;
-  if (step === 2) return true;
+  if (step <= 2) return true;
   const scriptReady =
     project.script.confirmed && project.shots.length > 0 && project.shots.every((shot) => shot.imagePrompt);
   if (step === 3) return scriptReady;
   return scriptReady && project.shots.every((shot) => shot.finalImage && !shot.stale);
+}
+
+/** AI should make candidates: none yet or out of date, not running, and the user is not uploading their own */
+export function needsFrames(shot: Shot): boolean {
+  return (shot.candidates.length === 0 || shot.stale) && shot.imageStatus !== "generating" && shot.frameSource !== "upload";
 }
 
 /** A new final frame means the shot's fields and video describe the old picture */
@@ -130,6 +136,7 @@ export function newProject(id: string, now: number): StoryboardProject {
     tone: "",
     packagingText: "",
     productImages: [],
+    referenceImages: [],
     script: { sourceText: "", chat: [], suggestions: [], confirmed: false },
     shots: [],
     finalSize: "1K",
@@ -148,6 +155,24 @@ export function shotDescription(shot: ScriptShot): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/** Finished / total images of running batches; undefined when nothing is generating */
+export function imageProgress(shots: Shot[]): { done: number; total: number; percent: number } | undefined {
+  const running = shots.flatMap((s) => (s.imageStatus === "generating" && s.imageProgress ? [s.imageProgress] : []));
+  if (!running.length) return undefined;
+  const done = running.reduce((sum, p) => sum + p.done, 0);
+  const total = running.reduce((sum, p) => sum + p.total, 0);
+  return { done, total, percent: Math.round((done / total) * 100) };
+}
+
+/** Finished videos for download, numbered by their place in the storyboard so files sort in order */
+export function exportEntries(shots: Shot[]): { name: string; shot: Shot }[] {
+  return shots.flatMap((shot, index) =>
+    shot.video?.status === "completed" && (shot.video.blob || shot.video.url)
+      ? [{ name: `${String(index + 1).padStart(2, "0")}_${videoFileName(shot)}`, shot }]
+      : []
+  );
 }
 
 export function videoFileName(shot: ScriptShot): string {
@@ -248,18 +273,48 @@ export function madeWith(shot: Shot): VideoMadeWith {
   };
 }
 
-/** New product images make every existing frame show the old product */
-export function setProductImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
-  const same =
-    images.length === project.productImages.length &&
-    images.every((image, i) => image.blob === project.productImages[i].blob);
-  if (same) return { ...project, productImages: images };
+// New product or reference images make every existing frame show the old ones
+function replaceImages(
+  project: StoryboardProject,
+  key: "productImages" | "referenceImages",
+  images: StoredImage[]
+): StoryboardProject {
+  const current = project[key] ?? [];
+  const same = images.length === current.length && images.every((image, i) => image.blob === current[i].blob);
+  if (same) return { ...project, [key]: images };
   return {
     ...project,
-    productImages: images,
+    [key]: images,
     shots: project.shots.map((shot) =>
       shot.candidates.length > 0 || shot.finalImage ? { ...shot, stale: true } : shot
     ),
+  };
+}
+
+export function setProductImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
+  return replaceImages(project, "productImages", images);
+}
+
+export function setReferenceImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
+  return replaceImages(project, "referenceImages", images);
+}
+
+/** The frame a shot borrows people and setting from: the referenced shot's final or picked image */
+export function refShotImage(shots: Shot[], shot: Shot): StoredImage | undefined {
+  if (!shot.refShotId || shot.refShotId === shot.id) return undefined;
+  const ref = shots.find((s) => s.id === shot.refShotId);
+  return ref?.finalImage ?? (ref?.selected !== undefined ? ref.candidates[ref.selected] : undefined);
+}
+
+/** Images sent with a keyframe, in the order buildKeyframeInstruction describes them */
+export function keyframeRefs(project: StoryboardProject, shot: Shot) {
+  const characters = project.referenceImages ?? [];
+  const frame = refShotImage(project.shots, shot);
+  return {
+    images: [...project.productImages, ...characters, ...(frame ? [frame] : [])],
+    productCount: project.productImages.length,
+    characterCount: characters.length,
+    shotRef: !!frame,
   };
 }
 

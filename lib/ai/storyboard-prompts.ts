@@ -6,6 +6,8 @@ export interface ScriptContext {
   tone: string;
   packagingText: string;
   locale: Locale;
+  /** false = no product images: atmosphere B-roll without the product */
+  hasProduct: boolean;
 }
 
 export interface ScriptResult {
@@ -18,15 +20,29 @@ export interface ScriptResult {
 const MAX_SHOTS = 20;
 
 // Rules from the ai-video storyboard skill
-const STORYBOARD_RULES = [
-  "- The first 2 seconds need a hook. The product must be clearly visible, and the last shot ends on the product: packaging large, facing the camera, still.",
+const SHARED_RULES = [
   "- Each shot is 3 to 10 seconds (video model limit). If the script wants a shorter shot, keep its intended length; it will be generated longer and trimmed in editing.",
   "- Keep lighting, setting and people consistent from shot to shot.",
   "- Write the sound effects for every shot. Music is \"無\" (none) unless the user asks for music in that shot; music is added in editing.",
   "- On-screen text (captions, titles) goes only in onScreenText. It is added in editing and must never be drawn in the picture.",
   "- Keep the user's core message and their on-screen text wording.",
-  "- Set hasPackaging to true when the product packaging is visible in the shot.",
-].join("\n");
+];
+
+function storyboardRules(hasProduct: boolean): string {
+  const product = hasProduct
+    ? [
+        "- The first 2 seconds need a hook. The product must be clearly visible, and the last shot ends on the product: packaging large, facing the camera, still.",
+        ...SHARED_RULES,
+        "- Set hasPackaging to true when the product packaging is visible in the shot.",
+      ]
+    : [
+        "- This is B-roll: atmosphere, scenes, textures and people that support the story. There are no product images, so never show a product, packaging or brand.",
+        "- The first 2 seconds still need a visual hook.",
+        ...SHARED_RULES,
+        "- Set hasPackaging to false for every shot.",
+      ];
+  return product.join("\n");
+}
 
 const SHOT_SHAPE =
   '{"id": "s01", "seconds": 4, "visual": "...", "camera": "...", "sound": "...", "music": "無", "onScreenText": "...", "transition": "硬切", "hasPackaging": false}';
@@ -79,7 +95,7 @@ export function buildScriptParsePrompt(
     ctx.sourceText.trim() ? `User's script or idea:\n${ctx.sourceText.trim()}` : "",
     "",
     "Turn it into a storyboard table and improve it without changing the core message. Rules:",
-    STORYBOARD_RULES,
+    storyboardRules(ctx.hasProduct),
     "",
     ...resultInstructions(ctx.locale),
   ].join("\n");
@@ -107,23 +123,37 @@ export function buildScriptRevisePrompt(
     "Apply the request and return the whole updated table in the new order. Keep shots the user did not mention unchanged.",
     "Ids identify shots: keep every existing shot's id even when shots are inserted, removed or reordered, and give each new shot an id that is not used yet (for example s06).",
     "Rules:",
-    STORYBOARD_RULES,
+    storyboardRules(ctx.hasProduct),
     "",
     ...resultInstructions(ctx.locale),
   ].join("\n");
 }
 
-export function buildImagePromptsPrompt(ctx: ScriptContext & { shots: ScriptShot[] }): string {
+// Prompts already written for other shots: new ones must describe recurring people the same way
+function otherPromptLines(prompts?: Record<string, string>): string[] {
+  const entries = Object.entries(prompts ?? {}).filter(([, prompt]) => prompt.trim());
+  if (!entries.length) return [];
+  return [
+    "Prompts already used for other shots (describe recurring people, clothing and setting exactly as they do):",
+    ...entries.map(([id, prompt]) => `- ${id}: ${prompt}`),
+    "",
+  ];
+}
+
+export function buildImagePromptsPrompt(ctx: ImagePromptsInput): string {
   return [
     "Write one English image prompt per shot for Nano Banana, to make the storyboard keyframe (the first frame of each shot).",
     "",
     "Context:",
     ...contextLines(ctx),
-    "- The product image(s) are attached to every generation, so refer to \"the product\" rather than describing its label.",
+    ctx.hasProduct
+      ? "- The product image(s) are attached to every generation, so refer to \"the product\" rather than describing its label."
+      : "- B-roll without product images: show no product, packaging or brand.",
     "",
     "Storyboard:",
     JSON.stringify(ctx.shots, null, 2),
     "",
+    ...otherPromptLines(ctx.existingPrompts),
     "Rules:",
     "- 2 to 4 sentences per shot: subject and pose, setting, camera framing and angle, lighting and color mood. A still frame, not motion.",
     "- Keep people, setting and lighting consistent across shots; describe a recurring person the same way every time.",
@@ -134,9 +164,7 @@ export function buildImagePromptsPrompt(ctx: ScriptContext & { shots: ScriptShot
   ].join("\n");
 }
 
-export function buildImagePromptRewritePrompt(
-  ctx: ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string }
-): string {
+export function buildImagePromptRewritePrompt(ctx: ImagePromptRewriteInput): string {
   return [
     "Revise an English image prompt for a storyboard keyframe.",
     "",
@@ -147,6 +175,7 @@ export function buildImagePromptRewritePrompt(
     `Current prompt: ${ctx.currentPrompt}`,
     `User's change (may be in any language): ${ctx.note.trim()}`,
     "",
+    ...otherPromptLines(ctx.otherPrompts),
     "Apply the change, keep everything else, 2 to 4 sentences, English, no on-screen text.",
     'Return JSON only: {"prompt": "..."}',
   ].join("\n");
@@ -246,8 +275,13 @@ export function parseRewrittenPrompt(raw: unknown): string {
 
 export type ScriptParseInput = ScriptContext & { sourceText: string };
 export type ScriptReviseInput = ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string };
-export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[] };
-export type ImagePromptRewriteInput = ScriptContext & { shot: ScriptShot; currentPrompt: string; note: string };
+export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[]; existingPrompts?: Record<string, string> };
+export type ImagePromptRewriteInput = ScriptContext & {
+  shot: ScriptShot;
+  currentPrompt: string;
+  note: string;
+  otherPrompts?: Record<string, string>;
+};
 
 export function parsePolishedShot(raw: unknown): { visual: string; camera: string } {
   const data = record(raw);

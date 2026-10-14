@@ -3,15 +3,19 @@
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { PanelSection } from "@/components/ui/PanelSection";
+import { Field, PanelSection } from "@/components/ui/PanelSection";
 import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, imageCost } from "@/lib/pricing";
+import { copyImageFile } from "@/lib/storyboard/blob";
 import { CANDIDATES_PER_SHOT, finalizeImages, generateCandidates, regenerateShot } from "@/lib/storyboard/imageJobs";
 import {
   addUploadedFrames,
   canEnterStep,
   matchesRatio,
+  imageProgress,
+  needsFrames,
+  refShotImage,
   removeCandidate,
   resolveSelectedShot,
   selectCandidate,
@@ -37,10 +41,11 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
-  const missing = project.shots.filter((s) => (s.candidates.length === 0 || s.stale) && s.imageStatus !== "generating");
+  const missing = project.shots.filter(needsFrames);
   const toFinalize = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
   const allSelected = project.shots.every((s) => s.selected !== undefined);
   const anyBusy = project.shots.some((s) => s.imageStatus === "generating");
+  const progress = imageProgress(project.shots);
 
   const withKey = (work: (apiKey: string) => void) => {
     const apiKey = requireApiKey();
@@ -56,9 +61,8 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
 
   // The user's own frames: no AI, no cost; the last one becomes the pick
   const uploadFrames = async (shotId: string, files: FileList | null) => {
-    const images = Array.from(files ?? [])
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({ blob: file as Blob, mimeType: file.type, uploaded: true }));
+    const picked = Array.from(files ?? []).filter((file) => file.type.startsWith("image/"));
+    const images = (await Promise.all(picked.map(copyImageFile))).map((image) => ({ ...image, uploaded: true }));
     if (images.length === 0) return;
     const sizes = await Promise.all(
       images.map(async (image) => {
@@ -101,6 +105,11 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
           ]}
         />
       </div>
+      {progress && (
+        <span role="status" className="font-mono text-xs text-fg-muted">
+          {t("storyboard.images.batchProgress", progress)}
+        </span>
+      )}
       {missing.length > 0 && (
         <Button
           size="sm"
@@ -173,6 +182,21 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
               <div className="flex flex-col gap-2">
                 {selected.stale && <p className="text-xs text-warning">{t("storyboard.images.stale")}</p>}
                 {selected.hasPackaging && <p className="text-xs text-fg-muted">{t("storyboard.images.packagingHint")}</p>}
+                <Field label={t("storyboard.images.refShot")} hint={t("storyboard.images.refShotHint")}>
+                  <select
+                    value={selected.refShotId ?? ""}
+                    aria-label={t("storyboard.images.refShot")}
+                    onChange={(e) => patchShot(selected.id, (s) => ({ ...s, refShotId: e.target.value || undefined }))}
+                    className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 text-sm text-fg"
+                  >
+                    <option value="">{t("storyboard.images.refShotNone")}</option>
+                    {project.shots
+                      .filter((s) => s.id !== selected.id && refShotImage(project.shots, { ...selected, refShotId: s.id }))
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>{s.id}　{s.visual.slice(0, 16)}</option>
+                      ))}
+                  </select>
+                </Field>
                 {selected.imageError && <p role="alert" className="text-xs text-danger">{t(selected.imageError)}</p>}
                 <Button disabled={selected.imageStatus === "generating"} onClick={() => uploadRef.current?.click()}>
                   <Upload size={14} aria-hidden="true" />

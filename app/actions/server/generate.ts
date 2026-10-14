@@ -59,6 +59,18 @@ export async function checkVideoStatusAction(jobId: string, apiKey?: string): Pr
 }
 
 /**
+ * Stop a running job
+ */
+export async function cancelVideoAction(jobId: string, apiKey?: string): Promise<ActionResult<void>> {
+  return toActionResult(async () => {
+    if (!jobId) {
+      throw new Error("Invalid job ID");
+    }
+    await resolveProvider(apiKey).cancelJob?.(jobId);
+  });
+}
+
+/**
  * Extend an existing video
  */
 export async function extendVideoAction(

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { RatioSelector } from "@/components/upload/RatioSelector";
 import { useLocale } from "@/contexts/LocaleContext";
-import { canEnterStep, isRatioLocked, setProductImages } from "@/lib/storyboard/shots";
+import { canEnterStep, isRatioLocked, setProductImages, setReferenceImages } from "@/lib/storyboard/shots";
 import { ImagePicker } from "./ImagePicker";
 import type { StepProps } from "./types";
 
@@ -34,6 +34,16 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
           onChange={(images) => update((p) => setProductImages(p, images))}
         />
         <p className="text-xs text-muted">{t("storyboard.setup.productsHint")}</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xs text-fg-muted">{t("storyboard.setup.references")}</span>
+        <ImagePicker
+          images={project.referenceImages ?? []}
+          max={3}
+          onChange={(images) => update((p) => setReferenceImages(p, images))}
+        />
+        <p className="text-xs text-muted">{t("storyboard.setup.referencesHint")}</p>
       </div>
 
       <label className="flex flex-col gap-1.5 text-xs text-fg-muted">

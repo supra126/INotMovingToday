@@ -10,6 +10,8 @@ export interface QueueOptions {
   retries?: number;
   retryDelayMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  /** Called once per task with its final result, after any retries */
+  onSettled?: (index: number, result: TaskResult<unknown>) => void;
 }
 
 export function isRateLimitError(err: unknown): boolean {
@@ -46,6 +48,7 @@ export async function runQueue<T>(tasks: (() => Promise<T>)[], options: QueueOpt
     while (next < tasks.length) {
       const index = next++;
       results[index] = await runOne(tasks[index]);
+      options.onSettled?.(index, results[index]);
     }
   };
 

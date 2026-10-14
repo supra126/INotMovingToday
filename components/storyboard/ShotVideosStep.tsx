@@ -7,11 +7,12 @@ import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
-import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
+import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, stopShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
 import { ShotRail } from "./ShotRail";
 import { ShotVideoPreview } from "./ShotVideoPreview";
 import { ShotVideoSettings } from "./ShotVideoSettings";
+import { VideoExport } from "./VideoExport";
 import { Inspector, StepLayout } from "./StepLayout";
 import type { StepProps } from "./types";
 
@@ -62,6 +63,9 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
     });
   };
 
+  const generating = project.shots.filter((s) => s.video?.status === "generating");
+  const stop = (shotIds: string[]) => stopShotVideos({ projectId: project.id, update, apiKey: getApiKey("gemini") ?? "" }, shotIds);
+
   const patchShot = (shotId: string, fn: (shot: Shot) => Shot) =>
     update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? fn(s) : s)) }));
 
@@ -76,11 +80,17 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
         {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
         {unfinished.length > 0 && <span className="font-mono">{formatUsd(allCost.amount)}</span>}
       </Button>
+      {generating.length > 0 && (
+        <Button size="sm" variant="ghost" onClick={() => stop(generating.map((s) => s.id))}>
+          {t("storyboard.videos.stopAll")}（{generating.length}）
+        </Button>
+      )}
       {needDraft.length > 0 && (
         <Button size="sm" variant="ghost" onClick={draftFields}>
           {t("storyboard.videos.draftFields")}
         </Button>
       )}
+      <VideoExport project={project} />
     </div>
   );
 
@@ -112,6 +122,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
               outdated={isVideoOutdated(project.shots, project.shots.indexOf(selected))}
               ratio={project.ratio}
               onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}
+              onStop={() => stop([selected.id])}
             />
           )
         }
@@ -143,6 +154,10 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
                 isLast={selected.id === project.shots[project.shots.length - 1]?.id}
                 resolution={shotResolution(selected, project)}
                 onPatch={(fn) => patchShot(selected.id, fn)}
+                onRedraft={(brief) => {
+                  const apiKey = requireApiKey();
+                  if (apiKey) void redraftShotFields(jobCtx(apiKey), project, selected.id, brief, locale);
+                }}
               />
             </Inspector>
           )

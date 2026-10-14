@@ -128,7 +128,7 @@ function buildPromptText(prompt: string, audioMode?: AudioMode, negativePrompt?:
 /**
  * Map an Omni failure message to an i18n error key where possible
  */
-function mapErrorToCode(message: string): string {
+export function mapErrorToCode(message: string): string {
   const lower = message.toLowerCase();
   const isSafety = ["safety", "blocked", "policy", "filtered", "prohibited"].some((k) => lower.includes(k));
   if (!isSafety) return message;
@@ -140,10 +140,20 @@ function mapErrorToCode(message: string): string {
   if (lower.includes("adult") || lower.includes("sexual") || lower.includes("nsfw")) {
     return "errors.contentFilteredAdult";
   }
-  if (lower.includes("copyright") || lower.includes("trademark") || lower.includes("celebrity")) {
+  if (lower.includes("copyright") || lower.includes("trademark") || lower.includes("celebrity") || lower.includes("third-party")) {
     return "errors.contentFilteredCopyright";
   }
   return "errors.contentFiltered";
+}
+
+/**
+ * Map a thrown API error; Omni sometimes puts the real block reason in error.code
+ */
+export function errorFromException(err: unknown): string {
+  if (!(err instanceof Error)) return "errors.failedToCheckStatus";
+  const code = (err as { error?: { code?: unknown } }).error?.code;
+  const mapped = mapErrorToCode(typeof code === "string" ? `${err.message} ${code}` : err.message);
+  return mapped.startsWith("errors.") ? mapped : err.message;
 }
 
 /**
@@ -313,7 +323,7 @@ export class OmniProvider implements VideoGenerationProvider {
 
       if (isPermanentError(err) || job.pollErrors >= MAX_POLL_ERRORS) {
         job.completedAt = Date.now();
-        return { status: "failed", error: err instanceof Error ? err.message : "errors.failedToCheckStatus" };
+        return { status: "failed", error: errorFromException(err) };
       }
 
       return { status: "processing", progress: job.lastProgress ?? 0 };
@@ -351,13 +361,16 @@ export class OmniProvider implements VideoGenerationProvider {
 
   async cancelJob(jobId: string): Promise<void> {
     const job = jobStore.get(jobId);
-    if (!job) return;
-    cleanupVideoJob(jobId);
+    // Server jobs are shared across users: only the key that started a job may stop it
+    if (!job || job.apiKey !== this.apiKey) return;
     try {
       await this.ai.interactions.cancel(job.interactionId);
     } catch (err) {
-      logger.debug("Cancel not available or failed:", err);
+      // Keep the job so the caller can retry; Google may still be generating (and billing)
+      logger.warn("Cancel failed:", err);
+      throw err;
     }
+    cleanupVideoJob(jobId);
   }
 }
 

@@ -34,9 +34,10 @@ interface ShotVideoPreviewProps {
   /** The shot's frame or the next shot's frame changed since this video was made */
   outdated: boolean;
   onExtend: (prompt: string, seconds: number) => void;
+  onStop: () => void;
 }
 
-export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoPreviewProps) {
+export function ShotVideoPreview({ shot, ratio, outdated, onExtend, onStop }: ShotVideoPreviewProps) {
   const { t } = useLocale();
   const [extendPrompt, setExtendPrompt] = useState("");
   const [extendSeconds, setExtendSeconds] = useState(4);
@@ -75,6 +76,7 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoP
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-canvas/70 backdrop-blur-sm">
             <div className="size-7 animate-spin rounded-full border-2 border-line border-t-accent" />
             <p className="font-mono text-xs text-fg">{t("storyboard.videos.status.generating", { progress: video.progress })}</p>
+            <Button size="sm" variant="ghost" onClick={onStop}>{t("storyboard.videos.stop")}</Button>
           </div>
         )}
       </div>
@@ -82,6 +84,7 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend }: ShotVideoP
       <div className="flex w-full max-w-md flex-col gap-2">
         {!hasVideo && video?.status !== "generating" && <p className="text-center text-xs text-fg-subtle">{t("storyboard.videos.noVideo")}</p>}
         {video?.status === "interrupted" && <p className="text-xs text-warning">{t("storyboard.videos.status.interrupted")}</p>}
+        {video?.status === "stopped" && <p className="text-xs text-fg-muted">{t("storyboard.videos.status.stopped")}</p>}
         {outdated && <p className="text-xs text-warning">{t("storyboard.videos.outdated")}</p>}
         {video?.error && (
           <p role="alert" className="text-xs text-danger">{video.error.startsWith("errors.") ? t(video.error) : video.error}</p>

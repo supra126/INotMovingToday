@@ -90,6 +90,19 @@ export function isStaticMode(): boolean {
 }
 
 /**
+ * Ask the provider to stop a running job. Whether a stopped job is billed is up to Google.
+ */
+export async function cancelVideoGeneration(jobId: string, apiKey?: string): Promise<void> {
+  if (isStaticBuild) {
+    const { createOmniProvider } = await import("./video-providers/omni");
+    await createOmniProvider(requireKey(apiKey)).cancelJob(jobId);
+    return;
+  }
+  const { cancelVideoAction } = await import("@/app/actions/server/generate");
+  unwrapActionResult(await cancelVideoAction(jobId, apiKey));
+}
+
+/**
  * Free a finished job's video memory (server jobs expire by TTL)
  */
 export async function cleanupVideoJob(jobId: string): Promise<void> {

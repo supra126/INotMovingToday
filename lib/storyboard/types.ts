@@ -47,7 +47,7 @@ export interface VideoMadeWith {
   fields: string;
 }
 
-export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted";
+export type ShotVideoStatus = "generating" | "completed" | "failed" | "interrupted" | "stopped";
 
 export interface ShotVideo {
   status: ShotVideoStatus;
@@ -71,17 +71,25 @@ export interface ShotVideo {
 export interface Shot extends ScriptShot {
   /** English Nano Banana prompt; empty until the storyboard is confirmed */
   imagePrompt: string;
+  /** An earlier shot whose frame is sent along, so people and setting stay the same */
+  refShotId?: string;
+  /** "upload": the user brings this shot's frame, so batch generation skips it */
+  frameSource?: "ai" | "upload";
   candidates: StoredImage[];
   selected?: number;
   finalImage?: StoredImage;
   /** The storyboard row changed after images were made */
   stale: boolean;
   imageStatus: "idle" | "generating" | "failed";
+  /** Finished images of the running batch (kept in memory only) */
+  imageProgress?: { done: number; total: number };
   imageError?: string;
   duration: VideoDuration;
   /** Overrides the project default */
   resolution?: VideoResolution;
   endFrame: EndFrame;
+  /** The user's own plain-language description of the shot's motion; the fields are rewritten from it */
+  brief?: string;
   draft?: PromptDraft;
   fields?: PromptFields;
   draftStatus?: "drafting" | "failed";
@@ -98,6 +106,8 @@ export interface StoryboardProject {
   tone: string;
   packagingText: string;
   productImages: StoredImage[];
+  /** People and settings every frame should keep (optional) */
+  referenceImages: StoredImage[];
   script: {
     sourceImage?: StoredImage;
     sourceText: string;

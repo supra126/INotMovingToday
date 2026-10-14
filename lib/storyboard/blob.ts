@@ -18,6 +18,14 @@ export function base64ToBlob(data: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
+/**
+ * A picked File only points at the file on disk; if that file is moved or overwritten,
+ * IndexedDB fails every save with "Failed to write blobs". Keep our own copy of the bytes.
+ */
+export async function copyImageFile(file: File): Promise<StoredImage> {
+  return { blob: new Blob([await file.arrayBuffer()], { type: file.type }), mimeType: file.type };
+}
+
 export function toFile(image: StoredImage, name: string): File {
   const ext = image.mimeType === "image/jpeg" ? "jpg" : image.mimeType.split("/")[1] || "png";
   return new File([image.blob], `${name}.${ext}`, { type: image.mimeType });

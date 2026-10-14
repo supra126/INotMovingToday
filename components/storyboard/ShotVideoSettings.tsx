@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { DurationSelector } from "@/components/upload/DurationSelector";
 import { ResolutionSelector } from "@/components/upload/ResolutionSelector";
 import { Field, PanelSection } from "@/components/ui/PanelSection";
@@ -16,11 +18,14 @@ interface ShotVideoSettingsProps {
   isLast: boolean;
   resolution: VideoResolution;
   onPatch: (fn: (shot: Shot) => Shot) => void;
+  onRedraft: (brief: string) => void;
 }
 
-export function ShotVideoSettings({ shot, isLast, resolution, onPatch }: ShotVideoSettingsProps) {
+export function ShotVideoSettings({ shot, isLast, resolution, onPatch, onRedraft }: ShotVideoSettingsProps) {
   const { t } = useLocale();
+  const [brief, setBrief] = useState(shot.brief ?? "");
   const busy = shot.video?.status === "generating";
+  const drafting = shot.draftStatus === "drafting";
 
   return (
     <>
@@ -62,6 +67,31 @@ export function ShotVideoSettings({ shot, isLast, resolution, onPatch }: ShotVid
       </PanelSection>
 
       <PanelSection title={t("storyboard.videos.fieldsTitle")} collapsible>
+        {shot.finalImage && (
+          <div className="mb-4 flex flex-col gap-2">
+            <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
+              {t("storyboard.videos.brief")}
+              <textarea
+                rows={3}
+                value={brief}
+                disabled={busy || drafting}
+                placeholder={t("storyboard.videos.briefPlaceholder")}
+                onChange={(e) => setBrief(e.target.value)}
+                className="w-full resize-y rounded-[var(--radius-control)] border border-line bg-sunken px-2.5 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none"
+              />
+            </label>
+            <Button size="sm" disabled={busy || drafting || !brief.trim()} onClick={() => onRedraft(brief.trim())}>
+              {drafting ? t("storyboard.videos.drafting") : t("storyboard.videos.briefApply")}
+            </Button>
+            {shot.fields && <p className="text-xs text-fg-subtle">{t("storyboard.videos.briefHint")}</p>}
+            {shot.fields && shot.draftStatus === "failed" && (
+              <p role="alert" className="text-xs text-danger">
+                {t("storyboard.videos.redraftFailed")}
+                {shot.draftError && `（${shot.draftError.startsWith("errors.") ? t(shot.draftError) : shot.draftError}）`}
+              </p>
+            )}
+          </div>
+        )}
         {shot.draft && shot.fields ? (
           <PromptEditor
             draft={shot.draft}
