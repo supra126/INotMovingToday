@@ -128,7 +128,7 @@ function buildPromptText(prompt: string, audioMode?: AudioMode, negativePrompt?:
 /**
  * Map an Omni failure message to an i18n error key where possible
  */
-function mapErrorToCode(message: string): string {
+export function mapErrorToCode(message: string): string {
   const lower = message.toLowerCase();
   const isSafety = ["safety", "blocked", "policy", "filtered", "prohibited"].some((k) => lower.includes(k));
   if (!isSafety) return message;
@@ -140,7 +140,7 @@ function mapErrorToCode(message: string): string {
   if (lower.includes("adult") || lower.includes("sexual") || lower.includes("nsfw")) {
     return "errors.contentFilteredAdult";
   }
-  if (lower.includes("copyright") || lower.includes("trademark") || lower.includes("celebrity")) {
+  if (lower.includes("copyright") || lower.includes("trademark") || lower.includes("celebrity") || lower.includes("third-party")) {
     return "errors.contentFilteredCopyright";
   }
   return "errors.contentFiltered";

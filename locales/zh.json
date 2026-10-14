@@ -219,7 +219,7 @@
     "contentFilteredChildren": "無法從包含真實兒童的圖片生成影片，請使用其他圖片",
     "contentFilteredViolence": "內容因含有暴力或有害影像而被攔截，請使用其他圖片",
     "contentFilteredAdult": "內容因含有成人/不雅內容而被攔截，請使用其他圖片",
-    "contentFilteredCopyright": "內容因潛在版權問題而被攔截，請使用其他圖片",
+    "contentFilteredCopyright": "內容疑似涉及知名作品、角色或名人而被攔截。請把提示詞裡的角色名稱改成一般描述（例如「大野狼」改成「穿襯衫的灰狼」），或換一張圖",
     "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定",
     "promptRequired": "請先輸入描述或取得 AI 建議",
     "imageGenerationFailed": "分鏡圖生成失敗，請重試"

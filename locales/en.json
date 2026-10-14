@@ -219,7 +219,7 @@
     "contentFilteredChildren": "Cannot generate videos from images containing photorealistic children. Please use a different image",
     "contentFilteredViolence": "Content was blocked due to violent or harmful imagery. Please use a different image",
     "contentFilteredAdult": "Content was blocked due to adult/NSFW content. Please use a different image",
-    "contentFilteredCopyright": "Content was blocked due to potential copyright issues. Please use a different image",
+    "contentFilteredCopyright": "Blocked as a possible known work, character or celebrity. Replace character names in the prompt with plain descriptions, or use a different image",
     "videoGenerationUnknown": "Video generation completed but no video was produced. Please try again with different settings",
     "promptRequired": "Enter a description or get an AI suggestion first",
     "imageGenerationFailed": "Storyboard image failed, please retry"
