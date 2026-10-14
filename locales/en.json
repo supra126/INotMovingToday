@@ -380,6 +380,11 @@
       "generateOne": "Generate this shot",
       "settingsTitle": "Shot settings",
       "fieldsTitle": "Prompt fields",
+      "brief": "Describe this shot in your own words",
+      "briefPlaceholder": "e.g. The camera slowly pushes in, a hand turns the bottle to the front, water drops slide down",
+      "briefApply": "Rewrite fields from description",
+      "briefHint": "Replaces the five fields below, including your own edits",
+      "redraftFailed": "Couldn't rewrite; the fields are unchanged",
       "noVideo": "No video yet. Set up the shot on the right and click \"Generate this shot\""
     },
     "rail": {

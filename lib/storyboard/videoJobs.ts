@@ -80,43 +80,76 @@ export async function draftShotFields(
     updateShot(ctx, shot.id, (s) => ({ ...s, draftStatus: "drafting", draftError: undefined }));
   }
   const results = await runQueue(
-    targets.map(({ shot, index }) => async () => {
-      const pc = promptContext(project, index, locale);
-      // Analysis does not need 2K / 4K; a smaller image keeps the request well under the size limit
-      const image = await downscaleImage(shot.finalImage!);
-      const draft = await draftPrompt(
-        [toFile(image, shot.id)],
-        { description: shotDescription(shot), mode: "single_image", ratio: pc.ratio, duration: pc.duration, audioMode: pc.audioMode, locale },
-        ctx.apiKey
-      );
-      updateShot(ctx, shot.id, (s) =>
-        // The frame changed while drafting: these fields describe the old picture
-        s.finalImage !== shot.finalImage
-          ? s
-          : {
-              ...s,
-              draft,
-              draftStatus: undefined,
-              fields: s.fields ?? {
-                subject: draft.fields.subject.value,
-                setting: draft.fields.setting.value,
-                camera: draft.fields.camera.value,
-                lighting: draft.fields.lighting.value,
-                sound: draft.fields.sound.value,
-              },
-            }
-      );
-    }),
+    targets.map(({ shot, index }) => () => draftOne(ctx, project, index, locale, describe(shot), false)),
     { concurrency: DRAFT_CONCURRENCY }
   );
   results.forEach((result, i) => {
-    if (result.ok) return;
-    const message = result.error instanceof Error ? result.error.message : "";
-    const { shot } = targets[i];
-    updateShot(ctx, shot.id, (s) =>
-      s.finalImage !== shot.finalImage ? s : { ...s, draftStatus: "failed", draftError: toDisplayError(message) }
-    );
+    if (!result.ok) markDraftFailed(ctx, targets[i].shot, result.error);
   });
+}
+
+/** Rewrite one shot's fields from the user's own description, replacing any edits */
+export async function redraftShotFields(
+  ctx: JobContext,
+  project: StoryboardProject,
+  shotId: string,
+  brief: string,
+  locale: Locale
+) {
+  const index = project.shots.findIndex((s) => s.id === shotId);
+  const shot = project.shots[index];
+  if (!shot?.finalImage) return;
+  updateShot(ctx, shotId, (s) => ({ ...s, brief, draftStatus: "drafting", draftError: undefined }));
+  try {
+    await draftOne(ctx, project, index, locale, describe({ ...shot, brief }), true);
+  } catch (err) {
+    markDraftFailed(ctx, shot, err);
+  }
+}
+
+// The storyboard row stays as background; the user's own words decide what happens
+function describe(shot: StoryboardProject["shots"][number]): string {
+  if (!shot.brief) return shotDescription(shot);
+  return `${shot.brief}\n\n分鏡原本的設定（僅供參考，以上面的描述為準）：\n${shotDescription(shot)}`;
+}
+
+async function draftOne(
+  ctx: JobContext,
+  project: StoryboardProject,
+  index: number,
+  locale: Locale,
+  description: string,
+  replace: boolean
+) {
+  const shot = project.shots[index];
+  const pc = promptContext(project, index, locale);
+  // Analysis does not need 2K / 4K; a smaller image keeps the request well under the size limit
+  const image = await downscaleImage(shot.finalImage!);
+  const draft = await draftPrompt(
+    [toFile(image, shot.id)],
+    { description, mode: "single_image", ratio: pc.ratio, duration: pc.duration, audioMode: pc.audioMode, locale },
+    ctx.apiKey
+  );
+  const fields = {
+    subject: draft.fields.subject.value,
+    setting: draft.fields.setting.value,
+    camera: draft.fields.camera.value,
+    lighting: draft.fields.lighting.value,
+    sound: draft.fields.sound.value,
+  };
+  updateShot(ctx, shot.id, (s) =>
+    // The frame changed while drafting: these fields describe the old picture
+    s.finalImage !== shot.finalImage
+      ? s
+      : { ...s, draft, draftStatus: undefined, fields: replace ? fields : s.fields ?? fields }
+  );
+}
+
+function markDraftFailed(ctx: JobContext, shot: StoryboardProject["shots"][number], error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  updateShot(ctx, shot.id, (s) =>
+    s.finalImage !== shot.finalImage ? s : { ...s, draftStatus: "failed", draftError: toDisplayError(message) }
+  );
 }
 
 /**

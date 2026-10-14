@@ -380,6 +380,11 @@
       "generateOne": "生成這鏡",
       "settingsTitle": "鏡頭設定",
       "fieldsTitle": "提示詞欄位",
+      "brief": "用白話描述這一鏡",
+      "briefPlaceholder": "例如：鏡頭慢慢推近，手把瓶子轉到正面，水珠滑下來",
+      "briefApply": "依描述重寫欄位",
+      "briefHint": "會覆蓋下方五個欄位，包含你手改過的內容",
+      "redraftFailed": "重寫失敗，欄位維持原樣",
       "noVideo": "還沒有影片，右側設定好後按「生成這鏡」"
     },
     "rail": {

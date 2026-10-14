@@ -82,6 +82,8 @@ export interface Shot extends ScriptShot {
   /** Overrides the project default */
   resolution?: VideoResolution;
   endFrame: EndFrame;
+  /** The user's own plain-language description of the shot's motion; the fields are rewritten from it */
+  brief?: string;
   draft?: PromptDraft;
   fields?: PromptFields;
   draftStatus?: "drafting" | "failed";

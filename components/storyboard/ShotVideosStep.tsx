@@ -7,7 +7,7 @@ import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
-import { costRows, draftShotFields, extendShotVideo, generateShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
+import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
 import { ShotRail } from "./ShotRail";
 import { ShotVideoPreview } from "./ShotVideoPreview";
@@ -143,6 +143,10 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
                 isLast={selected.id === project.shots[project.shots.length - 1]?.id}
                 resolution={shotResolution(selected, project)}
                 onPatch={(fn) => patchShot(selected.id, fn)}
+                onRedraft={(brief) => {
+                  const apiKey = requireApiKey();
+                  if (apiKey) void redraftShotFields(jobCtx(apiKey), project, selected.id, brief, locale);
+                }}
               />
             </Inspector>
           )
