@@ -71,6 +71,8 @@ export interface ShotVideo {
 export interface Shot extends ScriptShot {
   /** English Nano Banana prompt; empty until the storyboard is confirmed */
   imagePrompt: string;
+  /** An earlier shot whose frame is sent along, so people and setting stay the same */
+  refShotId?: string;
   /** "upload": the user brings this shot's frame, so batch generation skips it */
   frameSource?: "ai" | "upload";
   candidates: StoredImage[];
@@ -102,6 +104,8 @@ export interface StoryboardProject {
   tone: string;
   packagingText: string;
   productImages: StoredImage[];
+  /** People and settings every frame should keep (optional) */
+  referenceImages: StoredImage[];
   script: {
     sourceImage?: StoredImage;
     sourceText: string;

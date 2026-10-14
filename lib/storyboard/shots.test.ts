@@ -3,6 +3,8 @@ import {
   applyScriptEdit,
   canEnterStep,
   exportEntries,
+  keyframeRefs,
+  setReferenceImages,
   needsFrames,
   defaultEndFrame,
   endFrameImage,
@@ -437,5 +439,35 @@ describe("exportEntries", () => {
       { ...toShot({ ...row(), id: "s02", visual: "收尾" }, true), video: done },
     ];
     expect(exportEntries(shots).map((e) => e.name)).toEqual(["01_s03-晨光.mp4", "03_s02-收尾.mp4"]);
+  });
+});
+
+describe("keyframeRefs", () => {
+  it("sends products, then character references, then the chosen earlier frame", () => {
+    const p = newProject("id", 0);
+    p.productImages = [img("product")];
+    p.referenceImages = [img("face")];
+    const s01 = { ...toShot({ ...row(), id: "s01" }, false), finalImage: img("s01-final") };
+    const s02 = { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" };
+    p.shots = [s01, s02];
+    const refs = keyframeRefs(p, s02);
+    expect(refs.images).toEqual([p.productImages[0], p.referenceImages[0], s01.finalImage]);
+    expect(refs).toMatchObject({ productCount: 1, characterCount: 1, shotRef: true });
+  });
+  it("falls back to the picked candidate and ignores a missing or own shot", () => {
+    const p = newProject("id", 0);
+    const s01 = { ...toShot({ ...row(), id: "s01" }, false), candidates: [img("a"), img("b")], selected: 1 };
+    p.shots = [s01, { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" }];
+    expect(keyframeRefs(p, p.shots[1]).images).toEqual([s01.candidates[1]]);
+    expect(keyframeRefs(p, { ...p.shots[1], refShotId: "s09" }).shotRef).toBe(false);
+    expect(keyframeRefs(p, { ...s01, refShotId: "s01" }).shotRef).toBe(false);
+  });
+});
+
+describe("setReferenceImages", () => {
+  it("marks frames made with the old references as stale", () => {
+    const p = newProject("id", 0);
+    p.shots = [{ ...toShot(row(), true), candidates: [img("c")] }];
+    expect(setReferenceImages(p, [img("face")]).shots[0].stale).toBe(true);
   });
 });

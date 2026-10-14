@@ -59,6 +59,8 @@ export function mergeScriptShots(prev: Shot[], rows: ScriptShot[]): Shot[] {
 export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
   return {
     ...project,
+    // Projects saved before reference images existed
+    referenceImages: project.referenceImages ?? [],
     shots: project.shots.map((shot) => ({
       ...shot,
       imageStatus: shot.imageStatus === "generating" ? "idle" : shot.imageStatus,
@@ -133,6 +135,7 @@ export function newProject(id: string, now: number): StoryboardProject {
     tone: "",
     packagingText: "",
     productImages: [],
+    referenceImages: [],
     script: { sourceText: "", chat: [], suggestions: [], confirmed: false },
     shots: [],
     finalSize: "1K",
@@ -260,18 +263,48 @@ export function madeWith(shot: Shot): VideoMadeWith {
   };
 }
 
-/** New product images make every existing frame show the old product */
-export function setProductImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
-  const same =
-    images.length === project.productImages.length &&
-    images.every((image, i) => image.blob === project.productImages[i].blob);
-  if (same) return { ...project, productImages: images };
+// New product or reference images make every existing frame show the old ones
+function replaceImages(
+  project: StoryboardProject,
+  key: "productImages" | "referenceImages",
+  images: StoredImage[]
+): StoryboardProject {
+  const current = project[key] ?? [];
+  const same = images.length === current.length && images.every((image, i) => image.blob === current[i].blob);
+  if (same) return { ...project, [key]: images };
   return {
     ...project,
-    productImages: images,
+    [key]: images,
     shots: project.shots.map((shot) =>
       shot.candidates.length > 0 || shot.finalImage ? { ...shot, stale: true } : shot
     ),
+  };
+}
+
+export function setProductImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
+  return replaceImages(project, "productImages", images);
+}
+
+export function setReferenceImages(project: StoryboardProject, images: StoredImage[]): StoryboardProject {
+  return replaceImages(project, "referenceImages", images);
+}
+
+/** The frame a shot borrows people and setting from: the referenced shot's final or picked image */
+export function refShotImage(shots: Shot[], shot: Shot): StoredImage | undefined {
+  if (!shot.refShotId || shot.refShotId === shot.id) return undefined;
+  const ref = shots.find((s) => s.id === shot.refShotId);
+  return ref?.finalImage ?? (ref?.selected !== undefined ? ref.candidates[ref.selected] : undefined);
+}
+
+/** Images sent with a keyframe, in the order buildKeyframeInstruction describes them */
+export function keyframeRefs(project: StoryboardProject, shot: Shot) {
+  const characters = project.referenceImages ?? [];
+  const frame = refShotImage(project.shots, shot);
+  return {
+    images: [...project.productImages, ...characters, ...(frame ? [frame] : [])],
+    productCount: project.productImages.length,
+    characterCount: characters.length,
+    shotRef: !!frame,
   };
 }
 

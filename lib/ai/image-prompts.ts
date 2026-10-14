@@ -157,19 +157,40 @@ function packagingRule(packagingText?: string): string {
     : "";
 }
 
+function referenceRoles(options: { productCount: number; characterCount: number; shotRef: boolean }): string {
+  const roles: string[] = [];
+  let next = 1;
+  const add = (count: number, role: string) => {
+    if (!count) return;
+    roles.push(`${count === 1 ? `IMAGE ${next}` : `IMAGES ${next}–${next + count - 1}`}: ${role}`);
+    next += count;
+  };
+  add(options.productCount, "the real product. Keep its shape, materials and packaging exactly as shown.");
+  add(
+    options.characterCount,
+    "character and setting references. Keep the same people (face, hair, body, clothing) and the same look of the setting. Do not copy their framing or pose."
+  );
+  add(
+    options.shotRef ? 1 : 0,
+    "an earlier frame of this storyboard. Keep the same people, clothing, setting, lighting and color mood, but compose the new shot as described below; do not copy its framing."
+  );
+  return roles.join("\n");
+}
+
 /** Free prompt, optionally guided by reference images — e.g. a storyboard keyframe */
 export function buildKeyframeInstruction(options: {
   prompt: string;
   ratio: string;
-  refCount: number;
+  /** Attached in this order: products, character/setting references, an earlier storyboard frame */
+  productCount: number;
+  characterCount: number;
+  shotRef: boolean;
   index: number;
   count: number;
   packagingText?: string;
 }): string {
   const sections = [
-    options.refCount
-      ? `Use the ${options.refCount > 1 ? "images above" : "image above"} as visual reference: keep the subject's look, materials, lighting and color mood consistent with ${options.refCount > 1 ? "them" : "it"}.`
-      : "",
+    referenceRoles(options),
     wrapUserInput("shot", options.prompt),
     variation(undefined, options.index, options.count),
     packagingRule(options.packagingText),

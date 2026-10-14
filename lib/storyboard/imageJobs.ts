@@ -6,7 +6,7 @@ import { rewriteImagePrompt } from "@/services/storyboardService";
 import type { Locale } from "@/types";
 import { IMAGE_CONCURRENCY, runQueue } from "./queue";
 import { toDisplayError } from "@/lib/video/errors";
-import { withFinalImage } from "./shots";
+import { keyframeRefs, withFinalImage } from "./shots";
 import type { UpdateOptions } from "./store";
 import type { Shot, StoredImage, StoryboardProject } from "./types";
 
@@ -54,24 +54,25 @@ export async function generateCandidates(
     updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
   }
 
-  const tasks = shots.flatMap((shot) =>
-    Array.from({ length: count }, (_, index) => () =>
+  const tasks = shots.flatMap((shot) => {
+    const { images, ...refs } = keyframeRefs(project, shot);
+    return Array.from({ length: count }, (_, index) => () =>
       generateImage({
         apiKey: ctx.apiKey,
         instruction: buildKeyframeInstruction({
           prompt: shot.imagePrompt,
           ratio: project.ratio,
-          refCount: project.productImages.length,
+          ...refs,
           index,
           count,
           packagingText: shot.hasPackaging ? project.packagingText : undefined,
         }),
-        images: project.productImages,
+        images,
         ratio: project.ratio,
         size: "1K",
       })
-    )
-  );
+    );
+  });
   const results = await runQueue(tasks, { concurrency: IMAGE_CONCURRENCY });
 
   shots.forEach((shot, shotIndex) => {
