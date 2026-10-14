@@ -19,7 +19,13 @@ export interface JobContext {
 }
 
 export function scriptContext(project: StoryboardProject, locale: Locale): ScriptContext {
-  return { ratio: project.ratio, tone: project.tone, packagingText: project.packagingText, locale };
+  return {
+    ratio: project.ratio,
+    tone: project.tone,
+    packagingText: project.packagingText,
+    locale,
+    hasProduct: project.productImages.length > 0,
+  };
 }
 
 export function updateShot(ctx: JobContext, shotId: string, fn: (shot: Shot) => Shot, options?: UpdateOptions) {

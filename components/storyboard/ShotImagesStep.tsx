@@ -13,6 +13,7 @@ import {
   addUploadedFrames,
   canEnterStep,
   matchesRatio,
+  needsFrames,
   removeCandidate,
   resolveSelectedShot,
   selectCandidate,
@@ -38,7 +39,7 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
-  const missing = project.shots.filter((s) => (s.candidates.length === 0 || s.stale) && s.imageStatus !== "generating");
+  const missing = project.shots.filter(needsFrames);
   const toFinalize = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
   const allSelected = project.shots.every((s) => s.selected !== undefined);
   const anyBusy = project.shots.some((s) => s.imageStatus === "generating");

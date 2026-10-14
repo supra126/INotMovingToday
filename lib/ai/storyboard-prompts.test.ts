@@ -10,7 +10,7 @@ import {
   parseScriptResult,
 } from "./storyboard-prompts";
 
-const ctx = { ratio: "9:16" as const, tone: "高級、乾淨", packagingText: "PDRN 極潤修護黑面膜", locale: "zh" as const };
+const ctx = { ratio: "9:16" as const, tone: "高級、乾淨", packagingText: "PDRN 極潤修護黑面膜", locale: "zh" as const, hasProduct: true };
 
 describe("parseScriptResult", () => {
   it("normalizes ids, seconds and missing fields", () => {
@@ -71,6 +71,15 @@ describe("prompt builders", () => {
     const text = buildScriptRevisePrompt({ ...ctx, shots, chat: [], message: "s01 改成手拿面膜" });
     expect(text).toContain("布膜展開");
     expect(text).toContain("s01 改成手拿面膜");
+  });
+  it("drops the product rules for B-roll without product images", () => {
+    const broll = { ...ctx, hasProduct: false, packagingText: "" };
+    const shots = parseScriptResult({ shots: [{ visual: "晨光灑進窗邊" }] }).shots;
+    const parse = buildScriptParsePrompt({ ...broll, sourceText: "早晨氛圍", hasSourceImage: false, productCount: 0 });
+    expect(parse).toContain("B-roll");
+    expect(parse).not.toContain("ends on the product");
+    expect(buildImagePromptsPrompt({ ...broll, shots })).not.toContain("product image(s) are attached");
+    expect(buildScriptParsePrompt({ ...ctx, sourceText: "x", hasSourceImage: false, productCount: 1 })).toContain("ends on the product");
   });
   it("asks for English image prompts keyed by shot id", () => {
     const shots = parseScriptResult({ shots: [{ visual: "布膜展開" }] }).shots;

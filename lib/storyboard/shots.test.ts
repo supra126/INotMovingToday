@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyScriptEdit,
   canEnterStep,
+  needsFrames,
   defaultEndFrame,
   endFrameImage,
   mergeScriptShots,
@@ -117,8 +118,7 @@ describe("normalizeOnLoad", () => {
 describe("canEnterStep", () => {
   it("gates each step", () => {
     const p = newProject("id", 0);
-    expect(canEnterStep(p, 2)).toBe(false);
-    p.productImages = [img("product")];
+    // Product images are optional: without them the storyboard is B-roll
     expect(canEnterStep(p, 2)).toBe(true);
     p.shots = [{ ...toShot(row(), true), imagePrompt: "p" }];
     expect(canEnterStep(p, 3)).toBe(false);
@@ -129,6 +129,17 @@ describe("canEnterStep", () => {
     expect(canEnterStep(p, 4)).toBe(true);
     p.shots[0] = { ...p.shots[0], stale: true };
     expect(canEnterStep(p, 4)).toBe(false);
+  });
+});
+
+describe("needsFrames", () => {
+  it("skips shots the user will upload frames for", () => {
+    const shot = toShot(row(), true);
+    expect(needsFrames(shot)).toBe(true);
+    expect(needsFrames({ ...shot, frameSource: "upload" })).toBe(false);
+    expect(needsFrames({ ...shot, imageStatus: "generating" })).toBe(false);
+    expect(needsFrames({ ...shot, candidates: [img("c")] })).toBe(false);
+    expect(needsFrames({ ...shot, candidates: [img("c")], stale: true })).toBe(true);
   });
 });
 

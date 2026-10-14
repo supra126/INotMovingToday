@@ -76,13 +76,16 @@ export function endFrameImage(shots: Shot[], index: number): StoredImage | undef
 }
 
 export function canEnterStep(project: StoryboardProject, step: Step): boolean {
-  if (step === 1) return true;
-  if (project.productImages.length === 0) return false;
-  if (step === 2) return true;
+  if (step <= 2) return true;
   const scriptReady =
     project.script.confirmed && project.shots.length > 0 && project.shots.every((shot) => shot.imagePrompt);
   if (step === 3) return scriptReady;
   return scriptReady && project.shots.every((shot) => shot.finalImage && !shot.stale);
+}
+
+/** AI should make candidates: none yet or out of date, not running, and the user is not uploading their own */
+export function needsFrames(shot: Shot): boolean {
+  return (shot.candidates.length === 0 || shot.stale) && shot.imageStatus !== "generating" && shot.frameSource !== "upload";
 }
 
 /** A new final frame means the shot's fields and video describe the old picture */

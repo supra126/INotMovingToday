@@ -278,7 +278,7 @@
     "setup": {
       "name": "專案名稱",
       "products": "產品圖",
-      "productsHint": "1～2 張，每張分鏡圖都會帶上，請用清楚的正面包裝照",
+      "productsHint": "選填，1～2 張，每張分鏡圖都會帶上，請用清楚的正面包裝照。不放產品圖就會做成 B-roll（純氛圍畫面，不出現產品）",
       "packagingText": "包裝上不能錯的字",
       "packagingTextPlaceholder": "例如：PDRN 極潤修護黑面膜",
       "ratio": "比例",
@@ -309,7 +309,12 @@
       },
       "chatPlaceholder": "想改什麼？例如：s03 改成手拿面膜展示",
       "send": "送出",
-      "confirm": "確認分鏡表，生成分鏡圖",
+      "confirm": "確認分鏡表",
+      "confirmGenerate": "確認分鏡表，生成 {{count}} 鏡分鏡圖",
+      "frameSource": "分鏡圖來源",
+      "frameSourceAi": "AI 產圖",
+      "frameSourceUpload": "自己上傳",
+      "frameSourceHint": "設為自己上傳的鏡頭不會自動生圖，到第 ③ 步再上傳",
       "confirming": "撰寫生圖提示詞中…",
       "needInput": "請上傳腳本圖或輸入文字",
       "scriptSeconds": "（腳本 {{seconds}} 秒，後製剪短）",
@@ -317,8 +322,7 @@
       "musicYes": "有",
       "musicStylePlaceholder": "風格（選填），例如：輕快電子",
       "polish": "AI 優化",
-      "polishing": "優化中…",
-      "confirmUpload": "確認分鏡表，自己上傳分鏡圖（不生圖）"
+      "polishing": "優化中…"
     },
     "images": {
       "generating": "生成中…",

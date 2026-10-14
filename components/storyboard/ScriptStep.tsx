@@ -6,11 +6,12 @@ import { formatUsd, imageCost } from "@/lib/pricing";
 import { toFile } from "@/lib/storyboard/blob";
 import { toDisplayError } from "@/lib/video/errors";
 import { CANDIDATES_PER_SHOT, generateCandidates, scriptContext } from "@/lib/storyboard/imageJobs";
-import { applyScriptEdit, mergeScriptShots, resolveSelectedShot } from "@/lib/storyboard/shots";
+import { applyScriptEdit, mergeScriptShots, needsFrames, resolveSelectedShot } from "@/lib/storyboard/shots";
 import type { ScriptShot, StoryboardProject } from "@/lib/storyboard/types";
 import { parseScript, polishShot, reviseScript, writeImagePrompts } from "@/services/storyboardService";
 import { Button } from "@/components/ui/Button";
 import { PanelSection } from "@/components/ui/PanelSection";
+import { Segmented } from "@/components/ui/Segmented";
 import { ImagePicker } from "./ImagePicker";
 import { ScriptChat } from "./ScriptChat";
 import { ShotId } from "./ShotId";
@@ -35,9 +36,8 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const hasInput = !!project.script.sourceImage || project.script.sourceText.trim().length > 0;
   const hasShots = project.shots.length > 0;
-  const needsImages = project.shots.filter(
-    (s) => (s.candidates.length === 0 || s.stale) && s.imageStatus !== "generating"
-  );
+  // Shots set to "upload" are left for the user in step 3
+  const needsImages = project.shots.filter(needsFrames);
   const confirmCost = imageCost("1K", needsImages.length * CANDIDATES_PER_SHOT);
 
   const run = async (kind: "analyze" | "chat" | "confirm", work: (apiKey: string) => Promise<void>) => {
@@ -93,8 +93,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
       applyResult(message, result);
     });
 
-  // generateFrames=false: the user will upload their own frames in step 3
-  const confirm = (generateFrames: boolean) =>
+  const confirm = () =>
     run("confirm", async (apiKey) => {
       const missing = project.shots.filter((s) => !s.imagePrompt);
       const prompts = missing.length
@@ -111,8 +110,8 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
         return confirmed;
       });
       const snapshot = confirmed as StoryboardProject | null;
-      if (snapshot && generateFrames) {
-        const ids = snapshot.shots.filter((s) => s.candidates.length === 0 || s.stale).map((s) => s.id);
+      const ids = snapshot?.shots.filter(needsFrames).map((s) => s.id) ?? [];
+      if (snapshot && ids.length > 0) {
         // Runs in the background; results land in this project even if the user moves on
         void generateCandidates({ projectId: project.id, update, apiKey }, snapshot, ids);
       }
@@ -151,7 +150,9 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
       ? t("storyboard.script.confirming")
       : project.script.confirmed && needsImages.length === 0
         ? t("storyboard.next")
-        : `${t("storyboard.script.confirm")}（${formatUsd(confirmCost.amount)}）`;
+        : needsImages.length > 0
+          ? `${t("storyboard.script.confirmGenerate", { count: needsImages.length })}（${formatUsd(confirmCost.amount)}）`
+          : t("storyboard.script.confirm");
 
   return (
     <StepLayout
@@ -221,21 +222,14 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
         selected && (
           <Inspector
             footer={
-              <>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  disabled={!!busy}
-                  onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : () => confirm(true)}
-                >
-                  {confirmLabel}
-                </Button>
-                {!(project.script.confirmed && needsImages.length === 0) && (
-                  <Button variant="ghost" disabled={!!busy} onClick={() => confirm(false)}>
-                    {t("storyboard.script.confirmUpload")}
-                  </Button>
-                )}
-              </>
+              <Button
+                variant="primary"
+                size="lg"
+                disabled={!!busy}
+                onClick={project.script.confirmed && needsImages.length === 0 ? () => goTo(3) : confirm}
+              >
+                {confirmLabel}
+              </Button>
             }
           >
             <PanelSection title={<ShotId id={selected.id} />}>
@@ -247,6 +241,22 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
                 onPolish={(shotId) => void polish(shotId)}
                 polishingId={polishingId}
               />
+            </PanelSection>
+            <PanelSection title={t("storyboard.script.frameSource")}>
+              <div className="flex flex-col gap-2">
+                <Segmented
+                  label={t("storyboard.script.frameSource")}
+                  value={selected.frameSource ?? "ai"}
+                  onChange={(frameSource) =>
+                    update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === selected.id ? { ...s, frameSource } : s)) }))
+                  }
+                  options={[
+                    { value: "ai", label: t("storyboard.script.frameSourceAi") },
+                    { value: "upload", label: t("storyboard.script.frameSourceUpload") },
+                  ]}
+                />
+                <p className="text-xs text-fg-subtle">{t("storyboard.script.frameSourceHint")}</p>
+              </div>
             </PanelSection>
           </Inspector>
         )

@@ -278,7 +278,7 @@
     "setup": {
       "name": "Project name",
       "products": "Product images",
-      "productsHint": "1–2 images, sent with every frame. Use a clear front view of the packaging",
+      "productsHint": "Optional. 1–2 images, sent with every frame. Use a clear front view of the packaging. Without product images the storyboard becomes B-roll (atmosphere only, no product)",
       "packagingText": "Packaging text that must stay exact",
       "packagingTextPlaceholder": "e.g. PDRN Repair Black Mask",
       "ratio": "Aspect ratio",
@@ -309,7 +309,12 @@
       },
       "chatPlaceholder": "What should change? e.g. make s03 a hand holding the mask",
       "send": "Send",
-      "confirm": "Confirm storyboard and make frames",
+      "confirm": "Confirm storyboard",
+      "confirmGenerate": "Confirm storyboard and make frames for {{count}} shots",
+      "frameSource": "Frame source",
+      "frameSourceAi": "AI",
+      "frameSourceUpload": "My own",
+      "frameSourceHint": "Shots set to My own are not generated; upload their frames in step 3",
       "confirming": "Writing image prompts…",
       "needInput": "Upload a script image or enter text",
       "scriptSeconds": "(script {{seconds}}s, trim in editing)",
@@ -317,8 +322,7 @@
       "musicYes": "Yes",
       "musicStylePlaceholder": "Style (optional), e.g. upbeat electronic",
       "polish": "Polish with AI",
-      "polishing": "Polishing…",
-      "confirmUpload": "Confirm and upload my own frames (no generation)"
+      "polishing": "Polishing…"
     },
     "images": {
       "generating": "Generating…",

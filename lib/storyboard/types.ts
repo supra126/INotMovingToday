@@ -71,6 +71,8 @@ export interface ShotVideo {
 export interface Shot extends ScriptShot {
   /** English Nano Banana prompt; empty until the storyboard is confirmed */
   imagePrompt: string;
+  /** "upload": the user brings this shot's frame, so batch generation skips it */
+  frameSource?: "ai" | "upload";
   candidates: StoredImage[];
   selected?: number;
   finalImage?: StoredImage;
