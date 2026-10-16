@@ -392,7 +392,7 @@
       "draftFields": "AI 填寫欄位",
       "draftFailed": "欄位填寫失敗，請按「AI 填寫欄位」重試",
       "needsFields": "尚未填寫欄位",
-      "outdated": "分鏡圖已更換，建議重生",
+      "outdated": "分鏡圖已更換：這一鏡的單支影片是用舊圖做的，要更新才需要重生（一次成片不受影響，它每次都讀最新的分鏡圖）",
       "generateOne": "生成這鏡",
       "stop": "停止",
       "stopAll": "停止全部",
