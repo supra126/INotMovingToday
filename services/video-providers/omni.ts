@@ -243,7 +243,11 @@ export class OmniProvider implements VideoGenerationProvider {
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
       previous_interaction_id: params.sourceVideoUri,
-      input: [{ type: "text", text: buildPromptText(params.prompt, params.audioMode) }],
+      // Tested 2026-10-16: an image sent with the extension is followed (the next shot's frame shows up)
+      input: [
+        ...(params.referenceImages ?? []).slice(0, 3).map(imagePart),
+        { type: "text", text: buildPromptText(params.prompt, params.audioMode) },
+      ],
       response_format: {
         type: "video",
         aspect_ratio: params.ratio === "9:16" ? "9:16" : "16:9",

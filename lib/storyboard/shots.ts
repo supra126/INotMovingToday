@@ -68,6 +68,7 @@ export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
       draftStatus: shot.draftStatus === "drafting" ? undefined : shot.draftStatus,
       video: shot.video?.status === "generating" ? { ...shot.video, status: "interrupted" } : shot.video,
     })),
+    film: project.film?.status === "generating" ? { ...project.film, status: "interrupted" } : project.film,
   };
 }
 

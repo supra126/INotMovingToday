@@ -1,0 +1,125 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const svc = vi.hoisted(() => ({ cancelled: [] as string[] }));
+vi.mock("@/services/videoService", () => ({
+  cancelVideoGeneration: async (jobId: string) => {
+    svc.cancelled.push(jobId);
+  },
+}));
+vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
+// Each started job records its input and waits until the test settles it
+const job = vi.hoisted(() => ({
+  calls: [] as { kind: "generate" | "extend"; input: Record<string, unknown> }[],
+  settle: [] as ((outcome: "ok" | Error) => void)[],
+}));
+vi.mock("@/lib/video/job", () => {
+  const start = (kind: "generate" | "extend") =>
+    async (input: Record<string, unknown>, hooks: { isCancelled: () => boolean; onJobId?: (id: string) => void }) => {
+      if (hooks.isCancelled()) return null;
+      job.calls.push({ kind, input });
+      const id = `job-${job.calls.length}`;
+      hooks.onJobId?.(id);
+      const outcome = await new Promise<"ok" | Error>((resolve) => job.settle.push(resolve));
+      if (outcome instanceof Error) throw outcome;
+      return hooks.isCancelled() ? null : { videoUrl: `data:video/mp4;base64,${id}`, sourceVideoUri: id };
+    };
+  return { runVideoJob: start("generate"), runExtendJob: start("extend") };
+});
+import { generateFilm, stopFilm } from "./filmJobs";
+import { newProject, toShot } from "./shots";
+import type { StoryboardProject } from "./types";
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const options = { audioMode: "sfx" as const, withText: false };
+
+function project(seconds: number[]): StoryboardProject {
+  const p = newProject("p", 0);
+  p.shots = seconds.map((s, i) => ({
+    ...toShot({ id: `s0${i + 1}`, seconds: s, visual: "v", camera: "", sound: "", music: "", onScreenText: "", transition: "", hasPackaging: false }, i === seconds.length - 1),
+    finalImage: { blob: new Blob([`img${i + 1}`]), mimeType: "image/png" },
+  }));
+  return p;
+}
+
+function harness(initial: StoryboardProject) {
+  let state = initial;
+  const ctx = { projectId: "p", apiKey: "k", update: (fn: (p: StoryboardProject) => StoryboardProject) => { state = fn(state); } };
+  return { ctx, film: () => state.film! };
+}
+
+// Let the latest job finish and the loop move on
+async function finishNext(outcome: "ok" | Error = "ok") {
+  await tick();
+  job.settle.shift()!(outcome);
+  await tick();
+  await tick();
+}
+
+describe("generateFilm", () => {
+  beforeEach(() => {
+    job.calls = [];
+    job.settle = [];
+    svc.cancelled = [];
+  });
+
+  it("runs the segments in order and ends with the whole video", async () => {
+    const p = project([5, 5, 6, 4, 8]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await finishNext();
+    await running;
+
+    expect(job.calls.map((c) => c.kind)).toEqual(["generate", "extend", "extend"]);
+    expect(job.calls[0].input).toMatchObject({ duration: 10 });
+    expect(await (job.calls[0].input.startImage as Blob).text()).toBe("img1");
+    expect(job.calls[1].input).toMatchObject({ sourceVideoUri: "job-1", extensionDuration: 10, referenceImages: ["cropped:img3"] });
+    expect(job.calls[2].input).toMatchObject({ sourceVideoUri: "job-2", extensionDuration: 8, referenceImages: ["cropped:img5"] });
+    expect(h.film()).toMatchObject({ status: "completed", done: 3, total: 3, duration: 28, sourceVideoUri: "job-3" });
+    expect(h.film().prompts).toHaveLength(3);
+  });
+
+  it("keeps the finished part when a later segment fails", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext(new Error("RESOURCE_EXHAUSTED"));
+    await running;
+    expect(h.film()).toMatchObject({ status: "failed", done: 1, duration: 10, sourceVideoUri: "job-1" });
+    expect(h.film().error).toBe("RESOURCE_EXHAUSTED");
+  });
+
+  it("stops without starting the next segment and cancels the running one", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await tick();
+    stopFilm(h.ctx);
+    expect(svc.cancelled).toEqual(["job-2"]);
+    expect(h.film().status).toBe("stopped");
+    job.settle.shift()!("ok");
+    await running;
+    expect(job.calls).toHaveLength(2);
+    expect(h.film()).toMatchObject({ status: "stopped", done: 1 });
+  });
+
+  it("can start again right after a stop", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const first = generateFilm(h.ctx, p, options);
+    await tick();
+    stopFilm(h.ctx);
+    const second = generateFilm(h.ctx, p, options);
+    await tick();
+    expect(h.film().status).toBe("generating");
+    job.settle.forEach((settle) => settle("ok"));
+    job.settle = [];
+    await first;
+    await finishNext();
+    await second;
+    expect(h.film().status).toBe("completed");
+  });
+});

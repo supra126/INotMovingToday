@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
@@ -9,6 +10,7 @@ import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/stor
 import type { Shot } from "@/lib/storyboard/types";
 import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, stopShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
+import { FilmPanel } from "./FilmPanel";
 import { ShotRail } from "./ShotRail";
 import { ShotVideoPreview } from "./ShotVideoPreview";
 import { ShotVideoSettings } from "./ShotVideoSettings";
@@ -19,6 +21,8 @@ import type { StepProps } from "./types";
 export function ShotVideosStep({ project, update, requireApiKey, selectedShotId, selectShot }: StepProps) {
   const { t, locale } = useLocale();
   const [pending, setPending] = useState<{ rows: CostRow[]; run: () => void } | null>(null);
+  // Shot by shot, or the whole storyboard as one film; opens on the film if one exists
+  const [mode, setMode] = useState<"shots" | "film">(project.film ? "film" : "shots");
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
@@ -70,8 +74,21 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
     update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? fn(s) : s)) }));
 
   const allCost = sumCosts(unfinished.map((s) => videoCost(s.duration, shotResolution(s, project))));
-  const railHeader = (
+  const modeSwitch = (
+    <Segmented
+      size="sm"
+      label={t("storyboard.film.mode")}
+      value={mode}
+      onChange={setMode}
+      options={[
+        { value: "shots", label: t("storyboard.film.modeShots") },
+        { value: "film", label: t("storyboard.film.modeFilm") },
+      ]}
+    />
+  );
+  const railHeader = mode === "film" ? modeSwitch : (
     <div className="flex flex-col gap-1.5">
+      {modeSwitch}
       <Button
         variant="primary"
         disabled={unfinished.length === 0 || unfinished.some((s) => !s.fields)}
@@ -110,12 +127,17 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
             step={4}
             ratio={project.ratio}
             selectedId={selected?.id}
-            onSelect={selectShot}
+            onSelect={(id) => {
+              setMode("shots");
+              selectShot(id);
+            }}
             header={railHeader}
           />
         }
         main={
-          selected && (
+          mode === "film" ? (
+            <FilmPanel project={project} update={update} requireApiKey={requireApiKey} />
+          ) : selected && (
             <ShotVideoPreview
               key={selected.id}
               shot={selected}
@@ -127,7 +149,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
           )
         }
         inspector={
-          selected && (
+          mode === "shots" && selected && (
             <Inspector
               footer={
                 selected.fields ? (

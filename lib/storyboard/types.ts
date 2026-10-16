@@ -7,6 +7,7 @@ import type {
   VideoRatio,
   VideoResolution,
 } from "@/types";
+import type { FilmOptions } from "./film";
 
 export type Step = 1 | 2 | 3 | 4;
 
@@ -97,6 +98,26 @@ export interface Shot extends ScriptShot {
   video?: ShotVideo;
 }
 
+/** The whole storyboard as one video: the first segment is generated, the rest extend it */
+export interface FilmVideo {
+  status: ShotVideoStatus;
+  /** Progress of the segment being generated */
+  progress: number;
+  /** Segments finished so far, and in total */
+  done: number;
+  total: number;
+  /** The finished part so far: each extension returns the whole video */
+  blob?: Blob;
+  url?: string;
+  sourceVideoUri?: string;
+  /** Seconds of the finished part */
+  duration: number;
+  /** Text sent for each segment */
+  prompts: string[];
+  options: FilmOptions;
+  error?: string;
+}
+
 export interface StoryboardProject {
   id: string;
   name: string;
@@ -118,6 +139,7 @@ export interface StoryboardProject {
   shots: Shot[];
   finalSize: ImageSize;
   videoSettings: { resolution: VideoResolution };
+  film?: FilmVideo;
   step: Step;
 }
 

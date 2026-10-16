@@ -27,6 +27,8 @@ export interface VideoExtensionParams {
   audioMode?: AudioMode;
   /** Seconds to add (3-10), default 8 */
   extensionDuration?: number;
+  /** Base64 images the continuation should match (e.g. the next shot's frame), up to 3 */
+  referenceImages?: string[];
 }
 
 export interface VideoGenerationResult {

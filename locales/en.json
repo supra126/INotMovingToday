@@ -424,6 +424,27 @@
       "failed": "Failed",
       "busy": "Working"
     },
-    "saveError": "Saving failed ({{error}}). Your changes are still in this tab and will be retried; if storage is full, delete projects you no longer need."
+    "saveError": "Saving failed ({{error}}). Your changes are still in this tab and will be retried; if storage is full, delete projects you no longer need.",
+    "film": {
+      "mode": "Output",
+      "modeShots": "Shot by shot",
+      "modeFilm": "One take",
+      "intro": "Generate the whole storyboard as one video: segment 1 starts from shot 1's frame, and each later segment extends the video using its first shot's frame as reference. The model handles the transitions.",
+      "segment": "Segment {{n}}",
+      "extendTag": "extend",
+      "total": "{{seconds}}s total · {{resolution}}",
+      "outOfRange": "A one-take film must be {{min}}–{{max}} seconds; the storyboard is {{seconds}} seconds. Adjust the seconds in step 2.",
+      "audio": "Sound",
+      "sfxOnly": "Effects only",
+      "sfxMusic": "Effects + music",
+      "withText": "Let the model draw the storyboard's on-screen text (small text often comes out wrong; adding it in editing is safer)",
+      "generate": "Generate film",
+      "regenerate": "Redo the whole film",
+      "progress": "Segment {{n}}/{{total}} generating {{progress}}%",
+      "interrupted": "Generation was interrupted; redo the film",
+      "partial": "{{done}}/{{total}} segments done ({{seconds}}s); you can download this part",
+      "prompts": "Prompts sent",
+      "fileSuffix": "one-take"
+    }
   }
 }

@@ -424,6 +424,27 @@
       "failed": "失敗",
       "busy": "處理中"
     },
-    "saveError": "儲存失敗（{{error}}）。變更還在這個分頁裡，下次存檔會自動重試；如果是空間不足，請刪除用不到的專案。"
+    "saveError": "儲存失敗（{{error}}）。變更還在這個分頁裡，下次存檔會自動重試；如果是空間不足，請刪除用不到的專案。",
+    "film": {
+      "mode": "成片方式",
+      "modeShots": "逐鏡生成",
+      "modeFilm": "一次成片",
+      "intro": "把整張分鏡表當成一支影片生成：第 1 段從第 1 鏡的分鏡圖開始，之後每段接著前一段往下延長，並參考該段第一鏡的分鏡圖。鏡頭之間由模型自己轉場。",
+      "segment": "第 {{n}} 段",
+      "extendTag": "延長",
+      "total": "共 {{seconds}} 秒・{{resolution}}",
+      "outOfRange": "一次成片的總長要在 {{min}}–{{max}} 秒之間，目前分鏡表是 {{seconds}} 秒。請回第 2 步調整秒數。",
+      "audio": "聲音",
+      "sfxOnly": "只有音效",
+      "sfxMusic": "音效＋配樂",
+      "withText": "讓模型畫出分鏡表的字卡（小字常寫錯，建議後製再疊）",
+      "generate": "生成成片",
+      "regenerate": "整支重做",
+      "progress": "第 {{n}}/{{total}} 段生成中 {{progress}}%",
+      "interrupted": "生成中斷，請整支重做",
+      "partial": "已完成 {{done}}/{{total}} 段（{{seconds}} 秒），可以先下載這部分",
+      "prompts": "送出的提示詞",
+      "fileSuffix": "一次成片"
+    }
   }
 }

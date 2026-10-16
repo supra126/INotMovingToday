@@ -1,6 +1,6 @@
 import { checkVideoStatus, extendVideo, startVideoGeneration } from "@/services/videoService";
 import type { VideoExtensionParams, VideoGenerationParams } from "@/services/video-providers/types";
-import type { AudioMode, VideoDuration, VideoRatio, VideoResolution } from "@/types";
+import type { AudioMode, VideoRatio, VideoResolution } from "@/types";
 import { cropImageToRatio } from "./crop";
 
 const POLL_INTERVAL = 3000;
@@ -23,7 +23,8 @@ export interface VideoJobInput {
   prompt: string;
   ratio: VideoRatio;
   resolution: VideoResolution;
-  duration: VideoDuration;
+  /** Seconds, 3-10 */
+  duration: number;
   audioMode: AudioMode;
   negativePrompt?: string;
   startImage?: Blob;

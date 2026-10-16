@@ -26,4 +26,5 @@ export const ExtendVideoParamsSchema = z.object({
   resolution: VideoResolutionSchema.optional(),
   audioMode: AudioModeSchema.optional(),
   extensionDuration: z.number().min(3).max(10).optional(),
+  referenceImages: z.array(Base64ImageSchema).max(3).optional(),
 });
