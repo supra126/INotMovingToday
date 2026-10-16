@@ -60,28 +60,28 @@ describe("filmSegmentPrompt", () => {
   const plan = planFilm(p.shots);
 
   it("writes each shot of the first segment with timecodes", () => {
-    const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx_music", withText: false });
+    const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx_music", withText: false, resolution: "720p" });
     expect(text).toContain("[0-3s] 畫面：s01 畫面；運鏡：s01 運鏡；音效：s01 音效；配樂：s01 配樂；轉場：溶接");
     expect(text).toContain("[3-7s] 畫面：s02 畫面");
     expect(text).toContain("高級感");
   });
 
   it("leaves music out when only sound effects are wanted", () => {
-    const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: false });
+    const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: false, resolution: "720p" });
     expect(text).not.toContain("配樂");
   });
 
   it("forbids on-screen text unless asked for, and then quotes the cards", () => {
-    const off = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: false });
+    const off = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: false, resolution: "720p" });
     expect(off).not.toContain("這片黑，很有料");
     expect(off).toContain("不要出現任何字幕");
-    const on = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: true });
+    const on = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx", withText: true, resolution: "720p" });
     expect(on).toContain("字卡：「這片黑，很有料」");
     expect(on).not.toContain("不要出現任何字幕");
   });
 
   it("tells a later segment to continue from the previous video", () => {
-    const text = filmSegmentPrompt(p, plan[1], 1, { audioMode: "sfx", withText: false });
+    const text = filmSegmentPrompt(p, plan[1], 1, { audioMode: "sfx", withText: false, resolution: "720p" });
     expect(text).toContain("接續");
     expect(text).toContain("[0-5s] 畫面：s03 畫面");
     expect(text).toContain("包裝");

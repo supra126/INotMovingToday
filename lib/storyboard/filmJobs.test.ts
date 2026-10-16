@@ -30,7 +30,7 @@ import { newProject, toShot } from "./shots";
 import type { StoryboardProject } from "./types";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
-const options = { audioMode: "sfx" as const, withText: false };
+const options = { audioMode: "sfx" as const, withText: false, resolution: "1080p" as const };
 
 function project(seconds: number[]): StoryboardProject {
   const p = newProject("p", 0);
@@ -72,7 +72,7 @@ describe("generateFilm", () => {
     await running;
 
     expect(job.calls.map((c) => c.kind)).toEqual(["generate", "extend", "extend"]);
-    expect(job.calls[0].input).toMatchObject({ duration: 10 });
+    expect(job.calls[0].input).toMatchObject({ duration: 10, resolution: "1080p" });
     expect(await (job.calls[0].input.startImage as Blob).text()).toBe("img1");
     expect(job.calls[1].input).toMatchObject({ sourceVideoUri: "job-1", extensionDuration: 10, referenceImages: ["cropped:img3"] });
     expect(job.calls[2].input).toMatchObject({ sourceVideoUri: "job-2", extensionDuration: 8, referenceImages: ["cropped:img5"] });

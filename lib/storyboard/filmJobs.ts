@@ -44,7 +44,7 @@ export async function generateFilm(ctx: JobContext, project: StoryboardProject, 
   const plan = planFilm(project.shots);
   if (plan.length === 0) return;
   const prompts = plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options));
-  const resolution = project.videoSettings.resolution;
+  const { resolution } = options;
   const run: FilmRun = { stopped: false };
   runs.set(ctx.projectId, run);
   ctx.update((p) => ({

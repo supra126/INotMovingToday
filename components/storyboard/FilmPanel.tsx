@@ -7,15 +7,15 @@ import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
+import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
 import { generateFilm, stopFilm } from "@/lib/storyboard/filmJobs";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
-import type { AudioMode } from "@/types";
+import type { AudioMode, VideoResolution } from "@/types";
 import { BatchCostConfirm } from "./BatchCostConfirm";
 import type { StepProps } from "./types";
 
-const DEFAULT_OPTIONS: FilmOptions = { audioMode: "sfx", withText: false };
+const DEFAULT_OPTIONS: FilmOptions = { audioMode: "sfx", withText: false, resolution: "1080p" };
 
 /** Points a <video> at the stored Blob (or the fallback URL), revoking object URLs on change */
 function useFilmVideo(film?: FilmVideo) {
@@ -40,13 +40,13 @@ function useFilmVideo(film?: FilmVideo) {
 export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "project" | "update" | "requireApiKey">) {
   const { t } = useLocale();
   const film = project.film;
-  const [options, setOptions] = useState<FilmOptions>(film?.options ?? DEFAULT_OPTIONS);
+  const [options, setOptions] = useState<FilmOptions>({ ...DEFAULT_OPTIONS, ...film?.options });
   const [pending, setPending] = useState<CostRow[] | null>(null);
   const videoRef = useFilmVideo(film);
 
   const plan = planFilm(project.shots);
   const total = filmSeconds(plan);
-  const resolution = project.videoSettings.resolution;
+  const { resolution } = options;
   const fits = total >= FILM_MIN_SECONDS && total <= FILM_MAX_SECONDS;
   const generating = film?.status === "generating";
   const hasVideo = !!(film?.blob || film?.url);
@@ -99,6 +99,13 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
           <p className="text-xs text-warning">{t("storyboard.film.outOfRange", { min: FILM_MIN_SECONDS, max: FILM_MAX_SECONDS, seconds: total })}</p>
         )}
 
+        <Segmented<VideoResolution>
+          size="sm"
+          label={t("upload.settings.resolution")}
+          value={resolution}
+          onChange={(r) => setOptions((o) => ({ ...o, resolution: r }))}
+          options={FILM_RESOLUTIONS.map((r) => ({ value: r, label: t(`upload.resolution.${r}`) }))}
+        />
         <Segmented<AudioMode>
           size="sm"
           label={t("storyboard.film.audio")}

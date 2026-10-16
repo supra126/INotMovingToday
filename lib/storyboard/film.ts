@@ -1,4 +1,4 @@
-import type { AudioMode } from "@/types";
+import type { AudioMode, VideoResolution } from "@/types";
 import type { ScriptShot, StoryboardProject } from "./types";
 
 /** One-take film: the whole storyboard as one video, generated in segments and extended */
@@ -12,7 +12,11 @@ export interface FilmOptions {
   audioMode: AudioMode;
   /** Let the model draw the storyboard's on-screen text (small text often comes out wrong) */
   withText: boolean;
+  /** 720p or 1080p: both tested with extensions (2026-10-16); 4K was not */
+  resolution: VideoResolution;
 }
+
+export const FILM_RESOLUTIONS: VideoResolution[] = ["720p", "1080p"];
 
 export interface FilmSegment<T extends ScriptShot = ScriptShot> {
   shots: T[];
