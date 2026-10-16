@@ -309,7 +309,7 @@
         "sound": "音效",
         "music": "配樂",
         "onScreenText": "畫面文字",
-        "transition": "轉場",
+        "transition": "轉場（怎麼接到下一鏡）",
         "hasPackaging": "包裝入鏡"
       },
       "chatPlaceholder": "想改什麼？例如：s03 改成手拿面膜展示",

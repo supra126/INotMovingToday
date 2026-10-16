@@ -309,7 +309,7 @@
         "sound": "SFX",
         "music": "Music",
         "onScreenText": "On-screen text",
-        "transition": "Transition",
+        "transition": "Transition (into the next shot)",
         "hasPackaging": "Packaging in shot"
       },
       "chatPlaceholder": "What should change? e.g. make s03 a hand holding the mask",
