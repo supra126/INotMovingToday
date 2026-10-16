@@ -74,13 +74,17 @@ export const filmSeconds = (plan: FilmSegment[]) => plan.reduce((sum, s) => sum 
 
 const fmt = (n: number) => String(Math.round(n * 10) / 10);
 
+// A one-word transition like 硬切 or 淡出 is left to the smooth rules; anything longer is the user's own direction
+const SIMPLE_TRANSITION = /^(硬切|切|直切|淡入|淡出|淡入淡出|溶接|疊化|轉場|無|cut|hard cut|fade|fade in|fade out|dissolve|none)?$/i;
+const ownTransition = (shot?: ScriptShot) => (shot && !SIMPLE_TRANSITION.test(shot.transition.trim()) ? shot.transition.trim() : "");
+
 function shotLine(shot: ScriptShot, from: number, to: number, options: FilmOptions): string {
   const parts = [
     `畫面：${shot.visual}`,
     shot.camera && `運鏡：${shot.camera}`,
     shot.sound && `音效：${shot.sound}`,
     options.audioMode === "sfx_music" && shot.music && `配樂：${shot.music}`,
-    options.transitions === "table" && shot.transition && `轉場：${shot.transition}`,
+    (options.transitions === "table" ? shot.transition : ownTransition(shot)) && `轉場：${options.transitions === "table" ? shot.transition : ownTransition(shot)}`,
     options.withText && shot.onScreenText && `字卡：「${shot.onScreenText}」`,
   ];
   return `[${fmt(from)}-${fmt(to)}s] ${parts.filter(Boolean).join("；")}`;
@@ -94,7 +98,9 @@ export function filmSegmentPrompt(
   project: StoryboardProject,
   segment: FilmSegment,
   index: number,
-  options: FilmOptions
+  options: FilmOptions,
+  /** Last shot of the previous segment: its transition leads into this segment */
+  previous?: ScriptShot
 ): string {
   const raw = rawSeconds(segment.shots);
   const scale = raw > 0 ? segment.seconds / raw : 1;
@@ -124,5 +130,6 @@ export function filmSegmentPrompt(
     smooth && "過渡時不要讓一個物體變形成另一個物體，也不要冒出分鏡表沒有的東西。",
     "只拍分鏡表寫到的內容；不要自行加入分鏡表沒提到的特效，例如光芒、光束、光暈、流光、閃光、煙霧、粒子漩渦。",
   ];
-  return [intro, ...lines, ...notes.filter(Boolean)].join("\n");
+  const lead = smooth && index > 0 && ownTransition(previous) && `開頭的過渡方式照這個做：${ownTransition(previous)}`;
+  return [intro, ...(lead ? [lead] : []), ...lines, ...notes.filter(Boolean)].join("\n");
 }

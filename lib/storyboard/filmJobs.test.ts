@@ -34,7 +34,7 @@ vi.mock("@/lib/video/job", () => {
     };
   return { runVideoJob: start("generate"), runExtendJob: start("extend") };
 });
-import { canResumeFilm, generateFilm, resumeFilm, stopFilm } from "./filmJobs";
+import { canResumeFilm, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm } from "./filmJobs";
 import { newProject, toShot } from "./shots";
 import type { StoryboardProject } from "./types";
 
@@ -167,5 +167,39 @@ describe("generateFilm", () => {
     await first;
     const changed = { ...h.get(), shots: h.get().shots.slice(0, 1) };
     expect(canResumeFilm(changed)).toBe(false);
+  });
+
+  it("redoes a finished film from a later segment, keeping the parts before it", async () => {
+    const p = project([10, 10, 10]);
+    const h = harness(p);
+    const first = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await finishNext();
+    await first;
+    expect(redoableFrom(h.get())).toEqual([1, 2]);
+
+    job.calls = [];
+    const again = redoFilmFrom(h.ctx, h.get(), 1);
+    expect(h.film()).toMatchObject({ status: "generating", done: 1 });
+    await finishNext();
+    await finishNext();
+    await again;
+    expect(job.calls.map((c) => c.kind)).toEqual(["extend", "extend"]);
+    // The first redone segment continues from the ending of the kept part
+    expect(job.calls[0].input).toMatchObject({ sourceVideo: btoa("tail(all)") });
+    expect(h.film()).toMatchObject({ status: "completed", done: 3, duration: 30 });
+  });
+
+  it("leaves skipped shots out of the film", async () => {
+    const p = project([10, 10, 10]);
+    p.shots[1] = { ...p.shots[1], skipped: true };
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await running;
+    expect(h.film()).toMatchObject({ total: 2, duration: 20 });
+    expect(job.calls[1].input).toMatchObject({ referenceImages: ["cropped:img3"] });
   });
 });

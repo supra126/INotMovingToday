@@ -169,3 +169,18 @@ describe("filmSegmentPrompt restraint", () => {
     expect(filmSegmentPrompt(p, second, 1, { ...opts, transitions: "table" })).toContain("不要自行加入分鏡表沒提到的特效");
   });
 });
+
+describe("filmSegmentPrompt with the user's own transitions", () => {
+  const p = project([row("s01", 5, { transition: "鏡頭從纖維拉遠，變成面膜表面，再拉到女模臉上" }), row("s02", 5, { transition: "硬切" })]);
+  const [first, second] = planFilm(p.shots, 20);
+  const opts = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+
+  it("follows a written transition into the next segment", () => {
+    expect(filmSegmentPrompt(p, second, 1, opts, first.shots.at(-1))).toContain("開頭的過渡方式照這個做：鏡頭從纖維拉遠");
+  });
+
+  it("leaves one-word transitions to the smooth rules", () => {
+    const text = filmSegmentPrompt(p, second, 1, opts, first.shots.at(-1));
+    expect(text).not.toContain("轉場：硬切");
+  });
+});

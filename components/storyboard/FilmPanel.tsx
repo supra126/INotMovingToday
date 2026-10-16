@@ -8,7 +8,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_LENGTHS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
-import { canResumeFilm, generateFilm, resumeFilm, stopFilm } from "@/lib/storyboard/filmJobs";
+import { canResumeFilm, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm } from "@/lib/storyboard/filmJobs";
 import { activeShots } from "@/lib/storyboard/shots";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
@@ -42,7 +42,7 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const { t } = useLocale();
   const film = project.film;
   const [options, setOptions] = useState<FilmOptions>({ ...DEFAULT_OPTIONS, ...film?.options });
-  const [pending, setPending] = useState<{ rows: CostRow[]; resume: boolean } | null>(null);
+  const [pending, setPending] = useState<{ rows: CostRow[]; run: (apiKey: string) => void } | null>(null);
   const videoRef = useFilmVideo(film);
 
   const tableSeconds = filmSeconds(planFilm(activeShots(project.shots)));
@@ -56,8 +56,10 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const ctx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
 
   const resumable = canResumeFilm(project);
-  // Resuming keeps the settings the film started with
-  const resumePlan = film && resumable ? planFilm(activeShots(project.shots), film.options.seconds) : [];
+  const redoFrom = redoableFrom(project);
+  // Resuming and redoing keep the settings the film started with
+  const filmPlan = film ? planFilm(activeShots(project.shots), film.options.seconds) : [];
+  const resumePlan = resumable ? filmPlan : [];
   const rowsFor = (segments: typeof plan, first: number, res: typeof resolution): CostRow[] =>
     segments.slice(first).map((segment, i) => ({
       id: t("storyboard.film.segment", { n: first + i + 1 }),
@@ -66,10 +68,15 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
       hasEnd: false,
     }));
   const confirm = () => {
-    if (requireApiKey()) setPending({ rows: rowsFor(plan, 0, resolution), resume: false });
+    if (requireApiKey()) setPending({ rows: rowsFor(plan, 0, resolution), run: (key) => void generateFilm(ctx(key), project, options) });
   };
   const confirmResume = () => {
-    if (film && requireApiKey()) setPending({ rows: rowsFor(resumePlan, film.done, film.options.resolution), resume: true });
+    if (film && requireApiKey())
+      setPending({ rows: rowsFor(resumePlan, film.done, film.options.resolution), run: (key) => void resumeFilm(ctx(key), project) });
+  };
+  const confirmRedo = (from: number) => {
+    if (film && requireApiKey())
+      setPending({ rows: rowsFor(filmPlan, from, film.options.resolution), run: (key) => void redoFilmFrom(ctx(key), project, from) });
   };
 
   const baseName = `${project.name.trim() || "storyboard"}-${t("storyboard.film.fileSuffix")}`;
@@ -153,6 +160,9 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
             { value: "table", label: t("storyboard.film.transitionsTable") },
           ]}
         />
+        {(options.transitions ?? "smooth") === "smooth" && (
+          <p className="text-xs text-fg-subtle">{t("storyboard.film.transitionsHint")}</p>
+        )}
         <Segmented<AudioMode>
           size="sm"
           label={t("storyboard.film.audio")}
@@ -226,6 +236,18 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
               {t("storyboard.videos.download")}
             </Button>
           )}
+          {redoFrom.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-[var(--radius-panel)] border border-line bg-panel px-3 py-2">
+              <p className="text-xs text-fg-muted">{t("storyboard.film.redoHint")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {redoFrom.map((from) => (
+                  <Button key={from} size="sm" variant="ghost" onClick={() => confirmRedo(from)}>
+                    {t("storyboard.film.redoFrom", { n: from + 1, at: filmPlan[from].start })}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
           {!!film.segments?.length && !generating && (
             <Button size="sm" variant="ghost" onClick={() => void downloadSegments()}>
               {t("storyboard.film.downloadSegments", { count: film.segments.length })}
@@ -248,11 +270,10 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
         rows={pending?.rows ?? null}
         onClose={() => setPending(null)}
         onConfirm={() => {
-          const resume = pending?.resume;
+          const run = pending?.run;
           setPending(null);
           const apiKey = requireApiKey();
-          if (!apiKey) return;
-          void (resume ? resumeFilm(ctx(apiKey), project) : generateFilm(ctx(apiKey), project, options));
+          if (apiKey) run?.(apiKey);
         }}
       />
     </div>

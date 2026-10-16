@@ -46,7 +46,7 @@ export async function generateFilm(ctx: JobContext, project: StoryboardProject, 
   if (runs.has(ctx.projectId)) return;
   const plan = planFilm(activeShots(project.shots), options.seconds);
   if (plan.length === 0) return;
-  const prompts = plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options));
+  const prompts = filmPrompts(project, plan, options);
   ctx.update((p) => ({
     ...p,
     film: { status: "generating", progress: 0, done: 0, total: plan.length, duration: 0, prompts, options },
@@ -54,28 +54,47 @@ export async function generateFilm(ctx: JobContext, project: StoryboardProject, 
   await runSegments(ctx, project, options, plan, prompts, { done: 0, duration: 0 });
 }
 
-/** A stopped or failed film can pick up at its next segment while the storyboard still splits the same way */
-export function canResumeFilm(project: StoryboardProject): boolean {
+const filmPrompts = (project: StoryboardProject, plan: FilmSegment<Shot>[], options: FilmOptions) =>
+  plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options, plan[i - 1]?.shots.at(-1)));
+
+/**
+ * Segments a film can be redone from: any later segment whose earlier parts are all kept,
+ * while the storyboard still splits the same way and the film stays within the cap
+ */
+export function redoableFrom(project: StoryboardProject): number[] {
   const film = project.film;
-  if (!film || film.status === "generating" || film.status === "completed") return false;
-  if (film.done === 0 || film.done >= film.total || !film.sourceVideoUri) return false;
+  if (!film || film.status === "generating") return [];
   const plan = planFilm(activeShots(project.shots), film.options.seconds);
-  // Films planned before the 30-second cap was known cannot be finished
-  return plan.length === film.total && filmSeconds(plan) <= FILM_MAX_SECONDS;
+  if (plan.length !== film.total || filmSeconds(plan) > FILM_MAX_SECONDS) return [];
+  const kept = Math.min(film.segments?.length ?? 0, film.done);
+  return Array.from({ length: kept }, (_, i) => i + 1).filter((i) => i < film.total);
 }
 
-/** Continue a film from the segment that failed or was stopped; the finished part is kept, not redone */
+/** A stopped or failed film can pick up at its next segment */
+export function canResumeFilm(project: StoryboardProject): boolean {
+  const film = project.film;
+  return !!film && film.status !== "completed" && film.done < film.total && redoableFrom(project).includes(film.done);
+}
+
+/** Continue a film from the segment that failed or was stopped */
 export async function resumeFilm(ctx: JobContext, project: StoryboardProject) {
-  if (runs.has(ctx.projectId) || !canResumeFilm(project)) return;
+  if (canResumeFilm(project)) await redoFilmFrom(ctx, project, project.film!.done);
+}
+
+/**
+ * Regenerate a film from segment `from` (0-based) to the end, keeping the parts before it.
+ * Later segments must be redone too: each one continues from the ending of the one before.
+ * Prompts are rebuilt from the current storyboard, so edited rows take effect.
+ */
+export async function redoFilmFrom(ctx: JobContext, project: StoryboardProject, from: number) {
+  if (runs.has(ctx.projectId) || !redoableFrom(project).includes(from)) return;
   const film = project.film!;
   const plan = planFilm(activeShots(project.shots), film.options.seconds);
-  setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, error: undefined }));
-  await runSegments(ctx, project, film.options, plan, film.prompts, {
-    done: film.done,
-    duration: film.duration,
-    sourceVideoUri: film.sourceVideoUri,
-    segments: film.segments,
-  });
+  const prompts = filmPrompts(project, plan, film.options);
+  const kept = film.segments!.slice(0, from);
+  const duration = plan.slice(0, from).reduce((sum, s) => sum + s.seconds, 0);
+  setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, done: from, duration, segments: kept, prompts, error: undefined }));
+  await runSegments(ctx, project, film.options, plan, prompts, { done: from, duration, segments: kept });
 }
 
 async function runSegments(
