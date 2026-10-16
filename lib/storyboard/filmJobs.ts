@@ -2,7 +2,7 @@ import { cropImageToRatio } from "@/lib/video/crop";
 import { toDisplayError } from "@/lib/video/errors";
 import { runExtendJob, runVideoJob, type VideoJobHooks } from "@/lib/video/job";
 import { cancelVideoGeneration } from "@/services/videoService";
-import { filmSegmentPrompt, planFilm, type FilmOptions, type FilmSegment } from "./film";
+import { FILM_MAX_SECONDS, filmSeconds, filmSegmentPrompt, planFilm, type FilmOptions, type FilmSegment } from "./film";
 import type { JobContext } from "./imageJobs";
 import type { FilmVideo, Shot, StoryboardProject } from "./types";
 import { toStoredVideo } from "./videoJobs";
@@ -56,7 +56,9 @@ export function canResumeFilm(project: StoryboardProject): boolean {
   const film = project.film;
   if (!film || film.status === "generating" || film.status === "completed") return false;
   if (film.done === 0 || film.done >= film.total || !film.sourceVideoUri) return false;
-  return planFilm(project.shots, film.options.seconds).length === film.total;
+  const plan = planFilm(project.shots, film.options.seconds);
+  // Films planned before the 30-second cap was known cannot be finished
+  return plan.length === film.total && filmSeconds(plan) <= FILM_MAX_SECONDS;
 }
 
 /** Continue a film from the segment that failed or was stopped; the finished part is kept, not redone */

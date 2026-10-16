@@ -3,7 +3,8 @@ import type { ScriptShot, StoryboardProject } from "./types";
 
 /** One-take film: the whole storyboard as one video, generated in segments and extended */
 export const FILM_MIN_SECONDS = 15;
-export const FILM_MAX_SECONDS = 40;
+// Docs say 40 s, but tested 2026-10-16: 24→30 s works, 28→31 s fails with a generic 400
+export const FILM_MAX_SECONDS = 30;
 // Omni makes 3-10 seconds per generation or extension
 const SEGMENT_MIN = 3;
 const SEGMENT_MAX = 10;
@@ -18,7 +19,7 @@ export interface FilmOptions {
   seconds?: number;
 }
 
-export const FILM_LENGTHS = [15, 20, 25, 30, 35, 40];
+export const FILM_LENGTHS = [15, 20, 25, 30];
 
 export const FILM_RESOLUTIONS: VideoResolution[] = ["720p", "1080p"];
 

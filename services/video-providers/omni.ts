@@ -27,7 +27,8 @@ export const OMNI_PROVIDER_NAME = "Google Gemini Omni Flash";
 // Omni clip length per generation / extension, and total length cap with extensions
 const MIN_DURATION = 3;
 const MAX_DURATION = 10;
-const MAX_TOTAL_DURATION = 40;
+// Docs say 40 s; extending past 30 s fails with a generic 400 (tested 2026-10-16)
+const MAX_TOTAL_DURATION = 30;
 
 // Rough wall-clock estimate used for the progress bar
 const ESTIMATED_SECONDS_PER_VIDEO_SECOND = 12;

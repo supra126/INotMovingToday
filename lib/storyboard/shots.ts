@@ -322,7 +322,8 @@ export function keyframeRefs(project: StoryboardProject, shot: Shot) {
 }
 
 // Omni's total length with extensions (same cap as the single-shot mode)
-export const MAX_VIDEO_SECONDS = 40;
+// Docs say 40 s; extending past 30 s fails with a generic 400 (tested 2026-10-16)
+export const MAX_VIDEO_SECONDS = 30;
 const EXTEND_STEPS = [4, 6, 8];
 
 export function extensionOptions(duration: number): number[] {

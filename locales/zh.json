@@ -92,7 +92,7 @@
         },
         "extend": {
           "label": "延伸",
-          "desc": "需要更長就描述接下來發生什麼，最長 40 秒"
+          "desc": "需要更長就描述接下來發生什麼，最長 30 秒"
         }
       },
       "tip": "右側可以下載影片，或查看實際送出的英文提示詞"
@@ -256,7 +256,7 @@
     "extendLabel": "延伸影片（目前 {{total}} 秒，最長 {{max}} 秒）",
     "extendPlaceholder": "接下來發生什麼？",
     "extendButton": "延伸",
-    "maxReached": "已達 40 秒上限",
+    "maxReached": "已達 30 秒上限",
     "finalPrompt": "送出的英文提示詞",
     "copy": "複製",
     "copied": "已複製"

@@ -424,10 +424,10 @@ describe("codex review", () => {
     expect(isVideoOutdated([{ ...shot, fields: { ...fields, subject: "changed" } }], 0)).toBe(true);
   });
 
-  it("offers only extensions that fit the 40-second total", () => {
+  it("offers only extensions that fit the 30-second total", () => {
     expect(extensionOptions(8)).toEqual([4, 6, 8]);
-    expect(extensionOptions(34)).toEqual([4, 6]);
-    expect(extensionOptions(38)).toEqual([]);
+    expect(extensionOptions(24)).toEqual([4, 6]);
+    expect(extensionOptions(28)).toEqual([]);
   });
 });
 

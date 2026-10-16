@@ -92,7 +92,7 @@
         },
         "extend": {
           "label": "Extend",
-          "desc": "Describe what happens next to make it longer, up to 40 s"
+          "desc": "Describe what happens next to make it longer, up to 30 s"
         }
       },
       "tip": "Download the video or check the exact English prompt on the right"
@@ -256,7 +256,7 @@
     "extendLabel": "Extend video (now {{total}} s, max {{max}} s)",
     "extendPlaceholder": "What happens next?",
     "extendButton": "Extend",
-    "maxReached": "Reached the 40 s limit",
+    "maxReached": "Reached the 30 s limit",
     "finalPrompt": "English prompt sent to Omni",
     "copy": "Copy",
     "copied": "Copied"

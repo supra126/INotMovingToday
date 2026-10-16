@@ -44,7 +44,7 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend, onStop }: Sh
   const videoRef = useVideoElement(shot);
   const video = shot.video;
   const hasVideo = !!(video?.blob || video?.url);
-  // Omni caps a shot at 40 seconds including extensions
+  // Omni caps a shot at 30 seconds including extensions (docs say 40; past 30 fails)
   const extendOptions = extensionOptions(video?.duration ?? 0);
   const seconds = extendOptions.includes(extendSeconds) ? extendSeconds : extendOptions[extendOptions.length - 1];
 
