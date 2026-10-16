@@ -40,20 +40,14 @@ const clamp = (n: number) => Math.max(SEGMENT_MIN, Math.min(SEGMENT_MAX, Math.ro
 const rawSeconds = (shots: ScriptShot[]) => shots.reduce((sum, s) => sum + s.seconds, 0);
 
 /**
- * Pack shots in order into segments of at most 10 seconds.
+ * One segment per shot, so every shot's own frame is sent and every seam follows its Transition cell.
  * With a target length every shot is scaled by the same factor first.
  */
 export function planFilm<T extends ScriptShot>(shots: T[], target?: number): FilmSegment<T>[] {
   const raw = rawSeconds(shots);
   const factor = target && raw > 0 ? target / raw : 1;
   const scaled = (group: T[]) => rawSeconds(group) * factor;
-  const groups: T[][] = [];
-  for (const shot of shots) {
-    const current = groups[groups.length - 1];
-    // A hair of slack so scaled sums like 10.0000001 still fit
-    if (current && scaled([...current, shot]) <= SEGMENT_MAX + 1e-6) current.push(shot);
-    else groups.push([shot]);
-  }
+  const groups: T[][] = shots.map((shot) => [shot]);
   // Round so the segments add up to the rounded total (largest remainders get the spare seconds)
   const exact = groups.map(scaled);
   const seconds = exact.map(Math.floor);

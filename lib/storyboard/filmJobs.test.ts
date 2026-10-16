@@ -72,7 +72,7 @@ describe("generateFilm", () => {
   });
 
   it("runs the segments in order and ends with the whole video", async () => {
-    const p = project([5, 5, 6, 4, 8]);
+    const p = project([10, 10, 8]);
     const h = harness(p);
     const running = generateFilm(h.ctx, p, options);
     await finishNext();
@@ -84,8 +84,8 @@ describe("generateFilm", () => {
     expect(job.calls[0].input).toMatchObject({ duration: 10, resolution: "1080p" });
     expect(await (job.calls[0].input.startImage as Blob).text()).toBe("img1");
     // Each extension uploads the ending of the film joined so far
-    expect(job.calls[1].input).toMatchObject({ sourceVideo: btoa("tail(all)"), extensionDuration: 10, referenceImages: ["cropped:img3"] });
-    expect(job.calls[2].input).toMatchObject({ sourceVideo: btoa("tail(all+from5)"), extensionDuration: 8, referenceImages: ["cropped:img5"] });
+    expect(job.calls[1].input).toMatchObject({ sourceVideo: btoa("tail(all)"), extensionDuration: 10, referenceImages: ["cropped:img2"] });
+    expect(job.calls[2].input).toMatchObject({ sourceVideo: btoa("tail(all+from5)"), extensionDuration: 8, referenceImages: ["cropped:img3"] });
     expect(job.calls[1].input.sourceVideoUri).toBeUndefined();
     expect(h.film()).toMatchObject({ status: "completed", done: 3, total: 3, duration: 28, sourceVideoUri: "job-3" });
     expect(h.film().prompts).toHaveLength(3);

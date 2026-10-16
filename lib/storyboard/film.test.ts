@@ -24,10 +24,10 @@ function project(rows: ScriptShot[]): StoryboardProject {
 }
 
 describe("planFilm", () => {
-  it("packs shots in order into segments of at most 10 seconds", () => {
+  it("makes one segment per shot, at least 3 seconds each", () => {
     const plan = planFilm([row("s01", 4), row("s02", 5), row("s03", 3), row("s04", 6), row("s05", 2)]);
-    expect(plan.map((s) => s.shots.map((x) => x.id))).toEqual([["s01", "s02"], ["s03", "s04"], ["s05"]]);
-    expect(plan.map((s) => s.seconds)).toEqual([9, 9, 3]);
+    expect(plan.map((s) => s.shots.map((x) => x.id))).toEqual([["s01"], ["s02"], ["s03"], ["s04"], ["s05"]]);
+    expect(plan.map((s) => s.seconds)).toEqual([4, 5, 3, 6, 3]);
   });
 
   it("starts each segment where the previous one ended", () => {
@@ -41,9 +41,9 @@ describe("planFilm", () => {
   });
 
   it("rounds fractional storyboard seconds", () => {
-    const plan = planFilm([row("s01", 1.9), row("s02", 2.7), row("s03", 2.1)]);
-    expect(plan).toHaveLength(1);
-    expect(plan[0].seconds).toBe(7);
+    const plan = planFilm([row("s01", 4.6), row("s02", 5.7), row("s03", 4.7)]);
+    // 15 s in all: the largest remainders get the rounded-up seconds
+    expect(plan.map((s) => s.seconds)).toEqual([4, 6, 5]);
   });
 
   it("totals the segment lengths", () => {
@@ -62,7 +62,7 @@ describe("filmSegmentPrompt", () => {
   it("writes each shot of the first segment with timecodes", () => {
     const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx_music", withText: false, resolution: "720p" });
     expect(text).toContain("[0-3s] 畫面：s01 畫面；運鏡：s01 運鏡；音效：s01 音效；配樂：s01 配樂");
-    expect(text).toContain("[3-7s] 畫面：s02 畫面");
+    expect(filmSegmentPrompt(p, plan[1], 1, { audioMode: "sfx_music", withText: false, resolution: "720p" })).toContain("[0-4s] 畫面：s02 畫面");
     expect(text).toContain("高級感");
   });
 
@@ -81,7 +81,7 @@ describe("filmSegmentPrompt", () => {
   });
 
   it("tells a later segment to continue from the previous video", () => {
-    const text = filmSegmentPrompt(p, plan[1], 1, { audioMode: "sfx", withText: false, resolution: "720p" });
+    const text = filmSegmentPrompt(p, plan[2], 2, { audioMode: "sfx", withText: false, resolution: "720p" });
     expect(text).toContain("接續");
     expect(text).toContain("[0-5s] 畫面：s03 畫面");
     expect(text).toContain("包裝");
@@ -95,10 +95,10 @@ describe("planFilm with a target length", () => {
     expect(plan.map((s) => s.shots.map((x) => x.id))).toEqual([["s01"], ["s02"], ["s03"], ["s04"], ["s05"]]);
   });
 
-  it("squeezes a long storyboard into fewer segments", () => {
+  it("squeezes a long storyboard to the chosen length", () => {
     const plan = planFilm([row("s01", 8), row("s02", 8), row("s03", 8), row("s04", 8), row("s05", 8), row("s06", 8)], 20);
     expect(filmSeconds(plan)).toBe(20);
-    expect(plan).toHaveLength(2);
+    expect(plan).toHaveLength(6);
   });
 
   it("keeps the table's own seconds without a target", () => {
