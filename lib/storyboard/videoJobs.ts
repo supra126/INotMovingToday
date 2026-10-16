@@ -124,7 +124,7 @@ export async function draftShotFields(
   { retryFailed = true }: { retryFailed?: boolean } = {}
 ) {
   const targets = project.shots.flatMap((shot, index) =>
-    !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" && (retryFailed || shot.draftStatus !== "failed")
+    !shot.skipped && !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" && (retryFailed || shot.draftStatus !== "failed")
       ? [{ shot, index }]
       : []
   );

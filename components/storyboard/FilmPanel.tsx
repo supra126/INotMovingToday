@@ -9,6 +9,7 @@ import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_LENGTHS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
 import { canResumeFilm, generateFilm, resumeFilm, stopFilm } from "@/lib/storyboard/filmJobs";
+import { activeShots } from "@/lib/storyboard/shots";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
 import type { AudioMode, VideoResolution } from "@/types";
@@ -44,8 +45,8 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const [pending, setPending] = useState<{ rows: CostRow[]; resume: boolean } | null>(null);
   const videoRef = useFilmVideo(film);
 
-  const tableSeconds = filmSeconds(planFilm(project.shots));
-  const plan = planFilm(project.shots, options.seconds);
+  const tableSeconds = filmSeconds(planFilm(activeShots(project.shots)));
+  const plan = planFilm(activeShots(project.shots), options.seconds);
   const total = filmSeconds(plan);
   const { resolution } = options;
   const fits = total >= FILM_MIN_SECONDS && total <= FILM_MAX_SECONDS;
@@ -56,7 +57,7 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
 
   const resumable = canResumeFilm(project);
   // Resuming keeps the settings the film started with
-  const resumePlan = film && resumable ? planFilm(project.shots, film.options.seconds) : [];
+  const resumePlan = film && resumable ? planFilm(activeShots(project.shots), film.options.seconds) : [];
   const rowsFor = (segments: typeof plan, first: number, res: typeof resolution): CostRow[] =>
     segments.slice(first).map((segment, i) => ({
       id: t("storyboard.film.segment", { n: first + i + 1 }),

@@ -414,7 +414,10 @@
     "rail": {
       "title": "Shots",
       "total": "{{seconds}}s total",
-      "empty": "Shots appear here once the storyboard is built"
+      "empty": "Shots appear here once the storyboard is built",
+      "skip": "Skip",
+      "unskip": "Use",
+      "skipped": "skipped"
     },
     "status": {
       "empty": "Not started",

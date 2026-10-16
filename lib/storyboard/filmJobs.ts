@@ -7,6 +7,7 @@ import type { JobContext } from "./imageJobs";
 import type { FilmVideo, Shot, StoryboardProject } from "./types";
 import { blobToBase64 } from "./blob";
 import type { ClipRange } from "./clips";
+import { activeShots } from "./shots";
 import { toStoredVideo } from "./videoJobs";
 
 interface FilmRun {
@@ -43,7 +44,7 @@ export function stopFilm(ctx: JobContext) {
  */
 export async function generateFilm(ctx: JobContext, project: StoryboardProject, options: FilmOptions) {
   if (runs.has(ctx.projectId)) return;
-  const plan = planFilm(project.shots, options.seconds);
+  const plan = planFilm(activeShots(project.shots), options.seconds);
   if (plan.length === 0) return;
   const prompts = plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options));
   ctx.update((p) => ({
@@ -58,7 +59,7 @@ export function canResumeFilm(project: StoryboardProject): boolean {
   const film = project.film;
   if (!film || film.status === "generating" || film.status === "completed") return false;
   if (film.done === 0 || film.done >= film.total || !film.sourceVideoUri) return false;
-  const plan = planFilm(project.shots, film.options.seconds);
+  const plan = planFilm(activeShots(project.shots), film.options.seconds);
   // Films planned before the 30-second cap was known cannot be finished
   return plan.length === film.total && filmSeconds(plan) <= FILM_MAX_SECONDS;
 }
@@ -67,7 +68,7 @@ export function canResumeFilm(project: StoryboardProject): boolean {
 export async function resumeFilm(ctx: JobContext, project: StoryboardProject) {
   if (runs.has(ctx.projectId) || !canResumeFilm(project)) return;
   const film = project.film!;
-  const plan = planFilm(project.shots, film.options.seconds);
+  const plan = planFilm(activeShots(project.shots), film.options.seconds);
   setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, error: undefined }));
   await runSegments(ctx, project, film.options, plan, film.prompts, {
     done: film.done,

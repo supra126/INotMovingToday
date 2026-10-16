@@ -26,6 +26,7 @@ const SHARED_RULES = [
   "- Write the sound effects for every shot. Music is \"無\" (none) unless the user asks for music in that shot; music is added in editing.",
   "- On-screen text (captions, titles) goes only in onScreenText. It is added in editing and must never be drawn in the picture.",
   "- Keep the user's core message and their on-screen text wording.",
+  "- Whenever a person appears, the visual names their gender and look (e.g. 年輕女性、長黑髮、白色睡衣), never just 人影 or 某人; the same person is described the same way in every shot.",
 ];
 
 function storyboardRules(hasProduct: boolean): string {
@@ -157,6 +158,7 @@ export function buildImagePromptsPrompt(ctx: ImagePromptsInput): string {
     "Rules:",
     "- 2 to 4 sentences per shot: subject and pose, setting, camera framing and angle, lighting and color mood. A still frame, not motion.",
     "- Keep people, setting and lighting consistent across shots; describe a recurring person the same way every time.",
+    "- Whenever a person appears, state their gender, approximate age and look (hair, clothing) in that shot's prompt, even if the storyboard row only says \"a figure\" or shows them from behind; infer it from the other shots.",
     "- No on-screen text, captions or logos other than what is printed on the product.",
     "",
     "Return JSON only, shaped like:",

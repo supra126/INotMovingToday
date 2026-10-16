@@ -76,7 +76,8 @@ export function endFrameImage(shots: Shot[], index: number): StoredImage | undef
   const endFrame = shots[index]?.endFrame;
   if (!endFrame || endFrame.kind === "none") return undefined;
   if (endFrame.kind === "upload") return endFrame.image;
-  return shots[index + 1]?.finalImage;
+  // Skipped shots are not in the film, so the next frame is the next shot in use
+  return shots.slice(index + 1).find((shot) => !shot.skipped)?.finalImage;
 }
 
 export function canEnterStep(project: StoryboardProject, step: Step): boolean {
@@ -84,12 +85,23 @@ export function canEnterStep(project: StoryboardProject, step: Step): boolean {
   const scriptReady =
     project.script.confirmed && project.shots.length > 0 && project.shots.every((shot) => shot.imagePrompt);
   if (step === 3) return scriptReady;
-  return scriptReady && project.shots.every((shot) => shot.finalImage && !shot.stale);
+  const used = activeShots(project.shots);
+  return scriptReady && used.length > 0 && used.every((shot) => shot.finalImage && !shot.stale);
 }
 
 /** AI should make candidates: none yet or out of date, not running, and the user is not uploading their own */
 export function needsFrames(shot: Shot): boolean {
-  return (shot.candidates.length === 0 || shot.stale) && shot.imageStatus !== "generating" && shot.frameSource !== "upload";
+  return (
+    !shot.skipped &&
+    (shot.candidates.length === 0 || shot.stale) &&
+    shot.imageStatus !== "generating" &&
+    shot.frameSource !== "upload"
+  );
+}
+
+/** Shots in use: everything the user has not skipped */
+export function activeShots(shots: Shot[]): Shot[] {
+  return shots.filter((shot) => !shot.skipped);
 }
 
 /** A new final frame means the shot's fields and video describe the old picture */
@@ -170,7 +182,7 @@ export function imageProgress(shots: Shot[]): { done: number; total: number; per
 /** Finished videos for download, numbered by their place in the storyboard so files sort in order */
 export function exportEntries(shots: Shot[]): { name: string; shot: Shot }[] {
   return shots.flatMap((shot, index) =>
-    shot.video?.status === "completed" && (shot.video.blob || shot.video.url)
+    !shot.skipped && shot.video?.status === "completed" && (shot.video.blob || shot.video.url)
       ? [{ name: `${String(index + 1).padStart(2, "0")}_${videoFileName(shot)}`, shot }]
       : []
   );

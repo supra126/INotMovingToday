@@ -6,7 +6,7 @@ import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
+import { activeShots, isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
 import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, stopShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
@@ -27,10 +27,10 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
   const unfinished = project.shots.filter(
-    (s, i) => s.video?.status !== "generating" && (s.video?.status !== "completed" || isVideoOutdated(project.shots, i))
+    (s, i) => !s.skipped && s.video?.status !== "generating" && (s.video?.status !== "completed" || isVideoOutdated(project.shots, i))
   );
   // Shots whose fields are missing and not being filled right now (never drafted, failed, or image changed)
-  const needDraft = project.shots.filter((s) => !s.fields && s.finalImage && s.draftStatus !== "drafting");
+  const needDraft = project.shots.filter((s) => !s.skipped && !s.fields && s.finalImage && s.draftStatus !== "drafting");
 
   const draftFields = () => {
     const apiKey = requireApiKey();
@@ -94,7 +94,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
         disabled={unfinished.length === 0 || unfinished.some((s) => !s.fields)}
         onClick={() => confirmGenerate(unfinished.map((s) => s.id))}
       >
-        {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
+        {unfinished.length === activeShots(project.shots).length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
         {unfinished.length > 0 && <span className="font-mono">{formatUsd(allCost.amount)}</span>}
       </Button>
       {generating.length > 0 && (
@@ -131,6 +131,7 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
               setMode("shots");
               selectShot(id);
             }}
+            onToggleSkip={(id) => update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === id ? { ...s, skipped: !s.skipped } : s)) }))}
             header={railHeader}
           />
         }

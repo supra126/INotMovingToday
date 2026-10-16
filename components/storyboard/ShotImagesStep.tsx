@@ -164,7 +164,16 @@ export function ShotImagesStep({ project, update, requireApiKey, goTo, selectedS
 
   return (
     <StepLayout
-      rail={<ShotRail shots={project.shots} step={3} ratio={project.ratio} selectedId={selected?.id} onSelect={selectShot} />}
+      rail={
+        <ShotRail
+          shots={project.shots}
+          step={3}
+          ratio={project.ratio}
+          selectedId={selected?.id}
+          onSelect={selectShot}
+          onToggleSkip={(id) => update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === id ? { ...s, skipped: !s.skipped } : s)) }))}
+        />
+      }
       main={main}
       inspector={
         <Inspector

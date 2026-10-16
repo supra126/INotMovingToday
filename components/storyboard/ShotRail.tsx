@@ -24,12 +24,14 @@ interface ShotRailProps {
   onSelect: (id: string) => void;
   /** Rail-wide action, e.g. "Generate all" in step 4 */
   header?: ReactNode;
+  /** Skip a shot or bring it back */
+  onToggleSkip?: (id: string) => void;
 }
 
-export function ShotRail({ shots, step, ratio, selectedId, onSelect, header }: ShotRailProps) {
+export function ShotRail({ shots, step, ratio, selectedId, onSelect, header, onToggleSkip }: ShotRailProps) {
   const { t } = useLocale();
   const thumbClass = ratio === "9:16" ? "h-12 w-[27px]" : "h-[27px] w-12";
-  const total = shots.reduce((sum, shot) => sum + (step >= 4 ? shot.duration : shot.seconds), 0);
+  const total = shots.reduce((sum, shot) => sum + (shot.skipped ? 0 : step >= 4 ? shot.duration : shot.seconds), 0);
 
   return (
     <nav aria-label={t("storyboard.rail.title")} className="flex w-full shrink-0 flex-col border-line bg-panel lg:w-[220px] lg:border-r">
@@ -47,7 +49,7 @@ export function ShotRail({ shots, step, ratio, selectedId, onSelect, header }: S
             const thumb = railThumbnail(shot);
             const active = shot.id === selectedId;
             return (
-              <li key={shot.id} className="shrink-0 lg:shrink">
+              <li key={shot.id} className={`group relative shrink-0 lg:shrink ${shot.skipped ? "opacity-45" : ""}`}>
                 <button
                   type="button"
                   onClick={() => onSelect(shot.id)}
@@ -62,11 +64,24 @@ export function ShotRail({ shots, step, ratio, selectedId, onSelect, header }: S
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="font-mono text-xs text-fg">{shot.id}</span>
-                      <span className={DOT[status]} title={t(`storyboard.status.${status}`)} />
+                      {shot.skipped ? (
+                        <span className="text-[11px] text-fg-muted">{t("storyboard.rail.skipped")}</span>
+                      ) : (
+                        <span className={DOT[status]} title={t(`storyboard.status.${status}`)} />
+                      )}
                     </span>
                     <span className="block truncate text-xs text-fg-muted">{shot.visual}</span>
                   </span>
                 </button>
+                {onToggleSkip && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleSkip(shot.id)}
+                    className="absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[11px] text-fg-muted opacity-0 transition-opacity hover:bg-raised hover:text-fg focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    {shot.skipped ? t("storyboard.rail.unskip") : t("storyboard.rail.skip")}
+                  </button>
+                )}
               </li>
             );
           })}

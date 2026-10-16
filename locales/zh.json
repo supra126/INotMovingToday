@@ -414,7 +414,10 @@
     "rail": {
       "title": "鏡頭",
       "total": "共 {{seconds}} 秒",
-      "empty": "整理出分鏡表後，鏡頭會列在這裡"
+      "empty": "整理出分鏡表後，鏡頭會列在這裡",
+      "skip": "略過",
+      "unskip": "使用",
+      "skipped": "略過"
     },
     "status": {
       "empty": "未處理",

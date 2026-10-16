@@ -170,6 +170,7 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
           ratio={project.ratio}
           selectedId={selected?.id}
           onSelect={selectShot}
+          onToggleSkip={(id) => update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === id ? { ...s, skipped: !s.skipped } : s)) }))}
         />
       }
       main={

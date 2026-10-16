@@ -174,7 +174,7 @@ export async function regenerateShot(
  * Re-render the picked frames at 2K / 4K
  */
 export async function finalizeImages(ctx: JobContext, project: StoryboardProject) {
-  const shots = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
+  const shots = project.shots.filter((s) => !s.skipped && s.selected !== undefined && !s.finalImage);
   for (const shot of shots) {
     updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
   }

@@ -494,3 +494,30 @@ describe("imageProgress", () => {
     expect(imageProgress([toShot(row(), true)])).toBeUndefined();
   });
 });
+
+describe("skipped shots", () => {
+  const frame = (id: string) => ({ ...toShot({ ...row(), id }, false), finalImage: img(`${id}-final`), imagePrompt: "p" });
+
+  it("need no frames and do not block the video step", () => {
+    const p = newProject("id", 0);
+    p.script.confirmed = true;
+    p.shots = [frame("s01"), { ...toShot({ ...row(), id: "s02" }, true), imagePrompt: "p", skipped: true }];
+    expect(needsFrames(p.shots[1])).toBe(false);
+    expect(canEnterStep(p, 4)).toBe(true);
+  });
+
+  it("are passed over when the end frame is the next shot", () => {
+    const shots = [
+      { ...frame("s01"), endFrame: { kind: "next" as const } },
+      { ...frame("s02"), skipped: true },
+      frame("s03"),
+    ];
+    expect(endFrameImage(shots, 0)).toBe(shots[2].finalImage);
+  });
+
+  it("are left out of exports", () => {
+    const done = { status: "completed" as const, progress: 100, prompt: "", duration: 4, blob: new Blob(["v"]) };
+    const shots = [{ ...frame("s01"), video: done }, { ...frame("s02"), video: done, skipped: true }];
+    expect(exportEntries(shots).map((e) => e.shot.id)).toEqual(["s01"]);
+  });
+});

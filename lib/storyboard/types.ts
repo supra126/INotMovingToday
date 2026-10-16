@@ -81,6 +81,8 @@ export interface Shot extends ScriptShot {
   finalImage?: StoredImage;
   /** The storyboard row changed after images were made */
   stale: boolean;
+  /** Left out of frames, videos, exports and the one-take film; kept so it can come back */
+  skipped?: boolean;
   imageStatus: "idle" | "generating" | "failed";
   /** Finished images of the running batch (kept in memory only) */
   imageProgress?: { done: number; total: number };
