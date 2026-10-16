@@ -11,13 +11,15 @@ import {
 } from "mediabunny";
 
 /**
- * Cut a clip from `start` to its end and encode it once at high quality, in the browser.
+ * Keep the last `seconds` of a clip (all of it when omitted) and encode it once at high quality, in the browser.
  * Every clip goes through the same encoder settings, so clips can then be joined without re-encoding.
  */
-export async function trimClip(blob: Blob, start: number): Promise<Blob> {
+export async function trimClip(blob: Blob, seconds?: number): Promise<Blob> {
   const target = new BufferTarget();
+  const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+  const start = seconds === undefined ? 0 : Math.max(0, (await input.computeDuration()) - seconds);
   const conversion = await Conversion.init({
-    input: new Input({ source: new BlobSource(blob), formats: ALL_FORMATS }),
+    input,
     output: new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target }),
     trim: { start },
     video: { forceTranscode: true, codec: "avc", quality: QUALITY_VERY_HIGH },

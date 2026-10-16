@@ -126,7 +126,7 @@ async function runSegments(
       const stored = await toStoredVideo(result.videoUrl);
       // Stop may land while the video downloads
       if (run.stopped) return;
-      segments = await withNewPart(segments, stored.blob, i, duration);
+      segments = await withNewPart(segments, stored.blob, i, i === 0 ? undefined : segment.seconds);
       const film = segments?.length === i + 1 ? await joinParts(segments) : undefined;
       if (run.stopped) return;
       sourceVideoUri = result.sourceVideoUri;
@@ -154,12 +154,16 @@ async function runSegments(
   }
 }
 
-/** Cut this segment's new part out of Google's whole video; on failure stop collecting parts */
-async function withNewPart(parts: Blob[] | undefined, whole: Blob | undefined, index: number, start: number) {
-  if (!parts || !whole || parts.length !== index) return undefined;
+/**
+ * Cut this segment's new part from the end of Google's output; on failure stop collecting parts.
+ * The new part is always last, but what comes before it varies: usually the whole video so far,
+ * yet one 1080p run (2026-10-16) returned only the first segment plus the new part.
+ */
+async function withNewPart(parts: Blob[] | undefined, output: Blob | undefined, index: number, seconds?: number) {
+  if (!parts || !output || parts.length !== index) return undefined;
   try {
     const { trimClip } = await import("./clips");
-    return [...parts, await trimClip(whole, start)];
+    return [...parts, await trimClip(output, seconds)];
   } catch {
     return undefined;
   }
