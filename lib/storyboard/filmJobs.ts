@@ -94,7 +94,13 @@ export async function redoFilmFrom(ctx: JobContext, project: StoryboardProject, 
   const kept = film.segments!.slice(0, from);
   const duration = plan.slice(0, from).reduce((sum, s) => sum + s.seconds, 0);
   setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, done: from, duration, segments: kept, prompts, error: undefined }));
-  await runSegments(ctx, project, film.options, plan, prompts, { done: from, duration, segments: kept });
+  await runSegments(ctx, project, film.options, plan, prompts, {
+    done: from,
+    duration,
+    segments: kept,
+    // The last finished segment's id, for the chain fallback; only valid when nothing after it is dropped
+    sourceVideoUri: from === film.done ? film.sourceVideoUri : undefined,
+  });
 }
 
 async function runSegments(
@@ -134,27 +140,33 @@ async function runSegments(
       const base = { prompt: prompts[i], ratio: project.ratio, resolution, audioMode: options.audioMode };
       const context = i > 0 && filmSoFar ? await contextClip(filmSoFar) : undefined;
       if (run.stopped) return;
-      const result =
-        i === 0
-          ? await runVideoJob({ ...base, duration: segment.seconds, startImage: frame }, hooks)
-          : await runExtendJob(
-              {
-                ...base,
-                // Without the joined film (e.g. a part could not be cut), fall back to Google's own chain
-                ...(context ? { sourceVideo: context.video } : { sourceVideoUri: sourceVideoUri! }),
-                extensionDuration: segment.seconds,
-                referenceImages: await Promise.all(
-                  [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))
-                ),
-              },
-              hooks
-            );
+      let uploaded = !!context;
+      let result;
+      if (i === 0) {
+        result = await runVideoJob({ ...base, duration: segment.seconds, startImage: frame }, hooks);
+      } else {
+        const referenceImages = await Promise.all(
+          [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))
+        );
+        const extend = (source: { sourceVideo: string } | { sourceVideoUri: string }) =>
+          runExtendJob({ ...base, ...source, extensionDuration: segment.seconds, referenceImages }, hooks);
+        try {
+          // Without the joined film (e.g. a part could not be cut), use Google's own chain
+          result = await extend(context ? { sourceVideo: context.video } : { sourceVideoUri: sourceVideoUri! });
+        } catch (err) {
+          // Omni will not add speech to an uploaded clip (docs) and fails with a generic 500;
+          // its own chain allows dialogue, so a segment with talking gets one more try that way
+          if (!context || !sourceVideoUri || run.stopped) throw err;
+          uploaded = false;
+          result = await extend({ sourceVideoUri });
+        }
+      }
       if (!result || run.stopped) return;
       const stored = await toStoredVideo(result.videoUrl);
       // Stop may land while the video downloads
       if (run.stopped) return;
       // The output starts with the uploaded clip; Google's own chain puts an unpredictable part first
-      const range = i === 0 ? undefined : context ? { from: context.seconds } : { last: segment.seconds };
+      const range = i === 0 ? undefined : uploaded ? { from: context!.seconds } : { last: segment.seconds };
       segments = await withNewPart(segments, stored.blob, i, range);
       const film = segments?.length === i + 1 ? await joinParts(segments) : undefined;
       filmSoFar = film;

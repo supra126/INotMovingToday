@@ -100,6 +100,8 @@ describe("generateFilm", () => {
     const running = generateFilm(h.ctx, p, options);
     await finishNext();
     await finishNext(new Error("RESOURCE_EXHAUSTED"));
+    // The chain retry fails as well
+    await finishNext(new Error("RESOURCE_EXHAUSTED"));
     await running;
     expect(h.film()).toMatchObject({ status: "failed", done: 1, duration: 10, sourceVideoUri: "job-1" });
     expect(h.film().error).toBe("RESOURCE_EXHAUSTED");
@@ -144,6 +146,8 @@ describe("generateFilm", () => {
     await finishNext();
     await finishNext();
     await finishNext(new Error("400 There was a problem processing your request"));
+    // The chain retry fails as well
+    await finishNext(new Error("400 There was a problem processing your request"));
     await first;
     expect(h.film()).toMatchObject({ status: "failed", done: 2, duration: 20 });
     expect(canResumeFilm(h.get())).toBe(true);
@@ -163,6 +167,8 @@ describe("generateFilm", () => {
     const h = harness(p);
     const first = generateFilm(h.ctx, p, options);
     await finishNext();
+    await finishNext(new Error("boom"));
+    // The chain retry fails as well
     await finishNext(new Error("boom"));
     await first;
     const changed = { ...h.get(), shots: h.get().shots.slice(0, 1) };
@@ -201,5 +207,19 @@ describe("generateFilm", () => {
     await running;
     expect(h.film()).toMatchObject({ total: 2, duration: 20 });
     expect(job.calls[1].input).toMatchObject({ referenceImages: ["cropped:img3"] });
+  });
+
+  it("retries a failed upload extension through Google's own chain", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext(new Error("500 There was a problem processing your request"));
+    await finishNext();
+    await running;
+    expect(job.calls.map((c) => c.input.sourceVideo ? "upload" : c.input.sourceVideoUri)).toEqual([undefined, "upload", "job-1"]);
+    expect(h.film()).toMatchObject({ status: "completed", done: 2 });
+    // The chain's output has the new part last
+    expect(await h.film().blob!.text()).toBe("all+last10");
   });
 });
