@@ -105,3 +105,11 @@ describe("planFilm with a target length", () => {
     expect(filmSeconds(planFilm([row("s01", 8), row("s02", 9)]))).toBe(17);
   });
 });
+
+describe("planFilm rounding", () => {
+  it("lands exactly on the chosen length", () => {
+    // 16 s scaled to 30 gives 5.625 / 7.5 per shot; rounding each would make 32
+    const plan = planFilm([row("s01", 3), row("s02", 3), row("s03", 3), row("s04", 3), row("s05", 4)], 30);
+    expect(filmSeconds(plan)).toBe(30);
+  });
+});

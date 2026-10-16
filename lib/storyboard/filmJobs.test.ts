@@ -25,7 +25,7 @@ vi.mock("@/lib/video/job", () => {
     };
   return { runVideoJob: start("generate"), runExtendJob: start("extend") };
 });
-import { generateFilm, stopFilm } from "./filmJobs";
+import { canResumeFilm, generateFilm, resumeFilm, stopFilm } from "./filmJobs";
 import { newProject, toShot } from "./shots";
 import type { StoryboardProject } from "./types";
 
@@ -44,7 +44,7 @@ function project(seconds: number[]): StoryboardProject {
 function harness(initial: StoryboardProject) {
   let state = initial;
   const ctx = { projectId: "p", apiKey: "k", update: (fn: (p: StoryboardProject) => StoryboardProject) => { state = fn(state); } };
-  return { ctx, film: () => state.film! };
+  return { ctx, get: () => state, film: () => state.film! };
 }
 
 // Let the latest job finish and the loop move on
@@ -121,5 +121,36 @@ describe("generateFilm", () => {
     await finishNext();
     await second;
     expect(h.film().status).toBe("completed");
+  });
+
+  it("resumes a failed film at the failed segment, keeping the finished part", async () => {
+    const p = project([10, 10, 10]);
+    const h = harness(p);
+    const first = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await finishNext(new Error("400 There was a problem processing your request"));
+    await first;
+    expect(h.film()).toMatchObject({ status: "failed", done: 2, duration: 20 });
+    expect(canResumeFilm(h.get())).toBe(true);
+
+    job.calls = [];
+    const again = resumeFilm(h.ctx, h.get());
+    await finishNext();
+    await again;
+    expect(job.calls).toHaveLength(1);
+    expect(job.calls[0]).toMatchObject({ kind: "extend", input: { sourceVideoUri: "job-2", extensionDuration: 10 } });
+    expect(h.film()).toMatchObject({ status: "completed", done: 3, duration: 30, error: undefined });
+  });
+
+  it("cannot resume once the storyboard splits differently", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const first = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext(new Error("boom"));
+    await first;
+    const changed = { ...h.get(), shots: h.get().shots.slice(0, 1) };
+    expect(canResumeFilm(changed)).toBe(false);
   });
 });

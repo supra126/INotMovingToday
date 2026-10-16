@@ -8,7 +8,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_LENGTHS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
-import { generateFilm, stopFilm } from "@/lib/storyboard/filmJobs";
+import { canResumeFilm, generateFilm, resumeFilm, stopFilm } from "@/lib/storyboard/filmJobs";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
 import type { AudioMode, VideoResolution } from "@/types";
@@ -41,7 +41,7 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const { t } = useLocale();
   const film = project.film;
   const [options, setOptions] = useState<FilmOptions>({ ...DEFAULT_OPTIONS, ...film?.options });
-  const [pending, setPending] = useState<CostRow[] | null>(null);
+  const [pending, setPending] = useState<{ rows: CostRow[]; resume: boolean } | null>(null);
   const videoRef = useFilmVideo(film);
 
   const tableSeconds = filmSeconds(planFilm(project.shots));
@@ -54,9 +54,21 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const cost = videoCost(total, resolution);
   const ctx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
 
+  const resumable = canResumeFilm(project);
+  // Resuming keeps the settings the film started with
+  const resumePlan = film && resumable ? planFilm(project.shots, film.options.seconds) : [];
+  const rowsFor = (segments: typeof plan, first: number, res: typeof resolution): CostRow[] =>
+    segments.slice(first).map((segment, i) => ({
+      id: t("storyboard.film.segment", { n: first + i + 1 }),
+      seconds: segment.seconds,
+      resolution: res,
+      hasEnd: false,
+    }));
   const confirm = () => {
-    if (!requireApiKey()) return;
-    setPending(plan.map((segment, i) => ({ id: t("storyboard.film.segment", { n: i + 1 }), seconds: segment.seconds, resolution, hasEnd: false })));
+    if (requireApiKey()) setPending({ rows: rowsFor(plan, 0, resolution), resume: false });
+  };
+  const confirmResume = () => {
+    if (film && requireApiKey()) setPending({ rows: rowsFor(resumePlan, film.done, film.options.resolution), resume: true });
   };
 
   const download = () => {
@@ -142,6 +154,19 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
 
         {generating ? (
           <Button onClick={() => stopFilm(ctx(getApiKey("gemini") ?? ""))}>{t("storyboard.videos.stop")}</Button>
+        ) : resumable && film ? (
+          <>
+            <Button variant="primary" onClick={confirmResume}>
+              {t("storyboard.film.resume", { n: film.done + 1 })}
+              <span className="font-mono">
+                {formatUsd(videoCost(resumePlan.slice(film.done).reduce((sum, s) => sum + s.seconds, 0), film.options.resolution).amount)}
+              </span>
+            </Button>
+            <Button size="sm" variant="ghost" disabled={!fits} onClick={confirm}>
+              {t("storyboard.film.regenerate")}
+              <span className="font-mono">{formatUsd(cost.amount)}{cost.isMinimum ? "+" : ""}</span>
+            </Button>
+          </>
         ) : (
           <Button variant="primary" disabled={!fits} onClick={confirm}>
             {film ? t("storyboard.film.regenerate") : t("storyboard.film.generate")}
@@ -194,12 +219,14 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
       )}
 
       <BatchCostConfirm
-        rows={pending}
+        rows={pending?.rows ?? null}
         onClose={() => setPending(null)}
         onConfirm={() => {
+          const resume = pending?.resume;
           setPending(null);
           const apiKey = requireApiKey();
-          if (apiKey) void generateFilm(ctx(apiKey), project, options);
+          if (!apiKey) return;
+          void (resume ? resumeFilm(ctx(apiKey), project) : generateFilm(ctx(apiKey), project, options));
         }}
       />
     </div>

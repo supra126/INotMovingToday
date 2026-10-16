@@ -447,7 +447,8 @@
       "fileSuffix": "one-take",
       "length": "Length",
       "lengthTable": "As in the storyboard ({{seconds}}s)",
-      "lengthOption": "{{seconds}}s"
+      "lengthOption": "{{seconds}}s",
+      "resume": "Continue from segment {{n}}"
     }
   }
 }

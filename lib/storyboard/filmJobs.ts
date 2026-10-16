@@ -2,9 +2,9 @@ import { cropImageToRatio } from "@/lib/video/crop";
 import { toDisplayError } from "@/lib/video/errors";
 import { runExtendJob, runVideoJob, type VideoJobHooks } from "@/lib/video/job";
 import { cancelVideoGeneration } from "@/services/videoService";
-import { filmSegmentPrompt, planFilm, type FilmOptions } from "./film";
+import { filmSegmentPrompt, planFilm, type FilmOptions, type FilmSegment } from "./film";
 import type { JobContext } from "./imageJobs";
-import type { FilmVideo, StoryboardProject } from "./types";
+import type { FilmVideo, Shot, StoryboardProject } from "./types";
 import { toStoredVideo } from "./videoJobs";
 
 interface FilmRun {
@@ -44,14 +44,45 @@ export async function generateFilm(ctx: JobContext, project: StoryboardProject, 
   const plan = planFilm(project.shots, options.seconds);
   if (plan.length === 0) return;
   const prompts = plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options));
-  const { resolution } = options;
-  const run: FilmRun = { stopped: false };
-  runs.set(ctx.projectId, run);
   ctx.update((p) => ({
     ...p,
     film: { status: "generating", progress: 0, done: 0, total: plan.length, duration: 0, prompts, options },
   }));
+  await runSegments(ctx, project, options, plan, prompts, { done: 0, duration: 0 });
+}
 
+/** A stopped or failed film can pick up at its next segment while the storyboard still splits the same way */
+export function canResumeFilm(project: StoryboardProject): boolean {
+  const film = project.film;
+  if (!film || film.status === "generating" || film.status === "completed") return false;
+  if (film.done === 0 || film.done >= film.total || !film.sourceVideoUri) return false;
+  return planFilm(project.shots, film.options.seconds).length === film.total;
+}
+
+/** Continue a film from the segment that failed or was stopped; the finished part is kept, not redone */
+export async function resumeFilm(ctx: JobContext, project: StoryboardProject) {
+  if (runs.has(ctx.projectId) || !canResumeFilm(project)) return;
+  const film = project.film!;
+  const plan = planFilm(project.shots, film.options.seconds);
+  setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, error: undefined }));
+  await runSegments(ctx, project, film.options, plan, film.prompts, {
+    done: film.done,
+    duration: film.duration,
+    sourceVideoUri: film.sourceVideoUri,
+  });
+}
+
+async function runSegments(
+  ctx: JobContext,
+  project: StoryboardProject,
+  options: FilmOptions,
+  plan: FilmSegment<Shot>[],
+  prompts: string[],
+  from: { done: number; duration: number; sourceVideoUri?: string }
+) {
+  const { resolution } = options;
+  const run: FilmRun = { stopped: false };
+  runs.set(ctx.projectId, run);
   const hooks: VideoJobHooks = {
     apiKey: ctx.apiKey,
     isCancelled: () => run.stopped,
@@ -63,11 +94,11 @@ export async function generateFilm(ctx: JobContext, project: StoryboardProject, 
     onProgress: (progress) => setFilm(ctx, (f) => ({ ...f, progress }), false),
   };
 
-  let sourceVideoUri: string | undefined;
-  let duration = 0;
+  let { sourceVideoUri, duration } = from;
   try {
-    for (const [i, segment] of plan.entries()) {
+    for (let i = from.done; i < plan.length; i++) {
       if (run.stopped) return;
+      const segment = plan[i];
       const frame = segment.shots[0].finalImage?.blob;
       const base = { prompt: prompts[i], ratio: project.ratio, resolution, audioMode: options.audioMode };
       const result =

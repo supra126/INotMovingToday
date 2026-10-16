@@ -447,7 +447,8 @@
       "fileSuffix": "一次成片",
       "length": "影片長度",
       "lengthTable": "照分鏡表（{{seconds}} 秒）",
-      "lengthOption": "{{seconds}} 秒"
+      "lengthOption": "{{seconds}} 秒",
+      "resume": "從第 {{n}} 段繼續"
     }
   }
 }

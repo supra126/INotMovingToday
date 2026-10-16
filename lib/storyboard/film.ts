@@ -48,9 +48,17 @@ export function planFilm<T extends ScriptShot>(shots: T[], target?: number): Fil
     if (current && scaled([...current, shot]) <= SEGMENT_MAX + 1e-6) current.push(shot);
     else groups.push([shot]);
   }
+  // Round so the segments add up to the rounded total (largest remainders get the spare seconds)
+  const exact = groups.map(scaled);
+  const seconds = exact.map(Math.floor);
+  let spare = Math.round(exact.reduce((a, b) => a + b, 0)) - seconds.reduce((a, b) => a + b, 0);
+  for (const i of exact.map((_, i) => i).sort((a, b) => (exact[b] % 1) - (exact[a] % 1))) {
+    if (spare-- <= 0) break;
+    seconds[i] += 1;
+  }
   let start = 0;
-  return groups.map((group) => {
-    const segment = { shots: group, seconds: clamp(scaled(group)), start };
+  return groups.map((group, i) => {
+    const segment = { shots: group, seconds: clamp(seconds[i]), start };
     start += segment.seconds;
     return segment;
   });
