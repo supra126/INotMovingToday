@@ -241,11 +241,14 @@ export class OmniProvider implements VideoGenerationProvider {
   async extendVideo(params: VideoExtensionParams): Promise<VideoGenerationResult> {
     const duration = clampDuration(params.extensionDuration, 8);
 
+    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
-      previous_interaction_id: params.sourceVideoUri,
+      ...(uploaded ? {} : { previous_interaction_id: params.sourceVideoUri }),
       // Tested 2026-10-16: an image sent with the extension is followed (the next shot's frame shows up)
       input: [
+        ...(uploaded ? [{ type: "video" as const, uri: uploaded }] : []),
         ...(params.referenceImages ?? []).slice(0, 3).map(imagePart),
         { type: "text", text: buildPromptText(params.prompt, params.audioMode) },
       ],
@@ -261,6 +264,18 @@ export class OmniProvider implements VideoGenerationProvider {
     });
 
     return this.trackJob(interaction.id, duration);
+  }
+
+  /** Upload a clip through the Files API and wait until Omni can read it */
+  private async uploadVideo(base64: string): Promise<string> {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    let file = await this.ai.files.upload({ file: new Blob([bytes], { type: "video/mp4" }), config: { mimeType: "video/mp4" } });
+    for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      file = await this.ai.files.get({ name: file.name! });
+    }
+    if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
+    return file.uri;
   }
 
   private trackJob(interactionId: string, duration: number): VideoGenerationResult {

@@ -5,6 +5,8 @@ import { cancelVideoGeneration } from "@/services/videoService";
 import { FILM_MAX_SECONDS, filmSeconds, filmSegmentPrompt, planFilm, type FilmOptions, type FilmSegment } from "./film";
 import type { JobContext } from "./imageJobs";
 import type { FilmVideo, Shot, StoryboardProject } from "./types";
+import { blobToBase64 } from "./blob";
+import type { ClipRange } from "./clips";
 import { toStoredVideo } from "./videoJobs";
 
 interface FilmRun {
@@ -101,6 +103,8 @@ async function runSegments(
   // Only a full set of earlier parts can be joined; otherwise Google's whole copy is used
   let segments: Blob[] | undefined = from.done === 0 || from.segments?.length === from.done ? [...(from.segments ?? [])] : undefined;
   try {
+    // The joined film so far; its ending is uploaded so each extension continues from the real last frame
+    let filmSoFar = segments?.length ? await joinParts(segments) : undefined;
     for (let i = from.done; i < plan.length; i++) {
       if (run.stopped) return;
       const segment = plan[i];
@@ -108,13 +112,16 @@ async function runSegments(
       // Shots showing the packaging also get the product photos, so the model never invents a product
       const products = segment.shots.some((s) => s.hasPackaging) ? project.productImages.map((p) => p.blob) : [];
       const base = { prompt: prompts[i], ratio: project.ratio, resolution, audioMode: options.audioMode };
+      const context = i > 0 && filmSoFar ? await contextClip(filmSoFar) : undefined;
+      if (run.stopped) return;
       const result =
         i === 0
           ? await runVideoJob({ ...base, duration: segment.seconds, startImage: frame }, hooks)
           : await runExtendJob(
               {
                 ...base,
-                sourceVideoUri: sourceVideoUri!,
+                // Without the joined film (e.g. a part could not be cut), fall back to Google's own chain
+                ...(context ? { sourceVideo: context.video } : { sourceVideoUri: sourceVideoUri! }),
                 extensionDuration: segment.seconds,
                 referenceImages: await Promise.all(
                   [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))
@@ -126,8 +133,11 @@ async function runSegments(
       const stored = await toStoredVideo(result.videoUrl);
       // Stop may land while the video downloads
       if (run.stopped) return;
-      segments = await withNewPart(segments, stored.blob, i, i === 0 ? undefined : segment.seconds);
+      // The output starts with the uploaded clip; Google's own chain puts an unpredictable part first
+      const range = i === 0 ? undefined : context ? { from: context.seconds } : { last: segment.seconds };
+      segments = await withNewPart(segments, stored.blob, i, range);
       const film = segments?.length === i + 1 ? await joinParts(segments) : undefined;
+      filmSoFar = film;
       if (run.stopped) return;
       sourceVideoUri = result.sourceVideoUri;
       duration += segment.seconds;
@@ -143,7 +153,7 @@ async function runSegments(
         progress: finished ? 100 : 0,
         status: finished ? "completed" : "generating",
       }));
-      if (!sourceVideoUri && !finished) throw new Error("errors.videoGenerationFailed");
+      if (!film && !sourceVideoUri && !finished) throw new Error("errors.videoGenerationFailed");
     }
   } catch (err) {
     if (run.stopped) return;
@@ -154,16 +164,30 @@ async function runSegments(
   }
 }
 
+// Seconds of the film's ending sent with each extension (Omni accepts up to 10)
+const CONTEXT_SECONDS = 5;
+
+/** The film's last seconds as base64 MP4, and how long that clip really is */
+async function contextClip(film: Blob): Promise<{ video: string; seconds: number } | undefined> {
+  try {
+    const { tailClip } = await import("./clips");
+    const tail = await tailClip(film, CONTEXT_SECONDS);
+    return { video: await blobToBase64(tail.blob), seconds: tail.seconds };
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * Cut this segment's new part from the end of Google's output; on failure stop collecting parts.
- * The new part is always last, but what comes before it varies: usually the whole video so far,
- * yet one 1080p run (2026-10-16) returned only the first segment plus the new part.
+ * Cut this segment's new part out of Google's output; on failure stop collecting parts.
+ * With an uploaded clip the output is that clip then the new part. With Google's own chain the new part
+ * is last, but what comes before it varies (one 1080p run returned the first segment plus the new part).
  */
-async function withNewPart(parts: Blob[] | undefined, output: Blob | undefined, index: number, seconds?: number) {
+async function withNewPart(parts: Blob[] | undefined, output: Blob | undefined, index: number, range?: ClipRange) {
   if (!parts || !output || parts.length !== index) return undefined;
   try {
     const { trimClip } = await import("./clips");
-    return [...parts, await trimClip(output, seconds)];
+    return [...parts, await trimClip(output, range)];
   } catch {
     return undefined;
   }

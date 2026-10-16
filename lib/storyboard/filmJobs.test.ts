@@ -6,8 +6,12 @@ vi.mock("@/services/videoService", () => ({
     svc.cancelled.push(jobId);
   },
 }));
-// Parts are labelled by how much was kept from the end; the film is the labels joined
-vi.mock("./clips", () => ({ trimClip: async (_blob: Blob, seconds?: number) => new Blob([`last${seconds ?? "all"}`]) }));
+// Parts are labelled by the range kept; the film is the labels joined; a tail is labelled "tail(<film>)"
+vi.mock("./clips", () => ({
+  trimClip: async (_blob: Blob, range?: { from: number } | { last: number }) =>
+    new Blob([!range ? "all" : "from" in range ? `from${range.from}` : `last${range.last}`]),
+  tailClip: async (blob: Blob) => ({ blob: new Blob([`tail(${await blob.text()})`]), seconds: 5 }),
+}));
 vi.mock("./export", () => ({
   concatVideos: async (blobs: Blob[]) => new Blob([(await Promise.all(blobs.map((b) => b.text()))).join("+")]),
 }));
@@ -79,13 +83,15 @@ describe("generateFilm", () => {
     expect(job.calls.map((c) => c.kind)).toEqual(["generate", "extend", "extend"]);
     expect(job.calls[0].input).toMatchObject({ duration: 10, resolution: "1080p" });
     expect(await (job.calls[0].input.startImage as Blob).text()).toBe("img1");
-    expect(job.calls[1].input).toMatchObject({ sourceVideoUri: "job-1", extensionDuration: 10, referenceImages: ["cropped:img3"] });
-    expect(job.calls[2].input).toMatchObject({ sourceVideoUri: "job-2", extensionDuration: 8, referenceImages: ["cropped:img5"] });
+    // Each extension uploads the ending of the film joined so far
+    expect(job.calls[1].input).toMatchObject({ sourceVideo: btoa("tail(all)"), extensionDuration: 10, referenceImages: ["cropped:img3"] });
+    expect(job.calls[2].input).toMatchObject({ sourceVideo: btoa("tail(all+from5)"), extensionDuration: 8, referenceImages: ["cropped:img5"] });
+    expect(job.calls[1].input.sourceVideoUri).toBeUndefined();
     expect(h.film()).toMatchObject({ status: "completed", done: 3, total: 3, duration: 28, sourceVideoUri: "job-3" });
     expect(h.film().prompts).toHaveLength(3);
-    // The first output is kept whole; later ones keep only their new seconds from the end
-    expect(await Promise.all(h.film().segments!.map((b) => b.text()))).toEqual(["lastall", "last10", "last8"]);
-    expect(await h.film().blob!.text()).toBe("lastall+last10+last8");
+    // The first output is kept whole; later ones drop the uploaded clip at their start
+    expect(await Promise.all(h.film().segments!.map((b) => b.text()))).toEqual(["all", "from5", "from5"]);
+    expect(await h.film().blob!.text()).toBe("all+from5+from5");
   });
 
   it("keeps the finished part when a later segment fails", async () => {
@@ -147,9 +153,9 @@ describe("generateFilm", () => {
     await finishNext();
     await again;
     expect(job.calls).toHaveLength(1);
-    expect(job.calls[0]).toMatchObject({ kind: "extend", input: { sourceVideoUri: "job-2", extensionDuration: 10 } });
+    expect(job.calls[0]).toMatchObject({ kind: "extend", input: { sourceVideo: btoa("tail(all+from5)"), extensionDuration: 10 } });
     expect(h.film()).toMatchObject({ status: "completed", done: 3, duration: 30, error: undefined });
-    expect(await h.film().blob!.text()).toBe("lastall+last10+last10");
+    expect(await h.film().blob!.text()).toBe("all+from5+from5");
   });
 
   it("cannot resume once the storyboard splits differently", async () => {

@@ -21,10 +21,11 @@ export const GenerateVideoParamsSchema = z.object({
 // Extend video params schema
 export const ExtendVideoParamsSchema = z.object({
   prompt: z.string().min(1).max(5000, "Prompt must be less than 5000 characters"),
-  sourceVideoUri: z.string().min(1, "Source video is required"),
+  sourceVideoUri: z.string().min(1).optional(),
+  sourceVideo: z.string().min(1).max(20_000_000, "Video is too large").optional(),
   ratio: VideoRatioSchema,
   resolution: VideoResolutionSchema.optional(),
   audioMode: AudioModeSchema.optional(),
   extensionDuration: z.number().min(3).max(10).optional(),
   referenceImages: z.array(Base64ImageSchema).max(3).optional(),
-});
+}).refine((p) => p.sourceVideo || p.sourceVideoUri, "Source video is required");

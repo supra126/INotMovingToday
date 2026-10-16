@@ -19,8 +19,14 @@ export interface VideoGenerationParams {
 
 export interface VideoExtensionParams {
   prompt: string;
-  /** Omni interaction id of the video to extend */
-  sourceVideoUri: string;
+  /** Omni interaction id of the video to extend (ignored when sourceVideo is given) */
+  sourceVideoUri?: string;
+  /**
+   * Base64 MP4 (10 s or less) to extend instead. Omni continues exactly from its last frame,
+   * whereas a previous interaction may be continued from an earlier part (seen 2026-10-16).
+   * The output starts with this clip, followed by the new seconds.
+   */
+  sourceVideo?: string;
   ratio: VideoRatio;
   resolution?: VideoResolution;
   /** Sound effects only, or with background music */
