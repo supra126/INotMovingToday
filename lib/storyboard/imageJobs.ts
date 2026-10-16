@@ -185,10 +185,10 @@ export async function finalizeImages(ctx: JobContext, project: StoryboardProject
         instruction: buildFinalInstruction({
           prompt: shot.imagePrompt,
           ratio: project.ratio,
-          productCount: project.productImages.length,
+          productCount: shot.hasPackaging ? project.productImages.length : 0,
           packagingText: shot.hasPackaging ? project.packagingText : undefined,
         }),
-        images: [shot.candidates[shot.selected!], ...project.productImages],
+        images: [shot.candidates[shot.selected!], ...(shot.hasPackaging ? project.productImages : [])],
         ratio: project.ratio,
         size: project.finalSize,
       })

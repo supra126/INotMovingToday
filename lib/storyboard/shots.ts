@@ -311,9 +311,11 @@ export function refShotImage(shots: Shot[], shot: Shot): StoredImage | undefined
 export function keyframeRefs(project: StoryboardProject, shot: Shot) {
   const characters = project.referenceImages ?? [];
   const frame = refShotImage(project.shots, shot);
+  // Only shots ticked as showing the packaging get the product photos; otherwise the pouch shows up everywhere
+  const products = shot.hasPackaging ? project.productImages : [];
   return {
-    images: [...project.productImages, ...characters, ...(frame ? [frame] : [])],
-    productCount: project.productImages.length,
+    images: [...products, ...characters, ...(frame ? [frame] : [])],
+    productCount: products.length,
     characterCount: characters.length,
     shotRef: !!frame,
   };

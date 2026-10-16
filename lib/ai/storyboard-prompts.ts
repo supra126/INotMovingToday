@@ -147,7 +147,7 @@ export function buildImagePromptsPrompt(ctx: ImagePromptsInput): string {
     "Context:",
     ...contextLines(ctx),
     ctx.hasProduct
-      ? "- The product image(s) are attached to every generation, so refer to \"the product\" rather than describing its label."
+      ? "- The product image(s) are attached only to shots whose hasPackaging is true: there, refer to \"the product\" rather than describing its label. Shots with hasPackaging false show no product or packaging."
       : "- B-roll without product images: show no product, packaging or brand.",
     "",
     "Storyboard:",

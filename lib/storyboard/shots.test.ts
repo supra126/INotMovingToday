@@ -449,11 +449,21 @@ describe("keyframeRefs", () => {
     p.productImages = [img("product")];
     p.referenceImages = [img("face")];
     const s01 = { ...toShot({ ...row(), id: "s01" }, false), finalImage: img("s01-final") };
-    const s02 = { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" };
+    const s02 = { ...toShot({ ...row(), id: "s02", hasPackaging: true }, true), refShotId: "s01" };
     p.shots = [s01, s02];
     const refs = keyframeRefs(p, s02);
     expect(refs.images).toEqual([p.productImages[0], p.referenceImages[0], s01.finalImage]);
     expect(refs).toMatchObject({ productCount: 1, characterCount: 1, shotRef: true });
+  });
+  it("leaves the product photos out of a shot without packaging", () => {
+    const p = newProject("id", 0);
+    p.productImages = [img("product")];
+    p.referenceImages = [img("face")];
+    const s01 = toShot({ ...row(), id: "s01", hasPackaging: false }, true);
+    p.shots = [s01];
+    const refs = keyframeRefs(p, s01);
+    expect(refs.images).toEqual([p.referenceImages[0]]);
+    expect(refs).toMatchObject({ productCount: 0, characterCount: 1 });
   });
   it("falls back to the picked candidate and ignores a missing or own shot", () => {
     const p = newProject("id", 0);
