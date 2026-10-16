@@ -7,7 +7,7 @@ import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
+import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_LENGTHS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
 import { generateFilm, stopFilm } from "@/lib/storyboard/filmJobs";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
@@ -44,7 +44,8 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const [pending, setPending] = useState<CostRow[] | null>(null);
   const videoRef = useFilmVideo(film);
 
-  const plan = planFilm(project.shots);
+  const tableSeconds = filmSeconds(planFilm(project.shots));
+  const plan = planFilm(project.shots, options.seconds);
   const total = filmSeconds(plan);
   const { resolution } = options;
   const fits = total >= FILM_MIN_SECONDS && total <= FILM_MAX_SECONDS;
@@ -99,6 +100,19 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
           <p className="text-xs text-warning">{t("storyboard.film.outOfRange", { min: FILM_MIN_SECONDS, max: FILM_MAX_SECONDS, seconds: total })}</p>
         )}
 
+        <label className="flex items-center justify-between gap-2 text-xs text-fg-muted">
+          {t("storyboard.film.length")}
+          <select
+            value={options.seconds ?? ""}
+            onChange={(e) => setOptions((o) => ({ ...o, seconds: e.target.value ? Number(e.target.value) : undefined }))}
+            className="h-8 rounded-[var(--radius-control)] border border-line bg-sunken px-2 font-mono text-xs text-fg"
+          >
+            <option value="">{t("storyboard.film.lengthTable", { seconds: tableSeconds })}</option>
+            {FILM_LENGTHS.map((s) => (
+              <option key={s} value={s}>{t("storyboard.film.lengthOption", { seconds: s })}</option>
+            ))}
+          </select>
+        </label>
         <Segmented<VideoResolution>
           size="sm"
           label={t("upload.settings.resolution")}

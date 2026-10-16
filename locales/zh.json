@@ -433,7 +433,7 @@
       "segment": "第 {{n}} 段",
       "extendTag": "延長",
       "total": "共 {{seconds}} 秒・{{resolution}}",
-      "outOfRange": "一次成片的總長要在 {{min}}–{{max}} 秒之間，目前分鏡表是 {{seconds}} 秒。請回第 2 步調整秒數。",
+      "outOfRange": "一次成片的總長要在 {{min}}–{{max}} 秒之間，目前是 {{seconds}} 秒。請在上面選影片長度，或回第 2 步調整秒數。",
       "audio": "聲音",
       "sfxOnly": "只有音效",
       "sfxMusic": "音效＋配樂",
@@ -444,7 +444,10 @@
       "interrupted": "生成中斷，請整支重做",
       "partial": "已完成 {{done}}/{{total}} 段（{{seconds}} 秒），可以先下載這部分",
       "prompts": "送出的提示詞",
-      "fileSuffix": "一次成片"
+      "fileSuffix": "一次成片",
+      "length": "影片長度",
+      "lengthTable": "照分鏡表（{{seconds}} 秒）",
+      "lengthOption": "{{seconds}} 秒"
     }
   }
 }

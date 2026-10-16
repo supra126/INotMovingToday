@@ -433,7 +433,7 @@
       "segment": "Segment {{n}}",
       "extendTag": "extend",
       "total": "{{seconds}}s total · {{resolution}}",
-      "outOfRange": "A one-take film must be {{min}}–{{max}} seconds; the storyboard is {{seconds}} seconds. Adjust the seconds in step 2.",
+      "outOfRange": "A one-take film must be {{min}}–{{max}} seconds; it is {{seconds}} seconds now. Pick a length above, or adjust the seconds in step 2.",
       "audio": "Sound",
       "sfxOnly": "Effects only",
       "sfxMusic": "Effects + music",
@@ -444,7 +444,10 @@
       "interrupted": "Generation was interrupted; redo the film",
       "partial": "{{done}}/{{total}} segments done ({{seconds}}s); you can download this part",
       "prompts": "Prompts sent",
-      "fileSuffix": "one-take"
+      "fileSuffix": "one-take",
+      "length": "Length",
+      "lengthTable": "As in the storyboard ({{seconds}}s)",
+      "lengthOption": "{{seconds}}s"
     }
   }
 }

@@ -41,7 +41,7 @@ export function stopFilm(ctx: JobContext) {
  */
 export async function generateFilm(ctx: JobContext, project: StoryboardProject, options: FilmOptions) {
   if (runs.has(ctx.projectId)) return;
-  const plan = planFilm(project.shots);
+  const plan = planFilm(project.shots, options.seconds);
   if (plan.length === 0) return;
   const prompts = plan.map((segment, i) => filmSegmentPrompt(project, segment, i, options));
   const { resolution } = options;

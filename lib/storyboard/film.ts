@@ -14,7 +14,11 @@ export interface FilmOptions {
   withText: boolean;
   /** 720p or 1080p: both tested with extensions (2026-10-16); 4K was not */
   resolution: VideoResolution;
+  /** Film length; the storyboard's seconds are stretched or squeezed to fit. Unset = the table's own total */
+  seconds?: number;
 }
+
+export const FILM_LENGTHS = [15, 20, 25, 30, 35, 40];
 
 export const FILM_RESOLUTIONS: VideoResolution[] = ["720p", "1080p"];
 
@@ -29,17 +33,24 @@ export interface FilmSegment<T extends ScriptShot = ScriptShot> {
 const clamp = (n: number) => Math.max(SEGMENT_MIN, Math.min(SEGMENT_MAX, Math.round(n)));
 const rawSeconds = (shots: ScriptShot[]) => shots.reduce((sum, s) => sum + s.seconds, 0);
 
-/** Pack shots in order into segments of at most 10 seconds */
-export function planFilm<T extends ScriptShot>(shots: T[]): FilmSegment<T>[] {
+/**
+ * Pack shots in order into segments of at most 10 seconds.
+ * With a target length every shot is scaled by the same factor first.
+ */
+export function planFilm<T extends ScriptShot>(shots: T[], target?: number): FilmSegment<T>[] {
+  const raw = rawSeconds(shots);
+  const factor = target && raw > 0 ? target / raw : 1;
+  const scaled = (group: T[]) => rawSeconds(group) * factor;
   const groups: T[][] = [];
   for (const shot of shots) {
     const current = groups[groups.length - 1];
-    if (current && rawSeconds(current) + shot.seconds <= SEGMENT_MAX) current.push(shot);
+    // A hair of slack so scaled sums like 10.0000001 still fit
+    if (current && scaled([...current, shot]) <= SEGMENT_MAX + 1e-6) current.push(shot);
     else groups.push([shot]);
   }
   let start = 0;
   return groups.map((group) => {
-    const segment = { shots: group, seconds: clamp(rawSeconds(group)), start };
+    const segment = { shots: group, seconds: clamp(scaled(group)), start };
     start += segment.seconds;
     return segment;
   });

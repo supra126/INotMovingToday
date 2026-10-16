@@ -87,3 +87,21 @@ describe("filmSegmentPrompt", () => {
     expect(text).toContain("包裝");
   });
 });
+
+describe("planFilm with a target length", () => {
+  it("stretches a short storyboard to the chosen length", () => {
+    const plan = planFilm([row("s01", 4), row("s02", 4), row("s03", 4), row("s04", 4), row("s05", 4)], 30);
+    expect(filmSeconds(plan)).toBe(30);
+    expect(plan.map((s) => s.shots.map((x) => x.id))).toEqual([["s01"], ["s02"], ["s03"], ["s04"], ["s05"]]);
+  });
+
+  it("squeezes a long storyboard into fewer segments", () => {
+    const plan = planFilm([row("s01", 8), row("s02", 8), row("s03", 8), row("s04", 8), row("s05", 8), row("s06", 8)], 20);
+    expect(filmSeconds(plan)).toBe(20);
+    expect(plan).toHaveLength(2);
+  });
+
+  it("keeps the table's own seconds without a target", () => {
+    expect(filmSeconds(planFilm([row("s01", 8), row("s02", 9)]))).toBe(17);
+  });
+});
