@@ -153,3 +153,19 @@ describe("filmSegmentPrompt transitions", () => {
     expect(text).not.toContain("不要硬切");
   });
 });
+
+describe("filmSegmentPrompt restraint", () => {
+  const p = project([row("s01", 5), row("s02", 5)]);
+  const [, second] = planFilm(p.shots, 20);
+  const opts = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+
+  it("transitions with camera moves only, never morphing objects", () => {
+    const text = filmSegmentPrompt(p, second, 1, opts);
+    expect(text).not.toContain("形狀轉化");
+    expect(text).toContain("不要讓一個物體變形成另一個物體");
+  });
+
+  it("forbids effects the storyboard does not mention", () => {
+    expect(filmSegmentPrompt(p, second, 1, { ...opts, transitions: "table" })).toContain("不要自行加入分鏡表沒提到的特效");
+  });
+});
