@@ -450,7 +450,10 @@
       "lengthOption": "{{seconds}}s",
       "resume": "Continue from segment {{n}}",
       "downloadSegments": "Download segments ({{count}}, zip)",
-      "segmentsSuffix": "segments"
+      "segmentsSuffix": "segments",
+      "transitions": "Transitions",
+      "transitionsSmooth": "Smooth camera moves",
+      "transitionsTable": "As in the storyboard"
     }
   }
 }

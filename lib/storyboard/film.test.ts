@@ -61,7 +61,7 @@ describe("filmSegmentPrompt", () => {
 
   it("writes each shot of the first segment with timecodes", () => {
     const text = filmSegmentPrompt(p, plan[0], 0, { audioMode: "sfx_music", withText: false, resolution: "720p" });
-    expect(text).toContain("[0-3s] 畫面：s01 畫面；運鏡：s01 運鏡；音效：s01 音效；配樂：s01 配樂；轉場：溶接");
+    expect(text).toContain("[0-3s] 畫面：s01 畫面；運鏡：s01 運鏡；音效：s01 音效；配樂：s01 配樂");
     expect(text).toContain("[3-7s] 畫面：s02 畫面");
     expect(text).toContain("高級感");
   });
@@ -132,5 +132,24 @@ describe("filmSegmentPrompt product and style rules", () => {
   it("repeats the project's style in every segment", () => {
     expect(filmSegmentPrompt(p, first, 0, opts)).toContain("風格、色調和光線前後一致（高級感）");
     expect(filmSegmentPrompt(p, second, 1, opts)).toContain("風格、色調和光線前後一致（高級感）");
+  });
+});
+
+describe("filmSegmentPrompt transitions", () => {
+  const p = project([row("s01", 5, { transition: "硬切" }), row("s02", 5, { transition: "淡出" })]);
+  const [first, second] = planFilm(p.shots, 20);
+  const base = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+
+  it("flows out of the previous segment and forbids cuts and fades by default", () => {
+    const text = filmSegmentPrompt(p, second, 1, base);
+    expect(text).toContain("從前一段的最後一個畫面連續過渡");
+    expect(text).toContain("不要硬切，不要淡入淡出");
+    expect(text).not.toContain("轉場：淡出");
+  });
+
+  it("follows the storyboard's transitions when asked", () => {
+    const text = filmSegmentPrompt(p, first, 0, { ...base, transitions: "table" });
+    expect(text).toContain("轉場：硬切");
+    expect(text).not.toContain("不要硬切");
   });
 });

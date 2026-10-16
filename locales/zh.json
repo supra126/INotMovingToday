@@ -450,7 +450,10 @@
       "lengthOption": "{{seconds}} 秒",
       "resume": "從第 {{n}} 段繼續",
       "downloadSegments": "下載各段（{{count}} 段，zip）",
-      "segmentsSuffix": "各段"
+      "segmentsSuffix": "各段",
+      "transitions": "轉場",
+      "transitionsSmooth": "順滑運鏡",
+      "transitionsTable": "照分鏡表"
     }
   }
 }

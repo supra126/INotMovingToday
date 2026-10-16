@@ -142,6 +142,16 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
           onChange={(r) => setOptions((o) => ({ ...o, resolution: r }))}
           options={FILM_RESOLUTIONS.map((r) => ({ value: r, label: t(`upload.resolution.${r}`) }))}
         />
+        <Segmented<"smooth" | "table">
+          size="sm"
+          label={t("storyboard.film.transitions")}
+          value={options.transitions ?? "smooth"}
+          onChange={(transitions) => setOptions((o) => ({ ...o, transitions }))}
+          options={[
+            { value: "smooth", label: t("storyboard.film.transitionsSmooth") },
+            { value: "table", label: t("storyboard.film.transitionsTable") },
+          ]}
+        />
         <Segmented<AudioMode>
           size="sm"
           label={t("storyboard.film.audio")}

@@ -17,6 +17,11 @@ export interface FilmOptions {
   resolution: VideoResolution;
   /** Film length; the storyboard's seconds are stretched or squeezed to fit. Unset = the table's own total */
   seconds?: number;
+  /**
+   * "smooth" (default): every segment flows out of the previous one with a continuous camera move,
+   * no cuts or fades. "table": follow the storyboard's own transitions (e.g. hard cuts)
+   */
+  transitions?: "smooth" | "table";
 }
 
 export const FILM_LENGTHS = [15, 20, 25, 30];
@@ -75,7 +80,7 @@ function shotLine(shot: ScriptShot, from: number, to: number, options: FilmOptio
     shot.camera && `運鏡：${shot.camera}`,
     shot.sound && `音效：${shot.sound}`,
     options.audioMode === "sfx_music" && shot.music && `配樂：${shot.music}`,
-    shot.transition && `轉場：${shot.transition}`,
+    options.transitions === "table" && shot.transition && `轉場：${shot.transition}`,
     options.withText && shot.onScreenText && `字卡：「${shot.onScreenText}」`,
   ];
   return `[${fmt(from)}-${fmt(to)}s] ${parts.filter(Boolean).join("；")}`;
@@ -100,8 +105,12 @@ export function filmSegmentPrompt(
     return shotLine(shot, from, at, options);
   });
 
-  const intro =
-    index === 0
+  const smooth = options.transitions !== "table";
+  const intro = smooth
+    ? index === 0
+      ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒，第一個畫面照參考圖。依時間碼推進，鏡頭之間用連續運鏡（推進穿過、拉遠、環繞帶過、形狀轉化）或溶接一氣呵成地過渡，像一個流暢的長鏡頭。`
+      : `接續前面的影片再加 ${segment.seconds} 秒。開頭必須從前一段的最後一個畫面連續過渡，例如鏡頭推進穿過、拉遠、環繞帶過或物件形狀轉化，過渡完成後畫面要對上參考圖的主體和構圖。參考圖是這段要轉到的目標，不是第一格。`
+    : index === 0
       ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒。依時間碼拍成多個鏡頭，鏡頭之間依轉場自然銜接，像剪好的成片；第一個畫面照參考圖。`
       : `接續前面的影片往下發展，再加 ${segment.seconds} 秒。第一個鏡頭要從前一段的結尾自然轉場過來，畫面照參考圖；之後依時間碼切換鏡頭。`;
   const packaging = segment.shots.some((s) => s.hasPackaging);
@@ -111,6 +120,7 @@ export function filmSegmentPrompt(
       ? "產品包裝的外觀和上面的文字照參考圖，不要改動；除了參考圖裡的產品，不要出現其他產品、瓶罐或品牌。"
       : "這段不要出現任何產品、包裝、瓶罐、標籤或品牌名稱，也不要自己發明產品。",
     !options.withText && "畫面上不要出現任何字幕、字卡或標題文字。",
+    smooth && "全段不要硬切，不要淡入淡出，不要黑場；結尾停在動作進行中，方便下一段接續。",
   ];
   return [intro, ...lines, ...notes.filter(Boolean)].join("\n");
 }
