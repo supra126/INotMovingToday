@@ -103,8 +103,12 @@ export function filmSegmentPrompt(
     index === 0
       ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒。依時間碼拍成多個鏡頭，鏡頭之間依轉場自然銜接，像剪好的成片；第一個畫面照參考圖。`
       : `接續前面的影片往下發展，再加 ${segment.seconds} 秒。第一個鏡頭要從前一段的結尾自然轉場過來，畫面照參考圖；之後依時間碼切換鏡頭。`;
+  const packaging = segment.shots.some((s) => s.hasPackaging);
   const notes = [
-    segment.shots.some((s) => s.hasPackaging) && "產品包裝的外觀和上面的文字照參考圖，不要改動。",
+    `全片的風格、色調和光線前後一致${project.tone ? `（${project.tone}）` : ""}。`,
+    packaging
+      ? "產品包裝的外觀和上面的文字照參考圖，不要改動；除了參考圖裡的產品，不要出現其他產品、瓶罐或品牌。"
+      : "這段不要出現任何產品、包裝、瓶罐、標籤或品牌名稱，也不要自己發明產品。",
     !options.withText && "畫面上不要出現任何字幕、字卡或標題文字。",
   ];
   return [intro, ...lines, ...notes.filter(Boolean)].join("\n");

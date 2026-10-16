@@ -6,6 +6,11 @@ vi.mock("@/services/videoService", () => ({
     svc.cancelled.push(jobId);
   },
 }));
+// Parts are labelled by where they were cut; the film is the labels joined
+vi.mock("./clips", () => ({ trimClip: async (_blob: Blob, start: number) => new Blob([`part@${start}`]) }));
+vi.mock("./export", () => ({
+  concatVideos: async (blobs: Blob[]) => new Blob([(await Promise.all(blobs.map((b) => b.text()))).join("+")]),
+}));
 vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
 // Each started job records its input and waits until the test settles it
 const job = vi.hoisted(() => ({
@@ -21,7 +26,7 @@ vi.mock("@/lib/video/job", () => {
       hooks.onJobId?.(id);
       const outcome = await new Promise<"ok" | Error>((resolve) => job.settle.push(resolve));
       if (outcome instanceof Error) throw outcome;
-      return hooks.isCancelled() ? null : { videoUrl: `data:video/mp4;base64,${id}`, sourceVideoUri: id };
+      return hooks.isCancelled() ? null : { videoUrl: `data:video/mp4;base64,${btoa(id)}`, sourceVideoUri: id };
     };
   return { runVideoJob: start("generate"), runExtendJob: start("extend") };
 });
@@ -78,6 +83,9 @@ describe("generateFilm", () => {
     expect(job.calls[2].input).toMatchObject({ sourceVideoUri: "job-2", extensionDuration: 8, referenceImages: ["cropped:img5"] });
     expect(h.film()).toMatchObject({ status: "completed", done: 3, total: 3, duration: 28, sourceVideoUri: "job-3" });
     expect(h.film().prompts).toHaveLength(3);
+    // Each part is cut where its segment starts, and the film is joined from the parts
+    expect(await Promise.all(h.film().segments!.map((b) => b.text()))).toEqual(["part@0", "part@10", "part@20"]);
+    expect(await h.film().blob!.text()).toBe("part@0+part@10+part@20");
   });
 
   it("keeps the finished part when a later segment fails", async () => {
@@ -141,6 +149,7 @@ describe("generateFilm", () => {
     expect(job.calls).toHaveLength(1);
     expect(job.calls[0]).toMatchObject({ kind: "extend", input: { sourceVideoUri: "job-2", extensionDuration: 10 } });
     expect(h.film()).toMatchObject({ status: "completed", done: 3, duration: 30, error: undefined });
+    expect(await h.film().blob!.text()).toBe("part@0+part@10+part@20");
   });
 
   it("cannot resume once the storyboard splits differently", async () => {

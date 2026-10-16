@@ -69,6 +69,7 @@ export async function resumeFilm(ctx: JobContext, project: StoryboardProject) {
     done: film.done,
     duration: film.duration,
     sourceVideoUri: film.sourceVideoUri,
+    segments: film.segments,
   });
 }
 
@@ -78,7 +79,7 @@ async function runSegments(
   options: FilmOptions,
   plan: FilmSegment<Shot>[],
   prompts: string[],
-  from: { done: number; duration: number; sourceVideoUri?: string }
+  from: { done: number; duration: number; sourceVideoUri?: string; segments?: Blob[] }
 ) {
   const { resolution } = options;
   const run: FilmRun = { stopped: false };
@@ -95,11 +96,15 @@ async function runSegments(
   };
 
   let { sourceVideoUri, duration } = from;
+  // Only a full set of earlier parts can be joined; otherwise Google's whole copy is used
+  let segments: Blob[] | undefined = from.done === 0 || from.segments?.length === from.done ? [...(from.segments ?? [])] : undefined;
   try {
     for (let i = from.done; i < plan.length; i++) {
       if (run.stopped) return;
       const segment = plan[i];
       const frame = segment.shots[0].finalImage?.blob;
+      // Shots showing the packaging also get the product photos, so the model never invents a product
+      const products = segment.shots.some((s) => s.hasPackaging) ? project.productImages.map((p) => p.blob) : [];
       const base = { prompt: prompts[i], ratio: project.ratio, resolution, audioMode: options.audioMode };
       const result =
         i === 0
@@ -109,7 +114,9 @@ async function runSegments(
                 ...base,
                 sourceVideoUri: sourceVideoUri!,
                 extensionDuration: segment.seconds,
-                referenceImages: frame ? [await cropImageToRatio(frame, project.ratio)] : undefined,
+                referenceImages: await Promise.all(
+                  [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))
+                ),
               },
               hooks
             );
@@ -117,12 +124,17 @@ async function runSegments(
       const stored = await toStoredVideo(result.videoUrl);
       // Stop may land while the video downloads
       if (run.stopped) return;
+      segments = await withNewPart(segments, stored.blob, i, duration);
+      const film = segments?.length === i + 1 ? await joinParts(segments) : undefined;
+      if (run.stopped) return;
       sourceVideoUri = result.sourceVideoUri;
       duration += segment.seconds;
       const finished = i === plan.length - 1;
       setFilm(ctx, (f) => ({
         ...f,
         ...stored,
+        ...(film ? { blob: film } : {}),
+        segments,
         sourceVideoUri,
         duration,
         done: i + 1,
@@ -137,5 +149,26 @@ async function runSegments(
     setFilm(ctx, (f) => ({ ...f, status: "failed", progress: 0, error }));
   } finally {
     if (runs.get(ctx.projectId) === run) runs.delete(ctx.projectId);
+  }
+}
+
+/** Cut this segment's new part out of Google's whole video; on failure stop collecting parts */
+async function withNewPart(parts: Blob[] | undefined, whole: Blob | undefined, index: number, start: number) {
+  if (!parts || !whole || parts.length !== index) return undefined;
+  try {
+    const { trimClip } = await import("./clips");
+    return [...parts, await trimClip(whole, start)];
+  } catch {
+    return undefined;
+  }
+}
+
+async function joinParts(parts: Blob[]): Promise<Blob | undefined> {
+  if (parts.length === 1) return parts[0];
+  try {
+    const { concatVideos } = await import("./export");
+    return await concatVideos(parts);
+  } catch {
+    return undefined;
   }
 }

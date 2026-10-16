@@ -71,14 +71,24 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
     if (film && requireApiKey()) setPending({ rows: rowsFor(resumePlan, film.done, film.options.resolution), resume: true });
   };
 
-  const download = () => {
-    const href = film?.blob ? URL.createObjectURL(film.blob) : film?.url;
-    if (!href) return;
+  const baseName = `${project.name.trim() || "storyboard"}-${t("storyboard.film.fileSuffix")}`;
+  const save = (href: string, name: string, revoke: boolean) => {
     const a = document.createElement("a");
     a.href = href;
-    a.download = `${project.name.trim() || "storyboard"}-${t("storyboard.film.fileSuffix")}.mp4`;
+    a.download = name;
     a.click();
-    if (film?.blob) setTimeout(() => URL.revokeObjectURL(href), 1000);
+    if (revoke) setTimeout(() => URL.revokeObjectURL(href), 1000);
+  };
+  const download = () => {
+    if (film?.blob) save(URL.createObjectURL(film.blob), `${baseName}.mp4`, true);
+    else if (film?.url) save(film.url, `${baseName}.mp4`, false);
+  };
+  const downloadSegments = async () => {
+    if (!film?.segments?.length) return;
+    // Loaded on demand: only people who export pay for the zip library
+    const { zipVideos } = await import("@/lib/storyboard/export");
+    const files = film.segments.map((blob, i) => ({ name: `${baseName}-${t("storyboard.film.segment", { n: i + 1 })}.mp4`, blob }));
+    save(URL.createObjectURL(await zipVideos(files)), `${baseName}-${t("storyboard.film.segmentsSuffix")}.zip`, true);
   };
 
   const frameClass =
@@ -203,6 +213,11 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
             <Button onClick={download}>
               <Download size={14} aria-hidden="true" />
               {t("storyboard.videos.download")}
+            </Button>
+          )}
+          {!!film.segments?.length && !generating && (
+            <Button size="sm" variant="ghost" onClick={() => void downloadSegments()}>
+              {t("storyboard.film.downloadSegments", { count: film.segments.length })}
             </Button>
           )}
           {film.prompts.length > 0 && (

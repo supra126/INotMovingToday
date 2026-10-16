@@ -112,6 +112,11 @@ export interface FilmVideo {
   sourceVideoUri?: string;
   /** Seconds of the finished part */
   duration: number;
+  /**
+   * Each segment's newly generated part, cut and encoded once in the browser. Google re-encodes the whole
+   * video on every extension, so its own copy degrades; the film is joined from these instead.
+   */
+  segments?: Blob[];
   /** Text sent for each segment */
   prompts: string[];
   options: FilmOptions;

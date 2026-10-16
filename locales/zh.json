@@ -448,7 +448,9 @@
       "length": "影片長度",
       "lengthTable": "照分鏡表（{{seconds}} 秒）",
       "lengthOption": "{{seconds}} 秒",
-      "resume": "從第 {{n}} 段繼續"
+      "resume": "從第 {{n}} 段繼續",
+      "downloadSegments": "下載各段（{{count}} 段，zip）",
+      "segmentsSuffix": "各段"
     }
   }
 }

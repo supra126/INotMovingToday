@@ -113,3 +113,24 @@ describe("planFilm rounding", () => {
     expect(filmSeconds(plan)).toBe(30);
   });
 });
+
+describe("filmSegmentPrompt product and style rules", () => {
+  const p = project([row("s01", 5), row("s02", 5, { hasPackaging: true })]);
+  const [first, second] = planFilm(p.shots, 20);
+  const opts = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+
+  it("keeps a segment without packaging free of any product", () => {
+    expect(filmSegmentPrompt(p, first, 0, opts)).toContain("不要出現任何產品");
+  });
+
+  it("allows only the referenced product where packaging shows", () => {
+    const text = filmSegmentPrompt(p, second, 1, opts);
+    expect(text).toContain("照參考圖");
+    expect(text).not.toContain("不要出現任何產品");
+  });
+
+  it("repeats the project's style in every segment", () => {
+    expect(filmSegmentPrompt(p, first, 0, opts)).toContain("風格、色調和光線前後一致（高級感）");
+    expect(filmSegmentPrompt(p, second, 1, opts)).toContain("風格、色調和光線前後一致（高級感）");
+  });
+});

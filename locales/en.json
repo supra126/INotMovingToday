@@ -448,7 +448,9 @@
       "length": "Length",
       "lengthTable": "As in the storyboard ({{seconds}}s)",
       "lengthOption": "{{seconds}}s",
-      "resume": "Continue from segment {{n}}"
+      "resume": "Continue from segment {{n}}",
+      "downloadSegments": "Download segments ({{count}}, zip)",
+      "segmentsSuffix": "segments"
     }
   }
 }
