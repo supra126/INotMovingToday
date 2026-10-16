@@ -112,7 +112,11 @@ export function filmSegmentPrompt(
   });
 
   const smooth = options.transitions !== "table";
-  const intro = smooth
+  // A written transition that mentions a cut (e.g. 直接切到下一個畫面) makes a clean cut at this seam only
+  const cutIn = smooth && index > 0 && ownTransition(previous).includes("切");
+  const intro = cutIn
+    ? `接續前面的影片再加 ${segment.seconds} 秒。這段用乾淨的硬切開始：第一格直接就是參考圖的畫面，不要從前一段過渡。`
+    : smooth
     ? index === 0
       ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒，第一個畫面照參考圖。依時間碼推進，鏡頭之間只用鏡頭運動（推進、拉遠、平移）或溶接一氣呵成地過渡，像一個流暢的長鏡頭。`
       : `接續前面的影片再加 ${segment.seconds} 秒。開頭必須從前一段的最後一個畫面連續過渡，只用鏡頭運動（推進、拉遠、平移）或溶接，過渡完成後畫面要對上參考圖的主體和構圖。參考圖是這段要轉到的目標，不是第一格。`
@@ -126,10 +130,11 @@ export function filmSegmentPrompt(
       ? "產品包裝的外觀和上面的文字照參考圖，不要改動；除了參考圖裡的產品，不要出現其他產品、瓶罐或品牌。"
       : "這段不要出現任何產品、包裝、瓶罐、標籤或品牌名稱，也不要自己發明產品。",
     !options.withText && "畫面上不要出現任何字幕、字卡或標題文字。",
-    smooth && "全段不要硬切，不要淡入淡出，不要黑場；結尾停在動作進行中，方便下一段接續。",
+    smooth &&
+      `${cutIn ? "除了開頭的硬切，" : "全段"}不要硬切，不要淡入淡出，不要黑場；結尾停在動作進行中，方便下一段接續。`,
     smooth && "過渡時不要讓一個物體變形成另一個物體，也不要冒出分鏡表沒有的東西。",
     "只拍分鏡表寫到的內容；不要自行加入分鏡表沒提到的特效，例如光芒、光束、光暈、流光、閃光、煙霧、粒子漩渦。",
   ];
-  const lead = smooth && index > 0 && ownTransition(previous) && `開頭的過渡方式照這個做：${ownTransition(previous)}`;
+  const lead = smooth && !cutIn && index > 0 && ownTransition(previous) && `開頭的過渡方式照這個做：${ownTransition(previous)}`;
   return [intro, ...(lead ? [lead] : []), ...lines, ...notes.filter(Boolean)].join("\n");
 }

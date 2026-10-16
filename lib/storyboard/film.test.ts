@@ -184,3 +184,22 @@ describe("filmSegmentPrompt with the user's own transitions", () => {
     expect(text).not.toContain("轉場：硬切");
   });
 });
+
+describe("filmSegmentPrompt with a written cut", () => {
+  const p = project([row("s01", 5, { transition: "直接切到下一個畫面" }), row("s02", 5)]);
+  const [first, second] = planFilm(p.shots, 20);
+  const opts = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+
+  it("cuts cleanly at that seam and starts on the frame", () => {
+    const text = filmSegmentPrompt(p, second, 1, opts, first.shots.at(-1));
+    expect(text).toContain("乾淨的硬切開始");
+    expect(text).not.toContain("從前一段的最後一個畫面連續過渡");
+    expect(text).toContain("除了開頭的硬切，不要硬切");
+  });
+
+  it("keeps a bare 硬切 smooth", () => {
+    const q = project([row("s01", 5, { transition: "硬切" }), row("s02", 5)]);
+    const [a, b] = planFilm(q.shots, 20);
+    expect(filmSegmentPrompt(q, b, 1, opts, a.shots.at(-1))).toContain("連續過渡");
+  });
+});

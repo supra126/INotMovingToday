@@ -459,7 +459,7 @@
       "transitionsTable": "As in the storyboard",
       "redoHint": "Not happy with a transition? Redo from that segment to the end; earlier segments are kept and not paid again. Storyboard edits are applied.",
       "redoFrom": "Redo from segment {{n}} ({{at}}s)",
-      "transitionsHint": "To direct a transition, write it in that shot's Transition column in step 2, e.g. \"pull back from the fibers to the mask surface, then to her face\"; a one-word cut or fade, or blank, is left to the model."
+      "transitionsHint": "To direct a transition, write it in that shot's Transition column in step 2, e.g. \"pull back from the fibers to the mask surface, then to her face\"; for a clean cut write \"直接切到下一個畫面\". A bare cut or fade, or blank, is left to the smooth rules."
     }
   }
 }
