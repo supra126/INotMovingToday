@@ -130,6 +130,8 @@ export function filmSegmentPrompt(
   const notes = [
     "畫面的構圖、角度、擺放、光線、色調和背景以參考圖為準；文字跟參考圖不同時照參考圖，文字只用來說明動作、運鏡和聲音。",
     frameNote && `參考圖內容：${frameNote}`,
+    (segment.shots[0] as Partial<Shot>).finalImage?.uploaded &&
+      "參考圖是指定的最終畫面：主體的位置、大小、擺放角度和周圍物件都要完全照它，不要改成置中或正面。",
     `全片的風格、色調和光線前後一致${project.tone ? `（${project.tone}）` : ""}。`,
     packaging
       ? "產品包裝的外觀和上面的文字照參考圖，不要改動；除了參考圖裡的產品，不要出現其他產品、瓶罐或品牌。"

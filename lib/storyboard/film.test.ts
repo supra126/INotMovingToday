@@ -222,8 +222,10 @@ describe("filmSegmentPrompt and the picked frame", () => {
     expect(filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts)).toContain("參考圖內容：warm orange lamp light");
   });
 
-  it("does not describe an uploaded frame with an unrelated prompt", () => {
+  it("does not describe an uploaded frame with an unrelated prompt, but pins its composition", () => {
     const p = withFrame(true);
-    expect(filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts)).not.toContain("參考圖內容");
+    const text = filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts);
+    expect(text).not.toContain("參考圖內容");
+    expect(text).toContain("指定的最終畫面");
   });
 });

@@ -222,4 +222,16 @@ describe("generateFilm", () => {
     // The chain's output has the new part last
     expect(await h.film().blob!.text()).toBe("all+last10");
   });
+
+  it("sends only the frame for a packaging shot, not the product photo", async () => {
+    const p = project([10, 10]);
+    p.productImages = [{ blob: new Blob(["product"]), mimeType: "image/png" }];
+    p.shots[1] = { ...p.shots[1], hasPackaging: true };
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await running;
+    expect(job.calls[1].input.referenceImages).toEqual(["cropped:img2"]);
+  });
 });

@@ -135,8 +135,9 @@ async function runSegments(
       if (run.stopped) return;
       const segment = plan[i];
       const frame = segment.shots[0].finalImage?.blob;
-      // Shots showing the packaging also get the product photos, so the model never invents a product
-      const products = segment.shots.some((s) => s.hasPackaging) ? project.productImages.map((p) => p.blob) : [];
+      // The product photos only stand in when there is no frame: a frame already shows the real product,
+      // and a straight-on product photo pulled an angled uploaded frame back to a centered pack (2026-10-16)
+      const products = !frame && segment.shots.some((s) => s.hasPackaging) ? project.productImages.map((p) => p.blob) : [];
       const base = { prompt: prompts[i], ratio: project.ratio, resolution, audioMode: options.audioMode };
       const context = i > 0 && filmSoFar ? await contextClip(filmSoFar) : undefined;
       if (run.stopped) return;
