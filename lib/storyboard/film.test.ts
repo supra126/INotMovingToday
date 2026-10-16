@@ -203,3 +203,27 @@ describe("filmSegmentPrompt with a written cut", () => {
     expect(filmSegmentPrompt(q, b, 1, opts, a.shots.at(-1))).toContain("連續過渡");
   });
 });
+
+describe("filmSegmentPrompt and the picked frame", () => {
+  const opts = { audioMode: "sfx" as const, withText: false, resolution: "720p" as const };
+  const withFrame = (uploaded: boolean) => {
+    const p = project([row("s01", 5), row("s02", 5)]);
+    p.shots[1] = { ...p.shots[1], imagePrompt: "warm orange lamp light", finalImage: { blob: new Blob(["f"]), mimeType: "image/png", uploaded } };
+    return p;
+  };
+
+  it("lets the frame win over the storyboard text", () => {
+    const p = withFrame(false);
+    expect(filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts)).toContain("以參考圖為準");
+  });
+
+  it("describes an AI frame with the prompt it was drawn from", () => {
+    const p = withFrame(false);
+    expect(filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts)).toContain("參考圖內容：warm orange lamp light");
+  });
+
+  it("does not describe an uploaded frame with an unrelated prompt", () => {
+    const p = withFrame(true);
+    expect(filmSegmentPrompt(p, planFilm(p.shots)[1], 1, opts)).not.toContain("參考圖內容");
+  });
+});

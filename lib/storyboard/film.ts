@@ -1,5 +1,5 @@
 import type { AudioMode, VideoResolution } from "@/types";
-import type { ScriptShot, StoryboardProject } from "./types";
+import type { ScriptShot, Shot, StoryboardProject } from "./types";
 
 /** One-take film: the whole storyboard as one video, generated in segments and extended */
 export const FILM_MIN_SECONDS = 15;
@@ -68,6 +68,12 @@ export const filmSeconds = (plan: FilmSegment[]) => plan.reduce((sum, s) => sum 
 
 const fmt = (n: number) => String(Math.round(n * 10) / 10);
 
+/** The prompt the picked AI frame was drawn from; an uploaded frame has none that describes it */
+function describedFrame(shot: ScriptShot): string {
+  const { imagePrompt, finalImage } = shot as Partial<Shot>;
+  return finalImage && !finalImage.uploaded && imagePrompt ? imagePrompt : "";
+}
+
 // A one-word transition like 硬切 or 淡出 is left to the smooth rules; anything longer is the user's own direction
 const SIMPLE_TRANSITION = /^(硬切|切|直切|淡入|淡出|淡入淡出|溶接|疊化|轉場|無|cut|hard cut|fade|fade in|fade out|dissolve|none)?$/i;
 const ownTransition = (shot?: ScriptShot) => (shot && !SIMPLE_TRANSITION.test(shot.transition.trim()) ? shot.transition.trim() : "");
@@ -113,12 +119,17 @@ export function filmSegmentPrompt(
     : smooth
     ? index === 0
       ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒，第一個畫面照參考圖。依時間碼推進，鏡頭之間只用鏡頭運動（推進、拉遠、平移）或溶接一氣呵成地過渡，像一個流暢的長鏡頭。`
-      : `接續前面的影片再加 ${segment.seconds} 秒。開頭必須從前一段的最後一個畫面連續過渡，只用鏡頭運動（推進、拉遠、平移）或溶接，過渡完成後畫面要對上參考圖的主體和構圖。參考圖是這段要轉到的目標，不是第一格。`
+      : `接續前面的影片再加 ${segment.seconds} 秒。開頭必須從前一段的最後一個畫面連續過渡，只用鏡頭運動（推進、拉遠、平移）或溶接，過渡完成後的畫面要和參考圖一致：同樣的構圖、角度、擺放、光線、色調和背景。參考圖是這段要轉到的目標，不是第一格。`
     : index === 0
       ? `一支${project.tone ? `${project.tone}的` : ""}廣告影片的開頭 ${segment.seconds} 秒。依時間碼拍成多個鏡頭，鏡頭之間依轉場自然銜接，像剪好的成片；第一個畫面照參考圖。`
       : `接續前面的影片往下發展，再加 ${segment.seconds} 秒。第一個鏡頭要從前一段的結尾自然轉場過來，畫面照參考圖；之後依時間碼切換鏡頭。`;
   const packaging = segment.shots.some((s) => s.hasPackaging);
+  // The picked frame may have been regenerated with a changed prompt (e.g. orange light) or uploaded,
+  // so the storyboard text can disagree with it; the frame wins
+  const frameNote = describedFrame(segment.shots[0]);
   const notes = [
+    "畫面的構圖、角度、擺放、光線、色調和背景以參考圖為準；文字跟參考圖不同時照參考圖，文字只用來說明動作、運鏡和聲音。",
+    frameNote && `參考圖內容：${frameNote}`,
     `全片的風格、色調和光線前後一致${project.tone ? `（${project.tone}）` : ""}。`,
     packaging
       ? "產品包裝的外觀和上面的文字照參考圖，不要改動；除了參考圖裡的產品，不要出現其他產品、瓶罐或品牌。"
