@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { ScriptShot, Shot } from "@/lib/storyboard/types";
 
-type TextKey = "visual" | "camera" | "onScreenText";
+type TextKey = "visual" | "camera" | "transition" | "onScreenText";
 
 interface ShotTableProps {
   shots: Shot[];
@@ -84,6 +84,8 @@ export function ShotTable({ shots, disabled, onEdit, onPolish, polishingId, layo
             <div className="flex flex-col gap-3">
               {text(shot, "visual", 40, 2)}
               {text(shot, "camera", 40)}
+              {/* How this shot leads into the next; the one-take film follows a written-out transition */}
+              {text(shot, "transition", 40)}
             </div>
             {text(shot, "onScreenText", 18, 3)}
           </div>

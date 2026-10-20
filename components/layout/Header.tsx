@@ -11,7 +11,7 @@ interface HeaderProps {
   serverHasKey: boolean;
   onApiSettingsClick: () => void;
   onGuideClick?: () => void;
-  active?: "single" | "storyboard";
+  active?: "single" | "storyboard" | "edit";
   /** Mode-specific controls in the middle (project picker, steps) */
   children?: ReactNode;
 }
@@ -19,6 +19,7 @@ interface HeaderProps {
 const MODES = [
   { mode: "single", href: "/", label: "header.modeSingle" },
   { mode: "storyboard", href: "/storyboard", label: "header.modeStoryboard" },
+  { mode: "edit", href: "/edit", label: "header.modeEdit" },
 ] as const;
 
 export function Header({ hasApiKey, serverHasKey, onApiSettingsClick, onGuideClick, active = "single", children }: HeaderProps) {

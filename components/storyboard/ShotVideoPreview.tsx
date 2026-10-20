@@ -8,6 +8,7 @@ import { extensionOptions, videoFileName } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
 import type { VideoRatio } from "@/types";
 import { BlobImage } from "./BlobImage";
+import { EditVideoForm, type EditImageOption } from "./EditVideoForm";
 
 /** Points a <video> at the stored Blob (or the fallback URL), revoking object URLs on change */
 function useVideoElement(shot: Shot) {
@@ -35,16 +36,32 @@ interface ShotVideoPreviewProps {
   outdated: boolean;
   onExtend: (prompt: string, seconds: number) => void;
   onStop: () => void;
+  /** Reference images offered when editing, and the edit's price */
+  editOptions: EditImageOption[];
+  editPrice: string;
+  onEdit: (instruction: string, images: Blob[]) => void;
+  onUndoEdit: () => void;
 }
 
-export function ShotVideoPreview({ shot, ratio, outdated, onExtend, onStop }: ShotVideoPreviewProps) {
+export function ShotVideoPreview({
+  shot,
+  ratio,
+  outdated,
+  onExtend,
+  onStop,
+  editOptions,
+  editPrice,
+  onEdit,
+  onUndoEdit,
+}: ShotVideoPreviewProps) {
   const { t } = useLocale();
+  const [editOpen, setEditOpen] = useState(false);
   const [extendPrompt, setExtendPrompt] = useState("");
   const [extendSeconds, setExtendSeconds] = useState(4);
   const videoRef = useVideoElement(shot);
   const video = shot.video;
   const hasVideo = !!(video?.blob || video?.url);
-  // Omni caps a shot at 40 seconds including extensions
+  // Omni caps a shot at 30 seconds including extensions (docs say 40; past 30 fails)
   const extendOptions = extensionOptions(video?.duration ?? 0);
   const seconds = extendOptions.includes(extendSeconds) ? extendSeconds : extendOptions[extendOptions.length - 1];
 
@@ -117,6 +134,28 @@ export function ShotVideoPreview({ shot, ratio, outdated, onExtend, onStop }: Sh
               {t("storyboard.videos.extend")}
             </Button>
           </div>
+        )}
+        {video?.status === "completed" && (video.sourceVideoUri || video.blob) && (
+          editOpen ? (
+            <EditVideoForm
+              options={editOptions}
+              price={editPrice}
+              onSubmit={(instruction, images) => {
+                setEditOpen(false);
+                onEdit(instruction, images);
+              }}
+              onCancel={() => setEditOpen(false)}
+            />
+          ) : (
+            <Button size="sm" variant="ghost" onClick={() => setEditOpen(true)}>
+              {t("storyboard.edit.open")}
+            </Button>
+          )
+        )}
+        {video?.beforeEdit && video.status !== "generating" && (
+          <Button size="sm" variant="ghost" onClick={onUndoEdit}>
+            {t("storyboard.edit.undoShot")}
+          </Button>
         )}
         {video?.prompt && (
           <details className="rounded-[var(--radius-panel)] border border-line bg-panel px-3 py-2 text-xs text-fg-muted">

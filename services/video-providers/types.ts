@@ -19,14 +19,42 @@ export interface VideoGenerationParams {
 
 export interface VideoExtensionParams {
   prompt: string;
-  /** Omni interaction id of the video to extend */
-  sourceVideoUri: string;
+  /** Omni interaction id of the video to extend (ignored when sourceVideo is given) */
+  sourceVideoUri?: string;
+  /**
+   * Base64 MP4 (10 s or less) to extend instead. Omni continues exactly from its last frame,
+   * whereas a previous interaction may be continued from an earlier part (seen 2026-10-16).
+   * The output starts with this clip, followed by the new seconds.
+   */
+  sourceVideo?: string;
   ratio: VideoRatio;
   resolution?: VideoResolution;
   /** Sound effects only, or with background music */
   audioMode?: AudioMode;
   /** Seconds to add (3-10), default 8 */
   extensionDuration?: number;
+  /** Base64 images the continuation should match (e.g. the next shot's frame), up to 3 */
+  referenceImages?: string[];
+}
+
+/**
+ * Edit a video with an instruction, e.g. swap an object for the one in a reference image.
+ * Tested 2026-10-16: the camera move, lighting and timing are kept, the length stays the same;
+ * small printed text on a swapped product does not come out exact.
+ */
+export interface VideoEditParams {
+  /** What to change, in plain words; reference images are listed after it */
+  prompt: string;
+  /** Base64 MP4 of 10 s or less to edit */
+  sourceVideo?: string;
+  /** Or the Omni interaction id of a generated video (no length limit) */
+  sourceVideoUri?: string;
+  /** Base64 images the edit should use, up to 3 */
+  referenceImages?: string[];
+  ratio: VideoRatio;
+  resolution?: VideoResolution;
+  /** Seconds of the source, for the time estimate */
+  duration: number;
 }
 
 export interface VideoGenerationResult {
@@ -67,4 +95,5 @@ export interface VideoGenerationProvider {
   cancelJob?(jobId: string): Promise<void>;
   /** Extend an existing video */
   extendVideo?(params: VideoExtensionParams): Promise<VideoGenerationResult>;
+  editVideo?(params: VideoEditParams): Promise<VideoGenerationResult>;
 }

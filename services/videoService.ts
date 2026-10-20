@@ -1,7 +1,7 @@
 import { unwrapActionResult } from "@/lib/action-result";
 import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
 import type { PromptDraft, PromptFields } from "@/types";
-import type { VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
+import type { VideoEditParams, VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
 
 const isStaticBuild = process.env.NEXT_PUBLIC_BUILD_MODE === "static";
 
@@ -80,6 +80,18 @@ export async function extendVideo(params: VideoExtensionParams, apiKey?: string)
   }
   const { extendVideoAction } = await import("@/app/actions/server/generate");
   return unwrapActionResult(await extendVideoAction(params, apiKey));
+}
+
+/**
+ * Edit a video with an instruction and optional reference images
+ */
+export async function editVideo(params: VideoEditParams, apiKey?: string): Promise<VideoJob> {
+  if (isStaticBuild) {
+    const { editVideoClient } = await import("./videoClient");
+    return editVideoClient(params, requireKey(apiKey));
+  }
+  const { editVideoAction } = await import("@/app/actions/server/generate");
+  return unwrapActionResult(await editVideoAction(params, apiKey));
 }
 
 /**

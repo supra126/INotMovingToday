@@ -174,7 +174,7 @@ export async function regenerateShot(
  * Re-render the picked frames at 2K / 4K
  */
 export async function finalizeImages(ctx: JobContext, project: StoryboardProject) {
-  const shots = project.shots.filter((s) => s.selected !== undefined && !s.finalImage);
+  const shots = project.shots.filter((s) => !s.skipped && s.selected !== undefined && !s.finalImage);
   for (const shot of shots) {
     updateShot(ctx, shot.id, (s) => ({ ...s, imageStatus: "generating", imageError: undefined }));
   }
@@ -185,10 +185,10 @@ export async function finalizeImages(ctx: JobContext, project: StoryboardProject
         instruction: buildFinalInstruction({
           prompt: shot.imagePrompt,
           ratio: project.ratio,
-          productCount: project.productImages.length,
+          productCount: shot.hasPackaging ? project.productImages.length : 0,
           packagingText: shot.hasPackaging ? project.packagingText : undefined,
         }),
-        images: [shot.candidates[shot.selected!], ...project.productImages],
+        images: [shot.candidates[shot.selected!], ...(shot.hasPackaging ? project.productImages : [])],
         ratio: project.ratio,
         size: project.finalSize,
       })

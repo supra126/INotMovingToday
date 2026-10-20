@@ -2,7 +2,7 @@ import { createGeminiClient } from "@/lib/ai/gemini-client";
 import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
 import type { PromptDraft, PromptFields } from "@/types";
 import { createOmniProvider } from "./video-providers/omni";
-import type { VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
+import type { VideoEditParams, VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
 
 // Client-side implementations for the static build: the browser calls Gemini directly with the user's key
 
@@ -37,5 +37,14 @@ export async function extendVideoClient(
 ): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
   const provider = createOmniProvider(apiKey);
   const result = await provider.extendVideo(params);
+  return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
+}
+
+export async function editVideoClient(
+  params: VideoEditParams,
+  apiKey: string
+): Promise<{ jobId: string; estimatedTime: number; provider: string }> {
+  const provider = createOmniProvider(apiKey);
+  const result = await provider.editVideo(params);
   return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
 }

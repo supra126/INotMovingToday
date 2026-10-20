@@ -117,6 +117,12 @@ describe("normalizeOnLoad", () => {
     expect(loaded.shots[0].imageStatus).toBe("idle");
     expect(loaded.shots[0].video?.status).toBe("interrupted");
   });
+
+  it("unlocks a film segment edit that was running when the page closed", () => {
+    const p = newProject("id", 0);
+    p.film = { status: "completed", segmentEdit: { index: 1, status: "editing", progress: 30 } } as typeof p.film;
+    expect(normalizeOnLoad(p).film?.segmentEdit?.status).toBe("failed");
+  });
 });
 
 describe("canEnterStep", () => {
@@ -424,10 +430,10 @@ describe("codex review", () => {
     expect(isVideoOutdated([{ ...shot, fields: { ...fields, subject: "changed" } }], 0)).toBe(true);
   });
 
-  it("offers only extensions that fit the 40-second total", () => {
+  it("offers only extensions that fit the 30-second total", () => {
     expect(extensionOptions(8)).toEqual([4, 6, 8]);
-    expect(extensionOptions(34)).toEqual([4, 6]);
-    expect(extensionOptions(38)).toEqual([]);
+    expect(extensionOptions(24)).toEqual([4, 6]);
+    expect(extensionOptions(28)).toEqual([]);
   });
 });
 
@@ -449,11 +455,21 @@ describe("keyframeRefs", () => {
     p.productImages = [img("product")];
     p.referenceImages = [img("face")];
     const s01 = { ...toShot({ ...row(), id: "s01" }, false), finalImage: img("s01-final") };
-    const s02 = { ...toShot({ ...row(), id: "s02" }, true), refShotId: "s01" };
+    const s02 = { ...toShot({ ...row(), id: "s02", hasPackaging: true }, true), refShotId: "s01" };
     p.shots = [s01, s02];
     const refs = keyframeRefs(p, s02);
     expect(refs.images).toEqual([p.productImages[0], p.referenceImages[0], s01.finalImage]);
     expect(refs).toMatchObject({ productCount: 1, characterCount: 1, shotRef: true });
+  });
+  it("leaves the product photos out of a shot without packaging", () => {
+    const p = newProject("id", 0);
+    p.productImages = [img("product")];
+    p.referenceImages = [img("face")];
+    const s01 = toShot({ ...row(), id: "s01", hasPackaging: false }, true);
+    p.shots = [s01];
+    const refs = keyframeRefs(p, s01);
+    expect(refs.images).toEqual([p.referenceImages[0]]);
+    expect(refs).toMatchObject({ productCount: 0, characterCount: 1 });
   });
   it("falls back to the picked candidate and ignores a missing or own shot", () => {
     const p = newProject("id", 0);
@@ -482,5 +498,32 @@ describe("imageProgress", () => {
     ];
     expect(imageProgress(shots)).toEqual({ done: 3, total: 4, percent: 75 });
     expect(imageProgress([toShot(row(), true)])).toBeUndefined();
+  });
+});
+
+describe("skipped shots", () => {
+  const frame = (id: string) => ({ ...toShot({ ...row(), id }, false), finalImage: img(`${id}-final`), imagePrompt: "p" });
+
+  it("need no frames and do not block the video step", () => {
+    const p = newProject("id", 0);
+    p.script.confirmed = true;
+    p.shots = [frame("s01"), { ...toShot({ ...row(), id: "s02" }, true), imagePrompt: "p", skipped: true }];
+    expect(needsFrames(p.shots[1])).toBe(false);
+    expect(canEnterStep(p, 4)).toBe(true);
+  });
+
+  it("are passed over when the end frame is the next shot", () => {
+    const shots = [
+      { ...frame("s01"), endFrame: { kind: "next" as const } },
+      { ...frame("s02"), skipped: true },
+      frame("s03"),
+    ];
+    expect(endFrameImage(shots, 0)).toBe(shots[2].finalImage);
+  });
+
+  it("are left out of exports", () => {
+    const done = { status: "completed" as const, progress: 100, prompt: "", duration: 4, blob: new Blob(["v"]) };
+    const shots = [{ ...frame("s01"), video: done }, { ...frame("s02"), video: done, skipped: true }];
+    expect(exportEntries(shots).map((e) => e.shot.id)).toEqual(["s01"]);
   });
 });

@@ -1,9 +1,10 @@
 import type { PromptContext } from "@/lib/ai/prompts";
 import { toDisplayError } from "@/lib/video/errors";
-import { runExtendJob, runVideoJob } from "@/lib/video/job";
+import { cropImageToRatio } from "@/lib/video/crop";
+import { runEditJob, runExtendJob, runVideoJob } from "@/lib/video/job";
 import { cancelVideoGeneration, composePrompt, draftPrompt } from "@/services/videoService";
 import type { Locale, VideoResolution } from "@/types";
-import { toFile } from "./blob";
+import { blobToBase64, toFile } from "./blob";
 import { downscaleImage } from "./resize";
 import { updateShot, type JobContext } from "./imageJobs";
 import { DRAFT_CONCURRENCY, VIDEO_CONCURRENCY, runQueue } from "./queue";
@@ -124,7 +125,7 @@ export async function draftShotFields(
   { retryFailed = true }: { retryFailed?: boolean } = {}
 ) {
   const targets = project.shots.flatMap((shot, index) =>
-    !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" && (retryFailed || shot.draftStatus !== "failed")
+    !shot.skipped && !shot.fields && shot.finalImage && shot.draftStatus !== "drafting" && (retryFailed || shot.draftStatus !== "failed")
       ? [{ shot, index }]
       : []
   );
@@ -360,4 +361,84 @@ export async function extendShotVideo(
   } finally {
     untrack(ctx, shotId, token);
   }
+}
+
+/**
+ * Edit a finished shot's video with an instruction and optional images; the previous video stays if it fails.
+ * A generated video is edited through its Omni interaction, so no upload and no 10-second limit.
+ */
+export async function editShotVideo(
+  ctx: JobContext,
+  project: StoryboardProject,
+  shotId: string,
+  instruction: string,
+  images: Blob[]
+) {
+  const shot = project.shots.find((s) => s.id === shotId);
+  const previous = shot?.video;
+  if (!shot || previous?.status !== "completed" || !instruction.trim()) return;
+  if (!previous.sourceVideoUri && !previous.blob) return;
+  const token = track(ctx, shotId, previous);
+  updateShot(ctx, shotId, (s) => ({ ...s, video: { ...previous, status: "generating", progress: 0, error: undefined } }));
+  try {
+    const source = previous.sourceVideoUri
+      ? { sourceVideoUri: previous.sourceVideoUri }
+      : { sourceVideo: await blobToBase64(await (await import("./clips")).uploadableClip(previous.blob!)) };
+    const result = await runEditJob(
+      {
+        prompt: instruction,
+        ...source,
+        referenceImages: await Promise.all(images.slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))),
+        ratio: project.ratio,
+        resolution: shotResolution(shot, project),
+        duration: previous.duration,
+      },
+      {
+        apiKey: ctx.apiKey,
+        isCancelled: () => token.stopped,
+        onJobId: onJobId(ctx, shotId, token),
+        onProgress: (progress) =>
+          updateShot(ctx, shotId, (s) => ({ ...s, video: s.video && { ...s.video, progress } }), { persist: false }),
+      }
+    );
+    if (!result || token.stopped) return;
+    const stored = await toStoredVideo(result.videoUrl);
+    if (token.stopped) return;
+    updateShot(ctx, shotId, (s) => ({
+      ...s,
+      video: {
+        ...previous,
+        blob: stored.blob,
+        url: stored.url,
+        status: "completed",
+        progress: 100,
+        error: undefined,
+        sourceVideoUri: result.sourceVideoUri ?? previous.sourceVideoUri,
+        // Keep the original, not an earlier edit, so undo always returns to the generated video
+        beforeEdit: previous.beforeEdit ?? {
+          blob: previous.blob,
+          url: previous.url,
+          sourceVideoUri: previous.sourceVideoUri,
+          duration: previous.duration,
+        },
+      },
+    }));
+  } catch (err) {
+    if (token.stopped) return;
+    updateShot(ctx, shotId, (s) => ({
+      ...s,
+      video: { ...previous, status: "completed", error: toDisplayError(err instanceof Error ? err.message : "") },
+    }));
+  } finally {
+    untrack(ctx, shotId, token);
+  }
+}
+
+/** Put a shot's video back the way it was generated */
+export function undoShotVideoEdit(ctx: JobContext, shotId: string) {
+  updateShot(ctx, shotId, (s) =>
+    s.video?.beforeEdit && s.video.status !== "generating"
+      ? { ...s, video: { ...s.video, ...s.video.beforeEdit, beforeEdit: undefined, error: undefined } }
+      : s
+  );
 }

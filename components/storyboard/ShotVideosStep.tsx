@@ -2,13 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
 import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
-import { isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
+import { activeShots, isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
-import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, stopShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
+import {
+  costRows,
+  draftShotFields,
+  editShotVideo,
+  extendShotVideo,
+  generateShotVideos,
+  redraftShotFields,
+  stopShotVideos,
+  undoShotVideoEdit,
+  type CostRow,
+} from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
+import { FilmPanel } from "./FilmPanel";
 import { ShotRail } from "./ShotRail";
 import { ShotVideoPreview } from "./ShotVideoPreview";
 import { ShotVideoSettings } from "./ShotVideoSettings";
@@ -19,14 +31,16 @@ import type { StepProps } from "./types";
 export function ShotVideosStep({ project, update, requireApiKey, selectedShotId, selectShot }: StepProps) {
   const { t, locale } = useLocale();
   const [pending, setPending] = useState<{ rows: CostRow[]; run: () => void } | null>(null);
+  // Shot by shot, or the whole storyboard as one film; opens on the film if one exists
+  const [mode, setMode] = useState<"shots" | "film">(project.film ? "film" : "shots");
 
   const selected = resolveSelectedShot(project.shots, selectedShotId);
   const jobCtx = (apiKey: string) => ({ projectId: project.id, update, apiKey });
   const unfinished = project.shots.filter(
-    (s, i) => s.video?.status !== "generating" && (s.video?.status !== "completed" || isVideoOutdated(project.shots, i))
+    (s, i) => !s.skipped && s.video?.status !== "generating" && (s.video?.status !== "completed" || isVideoOutdated(project.shots, i))
   );
   // Shots whose fields are missing and not being filled right now (never drafted, failed, or image changed)
-  const needDraft = project.shots.filter((s) => !s.fields && s.finalImage && s.draftStatus !== "drafting");
+  const needDraft = project.shots.filter((s) => !s.skipped && !s.fields && s.finalImage && s.draftStatus !== "drafting");
 
   const draftFields = () => {
     const apiKey = requireApiKey();
@@ -63,6 +77,20 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
     });
   };
 
+  const confirmEdit = (shot: Shot, instruction: string, images: Blob[]) => {
+    const apiKey = requireApiKey();
+    if (!apiKey) return;
+    setPending({
+      rows: [{ id: shot.id, seconds: shot.video?.duration ?? shot.duration, resolution: shotResolution(shot, project), hasEnd: false }],
+      run: () => void editShotVideo(jobCtx(apiKey), project, shot.id, instruction, images),
+    });
+  };
+  // Product photos and the shot's own frame are offered as reference images
+  const editOptions = (shot: Shot) => [
+    ...project.productImages.map((image, i) => ({ key: `product-${i}`, label: t("storyboard.film.productImage", { n: i + 1 }), blob: image.blob })),
+    ...(shot.finalImage ? [{ key: "frame", label: shot.id, blob: shot.finalImage.blob }] : []),
+  ];
+
   const generating = project.shots.filter((s) => s.video?.status === "generating");
   const stop = (shotIds: string[]) => stopShotVideos({ projectId: project.id, update, apiKey: getApiKey("gemini") ?? "" }, shotIds);
 
@@ -70,14 +98,27 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
     update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === shotId ? fn(s) : s)) }));
 
   const allCost = sumCosts(unfinished.map((s) => videoCost(s.duration, shotResolution(s, project))));
-  const railHeader = (
+  const modeSwitch = (
+    <Segmented
+      size="sm"
+      label={t("storyboard.film.mode")}
+      value={mode}
+      onChange={setMode}
+      options={[
+        { value: "shots", label: t("storyboard.film.modeShots") },
+        { value: "film", label: t("storyboard.film.modeFilm") },
+      ]}
+    />
+  );
+  const railHeader = mode === "film" ? modeSwitch : (
     <div className="flex flex-col gap-1.5">
+      {modeSwitch}
       <Button
         variant="primary"
         disabled={unfinished.length === 0 || unfinished.some((s) => !s.fields)}
         onClick={() => confirmGenerate(unfinished.map((s) => s.id))}
       >
-        {unfinished.length === project.shots.length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
+        {unfinished.length === activeShots(project.shots).length ? t("storyboard.videos.generateAll") : t("storyboard.videos.generateMissing")}
         {unfinished.length > 0 && <span className="font-mono">{formatUsd(allCost.amount)}</span>}
       </Button>
       {generating.length > 0 && (
@@ -110,12 +151,18 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
             step={4}
             ratio={project.ratio}
             selectedId={selected?.id}
-            onSelect={selectShot}
+            onSelect={(id) => {
+              setMode("shots");
+              selectShot(id);
+            }}
+            onToggleSkip={(id) => update((p) => ({ ...p, shots: p.shots.map((s) => (s.id === id ? { ...s, skipped: !s.skipped } : s)) }))}
             header={railHeader}
           />
         }
         main={
-          selected && (
+          mode === "film" ? (
+            <FilmPanel project={project} update={update} requireApiKey={requireApiKey} />
+          ) : selected && (
             <ShotVideoPreview
               key={selected.id}
               shot={selected}
@@ -123,11 +170,15 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
               ratio={project.ratio}
               onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}
               onStop={() => stop([selected.id])}
+              editOptions={editOptions(selected)}
+              editPrice={formatUsd(videoCost(selected.video?.duration ?? selected.duration, shotResolution(selected, project)).amount)}
+              onEdit={(instruction, images) => confirmEdit(selected, instruction, images)}
+              onUndoEdit={() => undoShotVideoEdit({ projectId: project.id, update, apiKey: "" }, selected.id)}
             />
           )
         }
         inspector={
-          selected && (
+          mode === "shots" && selected && (
             <Inspector
               footer={
                 selected.fields ? (

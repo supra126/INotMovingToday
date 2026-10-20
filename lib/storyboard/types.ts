@@ -7,6 +7,7 @@ import type {
   VideoRatio,
   VideoResolution,
 } from "@/types";
+import type { FilmOptions } from "./film";
 
 export type Step = 1 | 2 | 3 | 4;
 
@@ -66,6 +67,8 @@ export interface ShotVideo {
   startFrame?: Blob;
   endFrame?: Blob;
   made?: VideoMadeWith;
+  /** The video before it was first edited, so the edit can be undone */
+  beforeEdit?: { blob?: Blob; url?: string; sourceVideoUri?: string; duration: number };
 }
 
 export interface Shot extends ScriptShot {
@@ -80,6 +83,8 @@ export interface Shot extends ScriptShot {
   finalImage?: StoredImage;
   /** The storyboard row changed after images were made */
   stale: boolean;
+  /** Left out of frames, videos, exports and the one-take film; kept so it can come back */
+  skipped?: boolean;
   imageStatus: "idle" | "generating" | "failed";
   /** Finished images of the running batch (kept in memory only) */
   imageProgress?: { done: number; total: number };
@@ -95,6 +100,35 @@ export interface Shot extends ScriptShot {
   draftStatus?: "drafting" | "failed";
   draftError?: string;
   video?: ShotVideo;
+}
+
+/** The whole storyboard as one video: the first segment is generated, the rest extend it */
+export interface FilmVideo {
+  status: ShotVideoStatus;
+  /** Progress of the segment being generated */
+  progress: number;
+  /** Segments finished so far, and in total */
+  done: number;
+  total: number;
+  /** The finished part so far: each extension returns the whole video */
+  blob?: Blob;
+  url?: string;
+  sourceVideoUri?: string;
+  /** Seconds of the finished part */
+  duration: number;
+  /**
+   * Each segment's newly generated part, cut and encoded once in the browser. Google re-encodes the whole
+   * video on every extension, so its own copy degrades; the film is joined from these instead.
+   */
+  segments?: Blob[];
+  /** A segment's part before it was first edited, by index, so the edit can be undone */
+  segmentsBeforeEdit?: Record<number, Blob>;
+  /** An edit of one segment that is running or failed; the film stays playable meanwhile */
+  segmentEdit?: { index: number; status: "editing" | "failed"; progress: number; error?: string };
+  /** Text sent for each segment */
+  prompts: string[];
+  options: FilmOptions;
+  error?: string;
 }
 
 export interface StoryboardProject {
@@ -118,6 +152,7 @@ export interface StoryboardProject {
   shots: Shot[];
   finalSize: ImageSize;
   videoSettings: { resolution: VideoResolution };
+  film?: FilmVideo;
   step: Step;
 }
 

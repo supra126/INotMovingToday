@@ -16,6 +16,7 @@ import type {
   VideoJobStatus,
   ProviderCapabilities,
   VideoExtensionParams,
+  VideoEditParams,
 } from "./types";
 import { omniLogger as logger } from "@/lib/logger";
 import { AUDIO_DIRECTION } from "@/lib/ai/prompts";
@@ -27,7 +28,8 @@ export const OMNI_PROVIDER_NAME = "Google Gemini Omni Flash";
 // Omni clip length per generation / extension, and total length cap with extensions
 const MIN_DURATION = 3;
 const MAX_DURATION = 10;
-const MAX_TOTAL_DURATION = 40;
+// Docs say 40 s; extending past 30 s fails with a generic 400 (tested 2026-10-16)
+const MAX_TOTAL_DURATION = 30;
 
 // Rough wall-clock estimate used for the progress bar
 const ESTIMATED_SECONDS_PER_VIDEO_SECOND = 12;
@@ -240,10 +242,17 @@ export class OmniProvider implements VideoGenerationProvider {
   async extendVideo(params: VideoExtensionParams): Promise<VideoGenerationResult> {
     const duration = clampDuration(params.extensionDuration, 8);
 
+    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
-      previous_interaction_id: params.sourceVideoUri,
-      input: [{ type: "text", text: buildPromptText(params.prompt, params.audioMode) }],
+      ...(uploaded ? {} : { previous_interaction_id: params.sourceVideoUri }),
+      // Tested 2026-10-16: an image sent with the extension is followed (the next shot's frame shows up)
+      input: [
+        ...(uploaded ? [{ type: "video" as const, uri: uploaded }] : []),
+        ...(params.referenceImages ?? []).slice(0, 3).map(imagePart),
+        { type: "text", text: buildPromptText(params.prompt, params.audioMode) },
+      ],
       response_format: {
         type: "video",
         aspect_ratio: params.ratio === "9:16" ? "9:16" : "16:9",
@@ -256,6 +265,49 @@ export class OmniProvider implements VideoGenerationProvider {
     });
 
     return this.trackJob(interaction.id, duration);
+  }
+
+  /**
+   * Edit a video: an uploaded clip, or a generated one by its interaction id.
+   * Reference images are named <IMAGE_REF_n> in the order they are sent.
+   */
+  async editVideo(params: VideoEditParams): Promise<VideoGenerationResult> {
+    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const images = (params.referenceImages ?? []).slice(0, 3);
+    const names = images.map((_, i) => `參考圖 ${i + 1} = <IMAGE_REF_${i}>`).join("；");
+    // The docs advise short edit prompts; "keep everything else" stops unrelated changes
+    const text = [params.prompt.trim(), names, "其他部分保持不變。"].filter(Boolean).join("\n");
+
+    const interaction = await this.ai.interactions.create({
+      model: OMNI_MODEL,
+      ...(uploaded ? {} : { previous_interaction_id: params.sourceVideoUri }),
+      input: [
+        ...(uploaded ? [{ type: "video" as const, uri: uploaded }] : []),
+        ...images.map(imagePart),
+        { type: "text", text },
+      ],
+      response_format: {
+        type: "video",
+        aspect_ratio: params.ratio === "9:16" ? "9:16" : "16:9",
+        resolution: params.resolution || "720p",
+      },
+      background: true,
+      store: true,
+    });
+
+    return this.trackJob(interaction.id, params.duration);
+  }
+
+  /** Upload a clip through the Files API and wait until Omni can read it */
+  private async uploadVideo(base64: string): Promise<string> {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    let file = await this.ai.files.upload({ file: new Blob([bytes], { type: "video/mp4" }), config: { mimeType: "video/mp4" } });
+    for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      file = await this.ai.files.get({ name: file.name! });
+    }
+    if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
+    return file.uri;
   }
 
   private trackJob(interactionId: string, duration: number): VideoGenerationResult {

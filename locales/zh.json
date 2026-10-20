@@ -33,7 +33,8 @@
     "apiSettingsConnected": "API 設定 (已連線)",
     "github": "GitHub",
     "modeSingle": "單鏡生成",
-    "modeStoryboard": "分鏡模式"
+    "modeStoryboard": "分鏡模式",
+    "modeEdit": "影片修改"
   },
   "guide": {
     "title": "使用方式",
@@ -92,7 +93,7 @@
         },
         "extend": {
           "label": "延伸",
-          "desc": "需要更長就描述接下來發生什麼，最長 40 秒"
+          "desc": "需要更長就描述接下來發生什麼，最長 30 秒"
         }
       },
       "tip": "右側可以下載影片，或查看實際送出的英文提示詞"
@@ -225,7 +226,8 @@
     "contentFilteredCopyright": "內容疑似涉及知名作品、角色或名人而被攔截。請把提示詞裡的角色名稱改成一般描述（例如「大野狼」改成「穿襯衫的灰狼」），或換一張圖",
     "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定",
     "promptRequired": "請先輸入描述或取得 AI 建議",
-    "imageGenerationFailed": "分鏡圖生成失敗，請重試"
+    "imageGenerationFailed": "分鏡圖生成失敗，請重試",
+    "filmChanged": "這段修改期間成片被重做了，修改結果已作廢"
   },
   "workspace": {
     "draftButton": "AI 建議提示詞",
@@ -256,7 +258,7 @@
     "extendLabel": "延伸影片（目前 {{total}} 秒，最長 {{max}} 秒）",
     "extendPlaceholder": "接下來發生什麼？",
     "extendButton": "延伸",
-    "maxReached": "已達 40 秒上限",
+    "maxReached": "已達 30 秒上限",
     "finalPrompt": "送出的英文提示詞",
     "copy": "複製",
     "copied": "已複製"
@@ -309,7 +311,7 @@
         "sound": "音效",
         "music": "配樂",
         "onScreenText": "畫面文字",
-        "transition": "轉場",
+        "transition": "轉場（怎麼接到下一鏡）",
         "hasPackaging": "包裝入鏡"
       },
       "chatPlaceholder": "想改什麼？例如：s03 改成手拿面膜展示",
@@ -392,7 +394,7 @@
       "draftFields": "AI 填寫欄位",
       "draftFailed": "欄位填寫失敗，請按「AI 填寫欄位」重試",
       "needsFields": "尚未填寫欄位",
-      "outdated": "分鏡圖已更換，建議重生",
+      "outdated": "分鏡圖已更換：這一鏡的單支影片是用舊圖做的，要更新才需要重生（一次成片不受影響，它每次都讀最新的分鏡圖）",
       "generateOne": "生成這鏡",
       "stop": "停止",
       "stopAll": "停止全部",
@@ -414,7 +416,10 @@
     "rail": {
       "title": "鏡頭",
       "total": "共 {{seconds}} 秒",
-      "empty": "整理出分鏡表後，鏡頭會列在這裡"
+      "empty": "整理出分鏡表後，鏡頭會列在這裡",
+      "skip": "略過",
+      "unskip": "使用",
+      "skipped": "略過"
     },
     "status": {
       "empty": "未處理",
@@ -424,6 +429,79 @@
       "failed": "失敗",
       "busy": "處理中"
     },
-    "saveError": "儲存失敗（{{error}}）。變更還在這個分頁裡，下次存檔會自動重試；如果是空間不足，請刪除用不到的專案。"
+    "saveError": "儲存失敗（{{error}}）。變更還在這個分頁裡，下次存檔會自動重試；如果是空間不足，請刪除用不到的專案。",
+    "film": {
+      "mode": "成片方式",
+      "modeShots": "逐鏡生成",
+      "modeFilm": "一次成片",
+      "intro": "把整張分鏡表當成一支影片生成：第 1 段從第 1 鏡的分鏡圖開始，之後每段接著前一段往下延長，並參考該段第一鏡的分鏡圖。鏡頭之間由模型自己轉場。",
+      "segment": "第 {{n}} 段",
+      "extendTag": "延長",
+      "total": "共 {{seconds}} 秒・{{resolution}}",
+      "outOfRange": "一次成片的總長要在 {{min}}–{{max}} 秒之間，目前是 {{seconds}} 秒。請在上面選影片長度，或回第 2 步調整秒數。",
+      "audio": "聲音",
+      "sfxOnly": "只有音效",
+      "sfxMusic": "音效＋配樂",
+      "withText": "讓模型畫出分鏡表的字卡（小字常寫錯，建議後製再疊）",
+      "generate": "生成成片",
+      "regenerate": "整支重做",
+      "progress": "第 {{n}}/{{total}} 段生成中 {{progress}}%",
+      "interrupted": "生成中斷，請整支重做",
+      "partial": "已完成 {{done}}/{{total}} 段（{{seconds}} 秒），可以先下載這部分",
+      "prompts": "送出的提示詞",
+      "fileSuffix": "一次成片",
+      "length": "影片長度",
+      "lengthTable": "照分鏡表（{{seconds}} 秒）",
+      "lengthOption": "{{seconds}} 秒",
+      "resume": "從第 {{n}} 段繼續",
+      "downloadSegments": "下載各段（{{count}} 段，zip）",
+      "segmentsSuffix": "各段",
+      "transitions": "轉場",
+      "transitionsSmooth": "順滑運鏡",
+      "transitionsTable": "照分鏡表",
+      "redoHint": "某段轉場不滿意：從那段重做到最後，前面的段保留不重付。分鏡表改過的內容會一起套用。",
+      "redoFrom": "從第 {{n}} 段（{{at}}s）重做",
+      "transitionsHint": "想指定某個轉場，就在第 2 步分鏡表那一鏡的「轉場」欄寫具體做法，例如「鏡頭從纖維拉遠成面膜表面，再拉到女模臉上」；想在這裡直接換畫面就寫「直接切到下一個畫面」。只寫硬切、淡出或留空，就交給模型順滑過渡。",
+      "editHint": "改其中一段：選段落，寫要改什麼、勾參考圖。只替換那一段，鏡頭和長度不變，可以還原。",
+      "productImage": "產品圖 {{n}}",
+      "lengthCapped": "{{count}} 鏡、每鏡 3–10 秒，做不到 {{chosen}} 秒，最接近的是 {{seconds}} 秒"
+    },
+    "edit": {
+      "placeholder": "要改什麼？例如：把包裝換成參考圖 1 的產品；把燈光改成綠色；把背景的瓶子拿掉",
+      "imagesHint": "可選最多 {{max}} 張參考圖，依點選順序是參考圖 1、2、3",
+      "upload": "上傳",
+      "textHint": "鏡頭運動、光線和長度會保留；換上的產品包裝小字可能不精準",
+      "submit": "送出編輯",
+      "open": "編輯",
+      "openSegment": "改這段",
+      "editing": "第 {{n}} 段編輯中 {{progress}}%",
+      "failed": "第 {{n}} 段編輯失敗：",
+      "undo": "還原第 {{n}} 段",
+      "undoShot": "還原成編輯前",
+      "shotEditing": "編輯中"
+    }
+  },
+  "edit": {
+    "title": "影片修改",
+    "intro": "上傳一支影片，選要改的範圍（一次最多 {{max}} 秒，可以是中間任何一段），說要改什麼、可以在畫面上框位置、附參考圖。改好的那段會接回原本的位置，其他部分不動；可以一段一段改。",
+    "upload": "上傳影片",
+    "original": "原片",
+    "version": "第 {{n}} 版",
+    "running": "修改中 {{progress}}%",
+    "reset": "換一支影片",
+    "resetConfirm": "確定換掉？目前的版本都會清掉",
+    "editsCurrent": "會以「{{version}}」為基礎修改",
+    "instruction": "要改什麼",
+    "region": "位置（選填）",
+    "capture": "抓目前畫面來框",
+    "recapture": "重抓畫面",
+    "clearRegion": "清除",
+    "regionHint": "先把影片停在要改的那一格，按「抓目前畫面來框」，再在圖上拖一個框。不框就照文字描述。",
+    "removeImage": "點一下移除",
+    "rangeLabel": "要改的範圍：{{from}}–{{to}} 秒（{{span}} 秒，全長 {{total}} 秒，一次最多 {{max}} 秒）",
+    "rangeFrom": "開始",
+    "rangeTo": "結束",
+    "joinFailed": "改好的片段沒辦法接回原片，已先存成單獨一版（只有改過的那段），可以下載到剪輯軟體裡接。",
+    "partOnly": "（只有這段）"
   }
 }

@@ -2,8 +2,8 @@
 
 import { toActionResult, type ActionResult } from "@/lib/action-result";
 import { getVideoProvider, resolveProviderType } from "@/services/video-providers";
-import type { VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "@/services/video-providers";
-import { GenerateVideoParamsSchema, ExtendVideoParamsSchema } from "@/lib/validation/schemas";
+import type { VideoEditParams, VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "@/services/video-providers";
+import { EditVideoParamsSchema, GenerateVideoParamsSchema, ExtendVideoParamsSchema } from "@/lib/validation/schemas";
 
 export interface VideoJobResult {
   jobId: string;
@@ -88,6 +88,25 @@ export async function extendVideoAction(
       throw new Error("This provider does not support video extension");
     }
     const result = await provider.extendVideo(validation.data);
+    return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
+  });
+}
+
+/**
+ * Edit a video with an instruction and optional reference images
+ */
+export async function editVideoAction(params: VideoEditParams, apiKey?: string): Promise<ActionResult<VideoJobResult>> {
+  return toActionResult(async () => {
+    const validation = EditVideoParamsSchema.safeParse(params);
+    if (!validation.success) {
+      throw new Error(formatIssues(validation.error.issues));
+    }
+
+    const provider = resolveProvider(apiKey);
+    if (!provider.editVideo) {
+      throw new Error("This provider does not support video editing");
+    }
+    const result = await provider.editVideo(validation.data);
     return { jobId: result.jobId, estimatedTime: result.estimatedTime, provider: provider.name };
   });
 }
