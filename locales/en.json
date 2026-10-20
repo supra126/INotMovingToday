@@ -481,11 +481,8 @@
   },
   "edit": {
     "title": "Edit a video",
-    "intro": "Upload a video, say what to change, optionally box where on the frame, and add reference images. Up to {{max}} seconds are edited at a time; for a longer video you pick a part first. Camera moves and length are kept.",
+    "intro": "Upload a video, pick the part to change (up to {{max}} seconds at a time, anywhere in it), say what to change, optionally box where, and add reference images. The edited part goes back in place and the rest stays; edit it part by part.",
     "upload": "Upload a video",
-    "pickRange": "Part to edit: {{from}}–{{to}} s (of {{total}} s)",
-    "useRange": "Use this part",
-    "preparing": "Cutting…",
     "original": "Original",
     "version": "Version {{n}}",
     "running": "Editing {{progress}}%",
@@ -498,6 +495,9 @@
     "recapture": "Grab frame again",
     "clearRegion": "Clear",
     "regionHint": "Pause on the frame to change, press \"Box on this frame\", then drag a box. Without a box the text decides.",
-    "removeImage": "Click to remove"
+    "removeImage": "Click to remove",
+    "rangeLabel": "Part to edit: {{from}}–{{to}} s ({{span}} s of {{total}} s, at most {{max}} s at a time)",
+    "rangeFrom": "Start",
+    "rangeTo": "End"
   }
 }

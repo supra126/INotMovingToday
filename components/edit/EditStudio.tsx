@@ -10,6 +10,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { runVideoEdit } from "@/lib/edit/editJob";
 import type { Region } from "@/lib/edit/region";
 import { MAX_EDIT_SECONDS, loadSession, ratioOf, saveSession, type EditSession } from "@/lib/edit/session";
+import { clampRange, spliceEdit } from "@/lib/edit/splice";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
 import { toDisplayError } from "@/lib/video/errors";
@@ -47,15 +48,13 @@ function useObjectUrl(blob?: Blob) {
   return url;
 }
 
-/** Upload any video (10 s or less is edited), say what to change, where, and with which images */
+/** Upload any video, pick up to 10 seconds of it, say what to change, where, and with which images */
 export function EditStudio({ requireApiKey }: { requireApiKey: () => string | null }) {
   const { t } = useLocale();
   const [session, setSession] = useState<EditSession | null>(null);
   const [loading, setLoading] = useState(true);
-  // A long upload waits here until the user picks which 10 seconds to edit
-  const [longSource, setLongSource] = useState<{ blob: Blob; name: string; seconds: number } | null>(null);
-  const [start, setStart] = useState(0);
-  const [preparing, setPreparing] = useState(false);
+  // The part of the video to edit; the user picks it, at most 10 seconds
+  const [range, setRange] = useState({ from: 0, to: 0 });
   const [instruction, setInstruction] = useState("");
   const [frame, setFrame] = useState<string | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
@@ -71,7 +70,6 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
 
   const version = session?.versions[session.current];
   const videoUrl = useObjectUrl(version?.blob);
-  const longUrl = useObjectUrl(longSource?.blob);
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
@@ -82,8 +80,26 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
   }, []);
 
   useEffect(() => {
-    if (version) probe(version.blob).then((info) => setSeconds(info.seconds)).catch(() => setSeconds(0));
+    if (!version) return;
+    probe(version.blob)
+      .then((info) => {
+        setSeconds(info.seconds);
+        // A new video starts on its first 10 seconds; a new version of the same video keeps the range
+        setRange((r) =>
+          r.to > 0 && r.to <= info.seconds + 0.05
+            ? r
+            : { from: 0, to: +Math.min(MAX_EDIT_SECONDS, info.seconds).toFixed(2) }
+        );
+      })
+      .catch(() => setSeconds(0));
   }, [version]);
+
+  const moveRange = (moved: "from" | "to", value: number) => {
+    const next = clampRange({ ...range, [moved]: value }, moved, seconds, MAX_EDIT_SECONDS);
+    setRange(next);
+    // Show the frame at the handle being moved, so the cut points can be judged
+    if (videoRef.current) videoRef.current.currentTime = next[moved];
+  };
 
   const commit = (next: EditSession | null) => {
     setSession(next);
@@ -104,6 +120,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       versions: [{ blob, prompt: "", at: Date.now() }],
       current: 0,
     });
+    setRange({ from: 0, to: 0 });
     setFrame(null);
     setRegion(null);
   };
@@ -114,32 +131,9 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
     try {
       // Our own copy: a picked File breaks if the file on disk moves
       const blob = new Blob([await file.arrayBuffer()], { type: file.type || "video/mp4" });
-      const info = await probe(blob);
-      const name = file.name.replace(/\.[^.]+$/, "");
-      if (info.seconds > MAX_EDIT_SECONDS + 0.2) {
-        setLongSource({ blob, name, seconds: info.seconds });
-        setStart(0);
-      } else {
-        await begin(blob, name);
-      }
+      await begin(blob, file.name.replace(/\.[^.]+$/, ""));
     } catch (err) {
       showError(err);
-    }
-  };
-
-  const applyRange = async () => {
-    if (!longSource) return;
-    setPreparing(true);
-    setError(null);
-    try {
-      const { trimClip } = await import("@/lib/storyboard/clips");
-      const clip = await trimClip(longSource.blob, { from: start, to: start + MAX_EDIT_SECONDS });
-      await begin(clip, longSource.name);
-      setLongSource(null);
-    } catch (err) {
-      showError(err);
-    } finally {
-      setPreparing(false);
     }
   };
 
@@ -172,15 +166,19 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
     setRunning({ progress: 0, stopped: false });
     setError(null);
     try {
-      const blob = await runVideoEdit(
+      const { from, to } = range;
+      const whole = from <= 0.05 && to >= seconds - 0.05;
+      const { trimClip } = await import("@/lib/storyboard/clips");
+      const clip = whole ? version.blob : await trimClip(version.blob, { from, to });
+      const edited = await runVideoEdit(
         {
-          clip: version.blob,
+          clip,
           instruction,
           region: region ?? undefined,
           images: images.map((i) => i.blob),
           ratio: session.ratio,
           resolution: session.resolution,
-          seconds,
+          seconds: to - from,
         },
         {
           apiKey,
@@ -192,8 +190,13 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
           onProgress: (progress) => !token.stopped && setRunning({ progress, stopped: false }),
         }
       );
-      if (!blob || token.stopped) return;
-      const versions = [...session.versions, { blob, prompt: editPromptLabel(instruction, region), at: Date.now() }];
+      if (!edited || token.stopped) return;
+      setRunning({ progress: 100, stopped: false });
+      // The edited part goes back where it came from; the rest of the video is kept
+      const blob = whole ? edited : await spliceEdit(version.blob, from, to, seconds, edited);
+      if (token.stopped) return;
+      const label = `${from.toFixed(1)}–${to.toFixed(1)}s：${editPromptLabel(instruction, region)}`;
+      const versions = [...session.versions, { blob, prompt: label, at: Date.now() }];
       commit({ ...session, versions, current: versions.length - 1 });
     } catch (err) {
       if (!token.stopped) showError(err);
@@ -230,41 +233,17 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-6">
         <h1 className="text-lg font-semibold">{t("edit.title")}</h1>
         <p className="text-sm text-fg-muted">{t("edit.intro", { max: MAX_EDIT_SECONDS })}</p>
-        {longSource ? (
-          <div className="flex flex-col gap-3">
-            <video src={longUrl} controls playsInline className="max-h-[60vh] w-full rounded border border-line bg-black object-contain" />
-            <label className="flex flex-col gap-1 text-xs text-fg-muted">
-              {t("edit.pickRange", { from: start.toFixed(1), to: Math.min(start + MAX_EDIT_SECONDS, longSource.seconds).toFixed(1), total: longSource.seconds.toFixed(1) })}
-              <input
-                type="range"
-                min={0}
-                max={Math.max(0, longSource.seconds - MAX_EDIT_SECONDS)}
-                step={0.1}
-                value={start}
-                onChange={(e) => setStart(Number(e.target.value))}
-              />
-            </label>
-            <div className="flex gap-2">
-              <Button variant="primary" disabled={preparing} onClick={() => void applyRange()}>
-                {preparing ? t("edit.preparing") : t("edit.useRange")}
-              </Button>
-              <Button variant="ghost" onClick={() => setLongSource(null)}>
-                {t("storyboard.videos.cancel")}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button variant="primary" size="lg" onClick={() => fileRef.current?.click()}>
-            {t("edit.upload")}
-          </Button>
-        )}
+        <Button variant="primary" size="lg" onClick={() => fileRef.current?.click()}>
+          {t("edit.upload")}
+        </Button>
         <input ref={fileRef} type="file" accept="video/*" hidden onChange={(e) => void pickFile(e.target.files?.[0])} />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       </div>
     );
   }
 
-  const cost = videoCost(Math.max(1, Math.round(seconds)), session.resolution);
+  const span = Math.max(0, range.to - range.from);
+  const cost = videoCost(Math.max(1, Math.round(span)), session.resolution);
   const frameClass = session.ratio === "9:16" ? "aspect-[9/16] h-[min(70vh,720px)]" : "aspect-video w-full max-w-4xl";
 
   return (
@@ -293,6 +272,37 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
               {i === 0 ? t("edit.original") : t("edit.version", { n: i })}
             </Button>
           ))}
+        </div>
+        <div className="flex w-full max-w-md flex-col gap-1.5 rounded-[var(--radius-panel)] border border-line bg-panel px-3 py-2">
+          <p className="text-xs text-fg-muted">
+            {t("edit.rangeLabel", { from: range.from.toFixed(1), to: range.to.toFixed(1), span: span.toFixed(1), total: seconds.toFixed(1), max: MAX_EDIT_SECONDS })}
+          </p>
+          <label className="flex items-center gap-2 text-xs text-fg-muted">
+            <span className="w-8 shrink-0">{t("edit.rangeFrom")}</span>
+            <input
+              type="range"
+              className="flex-1"
+              min={0}
+              max={seconds}
+              step={0.1}
+              value={range.from}
+              disabled={!!running}
+              onChange={(e) => moveRange("from", Number(e.target.value))}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-fg-muted">
+            <span className="w-8 shrink-0">{t("edit.rangeTo")}</span>
+            <input
+              type="range"
+              className="flex-1"
+              min={0}
+              max={seconds}
+              step={0.1}
+              value={range.to}
+              disabled={!!running}
+              onChange={(e) => moveRange("to", Number(e.target.value))}
+            />
+          </label>
         </div>
         {version?.prompt && <p className="max-w-md whitespace-pre-wrap text-center text-xs text-fg-muted">{version.prompt}</p>}
         <div className="flex gap-2">
@@ -384,7 +394,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
         <Button
           variant="primary"
           disabled={!!running || !instruction.trim()}
-          onClick={() => requireApiKey() && setPending([{ id: t("edit.title"), seconds: Math.max(1, Math.round(seconds)), resolution: session.resolution, hasEnd: false }])}
+          onClick={() => requireApiKey() && setPending([{ id: t("edit.title"), seconds: Math.max(1, Math.round(span)), resolution: session.resolution, hasEnd: false }])}
         >
           {t("storyboard.edit.submit")}
           <span className="font-mono">{formatUsd(cost.amount)}{cost.isMinimum ? "+" : ""}</span>

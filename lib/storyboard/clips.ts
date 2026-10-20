@@ -17,7 +17,12 @@ export type ClipRange = { from: number; to?: number } | { last: number };
  * Keep part of a clip (all of it when no range) and encode it once in the browser.
  * Every clip goes through the same encoder settings, so clips can then be joined without re-encoding.
  */
-export async function trimClip(blob: Blob, range?: ClipRange, quality = QUALITY_VERY_HIGH): Promise<Blob> {
+export async function trimClip(
+  blob: Blob,
+  range?: ClipRange,
+  quality = QUALITY_VERY_HIGH,
+  { dropAudio = false }: { dropAudio?: boolean } = {}
+): Promise<Blob> {
   const target = new BufferTarget();
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const start = !range ? 0 : "from" in range ? range.from : Math.max(0, (await input.computeDuration()) - range.last);
@@ -26,11 +31,16 @@ export async function trimClip(blob: Blob, range?: ClipRange, quality = QUALITY_
     output: new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target }),
     trim: { start, ...(range && "to" in range && range.to !== undefined ? { end: range.to } : {}) },
     video: { forceTranscode: true, codec: "avc", quality },
-    audio: { forceTranscode: true, codec: "aac", bitrate: QUALITY_HIGH },
+    audio: dropAudio ? { discard: true } : { forceTranscode: true, codec: "aac", bitrate: QUALITY_HIGH },
   });
   if (!conversion.isValid) throw new Error("errors.mergeMismatch");
   await conversion.execute();
   return new Blob([target.buffer!], { type: "video/mp4" });
+}
+
+/** Whether a clip has a sound track */
+export async function hasAudio(blob: Blob): Promise<boolean> {
+  return !!(await new Input({ source: new BlobSource(blob), formats: ALL_FORMATS }).getPrimaryAudioTrack());
 }
 
 /** Length of a clip in seconds */
