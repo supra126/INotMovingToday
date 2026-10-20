@@ -185,7 +185,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
           isCancelled: () => token.stopped,
           onJobId: (id) => {
             token.jobId = id;
-            if (token.stopped) void cancelVideoGeneration(id, apiKey).catch(() => {});
+            if (token.stopped) void cancelVideoGeneration(id, apiKey).catch(() => setError(t("errors.cancelFailed")));
           },
           onProgress: (progress) => !token.stopped && setRunning({ progress, stopped: false }),
         }
@@ -222,7 +222,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
     const token = runRef.current;
     if (!token) return;
     token.stopped = true;
-    if (token.jobId) void cancelVideoGeneration(token.jobId, requireApiKey() ?? undefined).catch(() => {});
+    if (token.jobId) void cancelVideoGeneration(token.jobId, requireApiKey() ?? undefined).catch(() => setError(t("errors.cancelFailed")));
     runRef.current = null;
     setRunning(null);
   };

@@ -117,6 +117,12 @@ describe("normalizeOnLoad", () => {
     expect(loaded.shots[0].imageStatus).toBe("idle");
     expect(loaded.shots[0].video?.status).toBe("interrupted");
   });
+
+  it("unlocks a film segment edit that was running when the page closed", () => {
+    const p = newProject("id", 0);
+    p.film = { status: "completed", segmentEdit: { index: 1, status: "editing", progress: 30 } } as typeof p.film;
+    expect(normalizeOnLoad(p).film?.segmentEdit?.status).toBe("failed");
+  });
 });
 
 describe("canEnterStep", () => {

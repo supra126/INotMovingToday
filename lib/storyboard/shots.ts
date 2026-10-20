@@ -55,6 +55,15 @@ export function mergeScriptShots(prev: Shot[], rows: ScriptShot[]): Shot[] {
   });
 }
 
+function normalizeFilm(film: StoryboardProject["film"]): StoryboardProject["film"] {
+  if (!film) return film;
+  const interrupted = film.status === "generating" ? { ...film, status: "interrupted" as const } : film;
+  // A segment edit that was running when the page closed would otherwise lock the edit buttons
+  return interrupted.segmentEdit?.status === "editing"
+    ? { ...interrupted, segmentEdit: { ...interrupted.segmentEdit, status: "failed" as const } }
+    : interrupted;
+}
+
 /** Work that was running when the page closed cannot be resumed */
 export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
   return {
@@ -68,7 +77,7 @@ export function normalizeOnLoad(project: StoryboardProject): StoryboardProject {
       draftStatus: shot.draftStatus === "drafting" ? undefined : shot.draftStatus,
       video: shot.video?.status === "generating" ? { ...shot.video, status: "interrupted" } : shot.video,
     })),
-    film: project.film?.status === "generating" ? { ...project.film, status: "interrupted" } : project.film,
+    film: normalizeFilm(project.film),
   };
 }
 
