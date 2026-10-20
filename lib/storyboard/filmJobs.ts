@@ -289,7 +289,15 @@ export async function editFilmSegment(
     const edited = await trimClip(stored.blob);
     const segments = [...film.segments!];
     segments[index] = edited;
-    const joined = await joinParts(segments);
+    let joined = await joinParts(segments);
+    if (!joined && film.blob) {
+      // Omni's output can differ in small encoder settings; splice it into the film in one encoding pass
+      const { spliceEdit } = await import("@/lib/edit/splice");
+      const lengths = await Promise.all(film.segments!.map((p) => clipLength(p)));
+      const start = lengths.slice(0, index).reduce((a, b) => a + b, 0);
+      const total = lengths.reduce((a, b) => a + b, 0);
+      joined = await spliceEdit(film.blob, start, start + lengths[index], total, stored.blob);
+    }
     setFilm(ctx, (f) => ({
       ...f,
       segments,

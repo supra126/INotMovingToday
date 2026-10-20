@@ -192,10 +192,20 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       );
       if (!edited || token.stopped) return;
       setRunning({ progress: 100, stopped: false });
-      // The edited part goes back where it came from; the rest of the video is kept
-      const blob = whole ? edited : await spliceEdit(version.blob, from, to, seconds, edited);
+      // The edited part goes back where it came from; the rest of the video is kept.
+      // If it cannot be joined, the paid-for edit is still kept as a version on its own.
+      let blob = edited;
+      let joined = true;
+      if (!whole) {
+        try {
+          blob = await spliceEdit(version.blob, from, to, seconds, edited);
+        } catch {
+          joined = false;
+          setError(t("edit.joinFailed"));
+        }
+      }
       if (token.stopped) return;
-      const label = `${from.toFixed(1)}–${to.toFixed(1)}s：${editPromptLabel(instruction, region)}`;
+      const label = `${from.toFixed(1)}–${to.toFixed(1)}s：${editPromptLabel(instruction, region)}${joined ? "" : t("edit.partOnly")}`;
       const versions = [...session.versions, { blob, prompt: label, at: Date.now() }];
       commit({ ...session, versions, current: versions.length - 1 });
     } catch (err) {

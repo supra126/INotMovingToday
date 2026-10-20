@@ -498,6 +498,8 @@
     "removeImage": "Click to remove",
     "rangeLabel": "Part to edit: {{from}}–{{to}} s ({{span}} s of {{total}} s, at most {{max}} s at a time)",
     "rangeFrom": "Start",
-    "rangeTo": "End"
+    "rangeTo": "End",
+    "joinFailed": "The edited part could not be joined back into the video, so it is saved as its own version (just that part); download it and join it in an editor.",
+    "partOnly": " (this part only)"
   }
 }

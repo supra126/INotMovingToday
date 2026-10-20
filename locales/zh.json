@@ -498,6 +498,8 @@
     "removeImage": "點一下移除",
     "rangeLabel": "要改的範圍：{{from}}–{{to}} 秒（{{span}} 秒，全長 {{total}} 秒，一次最多 {{max}} 秒）",
     "rangeFrom": "開始",
-    "rangeTo": "結束"
+    "rangeTo": "結束",
+    "joinFailed": "改好的片段沒辦法接回原片，已先存成單獨一版（只有改過的那段），可以下載到剪輯軟體裡接。",
+    "partOnly": "（只有這段）"
   }
 }
