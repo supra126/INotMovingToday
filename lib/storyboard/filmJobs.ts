@@ -43,7 +43,8 @@ export function stopFilm(ctx: JobContext) {
  * Segments run one after another; a failure keeps the part already finished.
  */
 export async function generateFilm(ctx: JobContext, project: StoryboardProject, options: FilmOptions) {
-  if (runs.has(ctx.projectId)) return;
+  // A segment edit still running would land on the replaced film
+  if (runs.has(ctx.projectId) || project.film?.segmentEdit?.status === "editing") return;
   const plan = planFilm(activeShots(project.shots), options.seconds);
   if (plan.length === 0) return;
   const prompts = filmPrompts(project, plan, options);
@@ -87,7 +88,8 @@ export async function resumeFilm(ctx: JobContext, project: StoryboardProject) {
  * Prompts are rebuilt from the current storyboard, so edited rows take effect.
  */
 export async function redoFilmFrom(ctx: JobContext, project: StoryboardProject, from: number) {
-  if (runs.has(ctx.projectId) || !redoableFrom(project).includes(from)) return;
+  if (runs.has(ctx.projectId) || project.film?.segmentEdit?.status === "editing") return;
+  if (!redoableFrom(project).includes(from)) return;
   const film = project.film!;
   const plan = planFilm(activeShots(project.shots), film.options.seconds);
   const prompts = filmPrompts(project, plan, film.options);
@@ -183,15 +185,18 @@ async function runSegments(
       const range = i === 0 ? undefined : uploaded ? { from: context!.seconds } : { last: segment.seconds };
       segments = await withNewPart(segments, stored.blob, i, range);
       const film = segments?.length === i + 1 ? await joinParts(segments) : undefined;
-      filmSoFar = film;
       if (run.stopped) return;
+      // Without the joined film the segment did not really make it in (its video could not be downloaded,
+      // or cut, or joined); Google's own copy is no stand-in when the segment was made from an uploaded clip
+      if (!film) throw new Error("errors.videoGenerationFailed");
+      filmSoFar = film;
       sourceVideoUri = result.sourceVideoUri;
       duration += segment.seconds;
       const finished = i === plan.length - 1;
       setFilm(ctx, (f) => ({
         ...f,
-        ...stored,
-        ...(film ? { blob: film } : {}),
+        blob: film,
+        url: undefined,
         segments,
         sourceVideoUri,
         duration,
@@ -199,7 +204,6 @@ async function runSegments(
         progress: finished ? 100 : 0,
         status: finished ? "completed" : "generating",
       }));
-      if (!film && !sourceVideoUri && !finished) throw new Error("errors.videoGenerationFailed");
     }
   } catch (err) {
     if (run.stopped) return;
@@ -262,7 +266,8 @@ export async function editFilmSegment(
 ) {
   const film = project.film;
   const part = film?.segments?.[index];
-  if (!film || !part || !instruction.trim() || film.status === "generating" || film.segmentEdit?.status === "editing") return;
+  if (!film || !part || !instruction.trim() || runs.has(ctx.projectId)) return;
+  if (film.status === "generating" || film.segmentEdit?.status === "editing") return;
   const setEdit = (edit: FilmVideo["segmentEdit"], persist = true) => setFilm(ctx, (f) => ({ ...f, segmentEdit: edit }), persist);
   setEdit({ index, status: "editing", progress: 0 });
   try {
@@ -298,14 +303,19 @@ export async function editFilmSegment(
       const total = lengths.reduce((a, b) => a + b, 0);
       joined = await spliceEdit(film.blob, start, start + lengths[index], total, stored.blob);
     }
-    setFilm(ctx, (f) => ({
-      ...f,
-      segments,
-      ...(joined ? { blob: joined } : {}),
-      // Keep the original, not an earlier edit, so undo always returns to the generated part
-      segmentsBeforeEdit: { ...f.segmentsBeforeEdit, [index]: f.segmentsBeforeEdit?.[index] ?? part },
-      segmentEdit: undefined,
-    }));
+    setFilm(ctx, (f) =>
+      // The film was regenerated or redone while this edit ran: these parts belong to the old one
+      f.segments !== film.segments
+        ? { ...f, segmentEdit: { index, status: "failed", progress: 0, error: "errors.filmChanged" } }
+        : {
+            ...f,
+            segments,
+            ...(joined ? { blob: joined } : {}),
+            // Keep the original, not an earlier edit, so undo always returns to the generated part
+            segmentsBeforeEdit: { ...f.segmentsBeforeEdit, [index]: f.segmentsBeforeEdit?.[index] ?? part },
+            segmentEdit: undefined,
+          }
+    );
   } catch (err) {
     setEdit({ index, status: "failed", progress: 0, error: toDisplayError(err instanceof Error ? err.message : "") });
   }

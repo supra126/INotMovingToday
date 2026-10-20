@@ -229,3 +229,25 @@ describe("filmSegmentPrompt and the picked frame", () => {
     expect(text).toContain("指定的最終畫面");
   });
 });
+
+describe("planFilm within the per-segment bounds", () => {
+  it("stays within 10 s per segment when the target is too long for the shots", () => {
+    const plan = planFilm([row("s01", 3), row("s02", 3)], 30);
+    expect(plan.map((s) => s.seconds)).toEqual([10, 10]);
+    expect(filmSeconds(plan)).toBe(20);
+  });
+
+  it("stays at 3 s per segment when the target is too short for the shots", () => {
+    const plan = planFilm(Array.from({ length: 6 }, (_, i) => row(`s0${i + 1}`, 1)), 15);
+    expect(filmSeconds(plan)).toBe(18);
+  });
+
+  it("moves the seconds a clamped segment cannot take to the others", () => {
+    // 1 s and 9 s scaled to 20 would be 2 s and 18 s: the long one stops at 10, so the short one takes the rest
+    const plan = planFilm([row("s01", 1), row("s02", 9)], 20);
+    expect(plan.map((s) => s.seconds)).toEqual([10, 10]);
+    const longer = planFilm([row("s01", 1), row("s02", 4), row("s03", 5)], 20);
+    expect(filmSeconds(longer)).toBe(20);
+    expect(longer.every((s) => s.seconds >= 3 && s.seconds <= 10)).toBe(true);
+  });
+});

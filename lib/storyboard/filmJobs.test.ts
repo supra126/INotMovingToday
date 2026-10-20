@@ -21,7 +21,7 @@ vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cr
 // Each started job records its input and waits until the test settles it
 const job = vi.hoisted(() => ({
   calls: [] as { kind: "generate" | "extend" | "edit"; input: Record<string, unknown> }[],
-  settle: [] as ((outcome: "ok" | Error) => void)[],
+  settle: [] as ((outcome: "ok" | "unfetchable" | Error) => void)[],
 }));
 vi.mock("@/lib/video/job", () => {
   const start = (kind: "generate" | "extend" | "edit") =>
@@ -30,9 +30,11 @@ vi.mock("@/lib/video/job", () => {
       job.calls.push({ kind, input });
       const id = `job-${job.calls.length}`;
       hooks.onJobId?.(id);
-      const outcome = await new Promise<"ok" | Error>((resolve) => job.settle.push(resolve));
+      const outcome = await new Promise<"ok" | "unfetchable" | Error>((resolve) => job.settle.push(resolve));
       if (outcome instanceof Error) throw outcome;
-      return hooks.isCancelled() ? null : { videoUrl: `data:video/mp4;base64,${btoa(id)}`, sourceVideoUri: id };
+      // An URL that cannot be fetched, like an expired Files API link
+      const videoUrl = outcome === "unfetchable" ? "blob:expired" : `data:video/mp4;base64,${btoa(id)}`;
+      return hooks.isCancelled() ? null : { videoUrl, sourceVideoUri: id };
     };
   return { runVideoJob: start("generate"), runExtendJob: start("extend"), runEditJob: start("edit") };
 });
@@ -59,7 +61,7 @@ function harness(initial: StoryboardProject) {
 }
 
 // Let the latest job finish and the loop move on
-async function finishNext(outcome: "ok" | Error = "ok") {
+async function finishNext(outcome: "ok" | "unfetchable" | Error = "ok") {
   await tick();
   job.settle.shift()!(outcome);
   await tick();
@@ -279,5 +281,39 @@ describe("generateFilm", () => {
     await editing;
     expect(h.film()).toMatchObject({ status: "completed", segmentEdit: { index: 0, status: "failed" } });
     expect(await h.film().blob!.text()).toBe("all+from5");
+  });
+
+  it("does not call a film finished when its last segment could not be downloaded", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext("unfetchable");
+    await running;
+    // The first segment stays as the film so far; the second is reported failed, not done
+    expect(h.film()).toMatchObject({ status: "failed", done: 1 });
+    expect(await h.film().blob!.text()).toBe("all");
+  });
+
+  it("will not regenerate while a segment edit runs, and drops an edit whose film was replaced", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const first = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await first;
+
+    job.calls = [];
+    const editing = editFilmSegment(h.ctx, h.get(), 1, "改成綠燈", []);
+    await tick();
+    await generateFilm(h.ctx, h.get(), options);
+    expect(job.calls.map((c) => c.kind)).toEqual(["edit"]);
+
+    // The film is replaced behind the edit's back (e.g. another tab)
+    h.ctx.update((q) => ({ ...q, film: { ...q.film!, segments: [new Blob(["other"]), new Blob(["other"])] } }));
+    await finishNext();
+    await editing;
+    expect(h.film().segmentEdit).toMatchObject({ status: "failed", error: "errors.filmChanged" });
+    expect(await Promise.all(h.film().segments!.map((b) => b.text()))).toEqual(["other", "other"]);
   });
 });

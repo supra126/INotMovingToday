@@ -48,17 +48,34 @@ export function planFilm<T extends ScriptShot>(shots: T[], target?: number): Fil
   const factor = target && raw > 0 ? target / raw : 1;
   const scaled = (group: T[]) => rawSeconds(group) * factor;
   const groups: T[][] = shots.map((shot) => [shot]);
-  // Round so the segments add up to the rounded total (largest remainders get the spare seconds)
+  // Whole seconds within 3-10 per segment that add up to the target, or as close as the bounds allow.
+  // Rounding first and clamping after would change the total (two 3 s shots asked for 30 s gave 20 s
+  // shown as 30); here the bounds are applied first and the seconds left are moved to the best fits.
   const exact = groups.map(scaled);
-  const seconds = exact.map(Math.floor);
-  let spare = Math.round(exact.reduce((a, b) => a + b, 0)) - seconds.reduce((a, b) => a + b, 0);
-  for (const i of exact.map((_, i) => i).sort((a, b) => (exact[b] % 1) - (exact[a] % 1))) {
-    if (spare-- <= 0) break;
-    seconds[i] += 1;
+  const seconds = exact.map((e) => clamp(e));
+  let total = seconds.reduce((a, b) => a + b, 0);
+  // A chosen length is met as closely as the bounds allow; without one, the table's seconds stand,
+  // each kept within the bounds (a 2 s shot becomes 3 s without taking a second from the others)
+  const bounded = (e: number) => Math.max(SEGMENT_MIN, Math.min(SEGMENT_MAX, e));
+  const goal = target
+    ? Math.min(SEGMENT_MAX * groups.length, Math.max(SEGMENT_MIN * groups.length, Math.round(target)))
+    : Math.round(exact.reduce((a, e) => a + bounded(e), 0));
+  while (total !== goal) {
+    const up = total < goal;
+    // The segment furthest below (or above) its exact share that still has room
+    let best = -1;
+    for (let i = 0; i < seconds.length; i++) {
+      if (up ? seconds[i] >= SEGMENT_MAX : seconds[i] <= SEGMENT_MIN) continue;
+      const gap = exact[i] - seconds[i];
+      if (best < 0 || (up ? gap > exact[best] - seconds[best] : gap < exact[best] - seconds[best])) best = i;
+    }
+    if (best < 0) break;
+    seconds[best] += up ? 1 : -1;
+    total += up ? 1 : -1;
   }
   let start = 0;
   return groups.map((group, i) => {
-    const segment = { shots: group, seconds: clamp(seconds[i]), start };
+    const segment = { shots: group, seconds: seconds[i], start };
     start += segment.seconds;
     return segment;
   });

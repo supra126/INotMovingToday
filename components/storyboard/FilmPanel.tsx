@@ -148,6 +148,9 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
             {t("storyboard.film.total", { seconds: total, resolution })}
           </li>
         </ol>
+        {options.seconds !== undefined && total !== options.seconds && (
+          <p className="text-xs text-fg-muted">{t("storyboard.film.lengthCapped", { count: plan.length, chosen: options.seconds, seconds: total })}</p>
+        )}
         {!fits && (
           <p className="text-xs text-warning">{t("storyboard.film.outOfRange", { min: FILM_MIN_SECONDS, max: FILM_MAX_SECONDS, seconds: total })}</p>
         )}
@@ -209,19 +212,19 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
           <Button onClick={() => stopFilm(ctx(getApiKey("gemini") ?? ""))}>{t("storyboard.videos.stop")}</Button>
         ) : resumable && film ? (
           <>
-            <Button variant="primary" onClick={confirmResume}>
+            <Button variant="primary" disabled={editBusy} onClick={confirmResume}>
               {t("storyboard.film.resume", { n: film.done + 1 })}
               <span className="font-mono">
                 {formatUsd(videoCost(resumePlan.slice(film.done).reduce((sum, s) => sum + s.seconds, 0), film.options.resolution).amount)}
               </span>
             </Button>
-            <Button size="sm" variant="ghost" disabled={!fits} onClick={confirm}>
+            <Button size="sm" variant="ghost" disabled={!fits || editBusy} onClick={confirm}>
               {t("storyboard.film.regenerate")}
               <span className="font-mono">{formatUsd(cost.amount)}{cost.isMinimum ? "+" : ""}</span>
             </Button>
           </>
         ) : (
-          <Button variant="primary" disabled={!fits} onClick={confirm}>
+          <Button variant="primary" disabled={!fits || editBusy} onClick={confirm}>
             {film ? t("storyboard.film.regenerate") : t("storyboard.film.generate")}
             <span className="font-mono">{formatUsd(cost.amount)}{cost.isMinimum ? "+" : ""}</span>
           </Button>
@@ -263,7 +266,7 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
               <p className="text-xs text-fg-muted">{t("storyboard.film.redoHint")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {redoFrom.map((from) => (
-                  <Button key={from} size="sm" variant="ghost" onClick={() => confirmRedo(from)}>
+                  <Button key={from} size="sm" variant="ghost" disabled={editBusy} onClick={() => confirmRedo(from)}>
                     {t("storyboard.film.redoFrom", { n: from + 1, at: filmPlan[from].start })}
                   </Button>
                 ))}

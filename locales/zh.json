@@ -226,7 +226,8 @@
     "contentFilteredCopyright": "內容疑似涉及知名作品、角色或名人而被攔截。請把提示詞裡的角色名稱改成一般描述（例如「大野狼」改成「穿襯衫的灰狼」），或換一張圖",
     "videoGenerationUnknown": "影片生成完成但未產生影片，請嘗試使用不同的設定",
     "promptRequired": "請先輸入描述或取得 AI 建議",
-    "imageGenerationFailed": "分鏡圖生成失敗，請重試"
+    "imageGenerationFailed": "分鏡圖生成失敗，請重試",
+    "filmChanged": "這段修改期間成片被重做了，修改結果已作廢"
   },
   "workspace": {
     "draftButton": "AI 建議提示詞",
@@ -462,7 +463,8 @@
       "redoFrom": "從第 {{n}} 段（{{at}}s）重做",
       "transitionsHint": "想指定某個轉場，就在第 2 步分鏡表那一鏡的「轉場」欄寫具體做法，例如「鏡頭從纖維拉遠成面膜表面，再拉到女模臉上」；想在這裡直接換畫面就寫「直接切到下一個畫面」。只寫硬切、淡出或留空，就交給模型順滑過渡。",
       "editHint": "改其中一段：選段落，寫要改什麼、勾參考圖。只替換那一段，鏡頭和長度不變，可以還原。",
-      "productImage": "產品圖 {{n}}"
+      "productImage": "產品圖 {{n}}",
+      "lengthCapped": "{{count}} 鏡、每鏡 3–10 秒，做不到 {{chosen}} 秒，最接近的是 {{seconds}} 秒"
     },
     "edit": {
       "placeholder": "要改什麼？例如：把包裝換成參考圖 1 的產品；把燈光改成綠色；把背景的瓶子拿掉",
