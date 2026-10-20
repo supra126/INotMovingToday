@@ -8,12 +8,13 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { formatUsd, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { FILM_MAX_SECONDS, FILM_MIN_SECONDS, FILM_LENGTHS, FILM_RESOLUTIONS, filmSeconds, planFilm, type FilmOptions } from "@/lib/storyboard/film";
-import { canResumeFilm, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm } from "@/lib/storyboard/filmJobs";
+import { canResumeFilm, editFilmSegment, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm, undoFilmSegmentEdit } from "@/lib/storyboard/filmJobs";
 import { activeShots } from "@/lib/storyboard/shots";
 import type { FilmVideo } from "@/lib/storyboard/types";
 import type { CostRow } from "@/lib/storyboard/videoJobs";
 import type { AudioMode, VideoResolution } from "@/types";
 import { BatchCostConfirm } from "./BatchCostConfirm";
+import { EditVideoForm, type EditImageOption } from "./EditVideoForm";
 import type { StepProps } from "./types";
 
 const DEFAULT_OPTIONS: FilmOptions = { audioMode: "sfx", withText: false, resolution: "1080p" };
@@ -43,6 +44,8 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const film = project.film;
   const [options, setOptions] = useState<FilmOptions>({ ...DEFAULT_OPTIONS, ...film?.options });
   const [pending, setPending] = useState<{ rows: CostRow[]; run: (apiKey: string) => void } | null>(null);
+  /** Segment whose edit form is open */
+  const [editingSegment, setEditingSegment] = useState<number | null>(null);
   const videoRef = useFilmVideo(film);
 
   const tableSeconds = filmSeconds(planFilm(activeShots(project.shots)));
@@ -77,6 +80,25 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
   const confirmRedo = (from: number) => {
     if (film && requireApiKey())
       setPending({ rows: rowsFor(filmPlan, from, film.options.resolution), run: (key) => void redoFilmFrom(ctx(key), project, from) });
+  };
+
+  const segmentEdit = film?.segmentEdit;
+  const editBusy = segmentEdit?.status === "editing";
+  // Product photos and the segment's own frame are offered as reference images
+  const editImages = (index: number): EditImageOption[] => [
+    ...project.productImages.map((image, i) => ({ key: `product-${i}`, label: t("storyboard.film.productImage", { n: i + 1 }), blob: image.blob })),
+    ...(filmPlan[index]?.shots[0].finalImage
+      ? [{ key: "frame", label: filmPlan[index].shots[0].id, blob: filmPlan[index].shots[0].finalImage!.blob }]
+      : []),
+  ];
+  const confirmEdit = (index: number, instruction: string, images: Blob[]) => {
+    if (!film || !requireApiKey()) return;
+    const seconds = filmPlan[index]?.seconds ?? 5;
+    setEditingSegment(null);
+    setPending({
+      rows: [{ id: t("storyboard.film.segment", { n: index + 1 }), seconds, resolution: film.options.resolution, hasEnd: false }],
+      run: (key) => void editFilmSegment(ctx(key), project, index, instruction, images),
+    });
   };
 
   const baseName = `${project.name.trim() || "storyboard"}-${t("storyboard.film.fileSuffix")}`;
@@ -246,6 +268,52 @@ export function FilmPanel({ project, update, requireApiKey }: Pick<StepProps, "p
                   </Button>
                 ))}
               </div>
+            </div>
+          )}
+          {!!film.segments?.length && !generating && (
+            <div className="flex flex-col gap-1.5 rounded-[var(--radius-panel)] border border-line bg-panel px-3 py-2">
+              <p className="text-xs text-fg-muted">{t("storyboard.film.editHint")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {film.segments.map((_, i) => (
+                  <Button
+                    key={i}
+                    size="sm"
+                    variant={editingSegment === i ? "secondary" : "ghost"}
+                    disabled={editBusy}
+                    onClick={() => setEditingSegment(editingSegment === i ? null : i)}
+                  >
+                    {t("storyboard.film.segment", { n: i + 1 })}
+                  </Button>
+                ))}
+              </div>
+              {editingSegment !== null && (
+                <EditVideoForm
+                  key={editingSegment}
+                  options={editImages(editingSegment)}
+                  price={formatUsd(videoCost(filmPlan[editingSegment]?.seconds ?? 5, film.options.resolution).amount)}
+                  disabled={editBusy}
+                  onSubmit={(instruction, images) => confirmEdit(editingSegment, instruction, images)}
+                  onCancel={() => setEditingSegment(null)}
+                />
+              )}
+              {segmentEdit?.status === "editing" && (
+                <p className="font-mono text-xs text-fg">{t("storyboard.edit.editing", { n: segmentEdit.index + 1, progress: segmentEdit.progress })}</p>
+              )}
+              {segmentEdit?.status === "failed" && (
+                <p role="alert" className="text-xs text-danger">
+                  {t("storyboard.edit.failed", { n: segmentEdit.index + 1 })}
+                  {segmentEdit.error?.startsWith("errors.") ? t(segmentEdit.error) : segmentEdit.error}
+                </p>
+              )}
+              {Object.keys(film.segmentsBeforeEdit ?? {}).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.keys(film.segmentsBeforeEdit ?? {}).map((key) => (
+                    <Button key={key} size="sm" variant="ghost" disabled={editBusy} onClick={() => void undoFilmSegmentEdit(ctx(getApiKey("gemini") ?? ""), project, Number(key))}>
+                      {t("storyboard.edit.undo", { n: Number(key) + 1 })}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {!!film.segments?.length && !generating && (

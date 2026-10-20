@@ -8,7 +8,17 @@ import { formatUsd, sumCosts, videoCost } from "@/lib/pricing";
 import { getApiKey } from "@/lib/storage/api-key-storage";
 import { activeShots, isVideoOutdated, resolveSelectedShot, shotResolution } from "@/lib/storyboard/shots";
 import type { Shot } from "@/lib/storyboard/types";
-import { costRows, draftShotFields, extendShotVideo, generateShotVideos, redraftShotFields, stopShotVideos, type CostRow } from "@/lib/storyboard/videoJobs";
+import {
+  costRows,
+  draftShotFields,
+  editShotVideo,
+  extendShotVideo,
+  generateShotVideos,
+  redraftShotFields,
+  stopShotVideos,
+  undoShotVideoEdit,
+  type CostRow,
+} from "@/lib/storyboard/videoJobs";
 import { BatchCostConfirm } from "./BatchCostConfirm";
 import { FilmPanel } from "./FilmPanel";
 import { ShotRail } from "./ShotRail";
@@ -66,6 +76,20 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
       run: () => void extendShotVideo(jobCtx(apiKey), project, shot.id, prompt, seconds),
     });
   };
+
+  const confirmEdit = (shot: Shot, instruction: string, images: Blob[]) => {
+    const apiKey = requireApiKey();
+    if (!apiKey) return;
+    setPending({
+      rows: [{ id: shot.id, seconds: shot.video?.duration ?? shot.duration, resolution: shotResolution(shot, project), hasEnd: false }],
+      run: () => void editShotVideo(jobCtx(apiKey), project, shot.id, instruction, images),
+    });
+  };
+  // Product photos and the shot's own frame are offered as reference images
+  const editOptions = (shot: Shot) => [
+    ...project.productImages.map((image, i) => ({ key: `product-${i}`, label: t("storyboard.film.productImage", { n: i + 1 }), blob: image.blob })),
+    ...(shot.finalImage ? [{ key: "frame", label: shot.id, blob: shot.finalImage.blob }] : []),
+  ];
 
   const generating = project.shots.filter((s) => s.video?.status === "generating");
   const stop = (shotIds: string[]) => stopShotVideos({ projectId: project.id, update, apiKey: getApiKey("gemini") ?? "" }, shotIds);
@@ -146,6 +170,10 @@ export function ShotVideosStep({ project, update, requireApiKey, selectedShotId,
               ratio={project.ratio}
               onExtend={(prompt, seconds) => confirmExtend(selected, prompt, seconds)}
               onStop={() => stop([selected.id])}
+              editOptions={editOptions(selected)}
+              editPrice={formatUsd(videoCost(selected.video?.duration ?? selected.duration, shotResolution(selected, project)).amount)}
+              onEdit={(instruction, images) => confirmEdit(selected, instruction, images)}
+              onUndoEdit={() => undoShotVideoEdit({ projectId: project.id, update, apiKey: "" }, selected.id)}
             />
           )
         }

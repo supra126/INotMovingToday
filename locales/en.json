@@ -459,7 +459,23 @@
       "transitionsTable": "As in the storyboard",
       "redoHint": "Not happy with a transition? Redo from that segment to the end; earlier segments are kept and not paid again. Storyboard edits are applied.",
       "redoFrom": "Redo from segment {{n}} ({{at}}s)",
-      "transitionsHint": "To direct a transition, write it in that shot's Transition column in step 2, e.g. \"pull back from the fibers to the mask surface, then to her face\"; for a clean cut write \"直接切到下一個畫面\". A bare cut or fade, or blank, is left to the smooth rules."
+      "transitionsHint": "To direct a transition, write it in that shot's Transition column in step 2, e.g. \"pull back from the fibers to the mask surface, then to her face\"; for a clean cut write \"直接切到下一個畫面\". A bare cut or fade, or blank, is left to the smooth rules.",
+      "editHint": "Edit one segment: pick it, say what to change, tick reference images. Only that part is replaced, camera and length stay, and you can undo.",
+      "productImage": "Product {{n}}"
+    },
+    "edit": {
+      "placeholder": "What should change? e.g. swap the pack for the product in image 1; make the light green; remove the bottle in the back",
+      "imagesHint": "Pick up to {{max}} reference images; the order you pick them is image 1, 2, 3",
+      "upload": "Upload",
+      "textHint": "Camera moves, light and length are kept; small print on a swapped pack may not come out exact",
+      "submit": "Apply edit",
+      "open": "Edit",
+      "openSegment": "Edit",
+      "editing": "Editing segment {{n}} {{progress}}%",
+      "failed": "Editing segment {{n}} failed: ",
+      "undo": "Undo segment {{n}}",
+      "undoShot": "Undo the edit",
+      "shotEditing": "Editing"
     }
   }
 }
