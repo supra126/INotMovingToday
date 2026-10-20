@@ -91,6 +91,7 @@ pnpm-lock.yaml
 *.mov
 *.avi
 !public/**/*.mp4
+!lib/storyboard/__fixtures__/*.mp4
 !public/**/*.webm
 
 # Large binary files
