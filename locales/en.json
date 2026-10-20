@@ -33,7 +33,8 @@
     "apiSettingsConnected": "API Settings (Connected)",
     "github": "GitHub",
     "modeSingle": "Single shot",
-    "modeStoryboard": "Storyboard"
+    "modeStoryboard": "Storyboard",
+    "modeEdit": "Edit"
   },
   "guide": {
     "title": "How to use",
@@ -477,5 +478,26 @@
       "undoShot": "Undo the edit",
       "shotEditing": "Editing"
     }
+  },
+  "edit": {
+    "title": "Edit a video",
+    "intro": "Upload a video, say what to change, optionally box where on the frame, and add reference images. Up to {{max}} seconds are edited at a time; for a longer video you pick a part first. Camera moves and length are kept.",
+    "upload": "Upload a video",
+    "pickRange": "Part to edit: {{from}}–{{to}} s (of {{total}} s)",
+    "useRange": "Use this part",
+    "preparing": "Cutting…",
+    "original": "Original",
+    "version": "Version {{n}}",
+    "running": "Editing {{progress}}%",
+    "reset": "Use another video",
+    "resetConfirm": "Sure? All versions will be cleared",
+    "editsCurrent": "Edits are made on \"{{version}}\"",
+    "instruction": "What to change",
+    "region": "Where (optional)",
+    "capture": "Box on this frame",
+    "recapture": "Grab frame again",
+    "clearRegion": "Clear",
+    "regionHint": "Pause on the frame to change, press \"Box on this frame\", then drag a box. Without a box the text decides.",
+    "removeImage": "Click to remove"
   }
 }

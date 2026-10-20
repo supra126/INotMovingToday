@@ -11,7 +11,7 @@ import {
 } from "mediabunny";
 
 /** Which part of a clip to keep: from a time to the end, or the last few seconds */
-export type ClipRange = { from: number } | { last: number };
+export type ClipRange = { from: number; to?: number } | { last: number };
 
 /**
  * Keep part of a clip (all of it when no range) and encode it once in the browser.
@@ -24,7 +24,7 @@ export async function trimClip(blob: Blob, range?: ClipRange, quality = QUALITY_
   const conversion = await Conversion.init({
     input,
     output: new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target }),
-    trim: { start },
+    trim: { start, ...(range && "to" in range && range.to !== undefined ? { end: range.to } : {}) },
     video: { forceTranscode: true, codec: "avc", quality },
     audio: { forceTranscode: true, codec: "aac", bitrate: QUALITY_HIGH },
   });

@@ -33,7 +33,8 @@
     "apiSettingsConnected": "API 設定 (已連線)",
     "github": "GitHub",
     "modeSingle": "單鏡生成",
-    "modeStoryboard": "分鏡模式"
+    "modeStoryboard": "分鏡模式",
+    "modeEdit": "影片修改"
   },
   "guide": {
     "title": "使用方式",
@@ -477,5 +478,26 @@
       "undoShot": "還原成編輯前",
       "shotEditing": "編輯中"
     }
+  },
+  "edit": {
+    "title": "影片修改",
+    "intro": "上傳一支影片，說要改什麼、可以在畫面上框出位置、附上參考圖。一次最多改 {{max}} 秒，比較長的影片會先讓你選一段。鏡頭運動和長度會保留。",
+    "upload": "上傳影片",
+    "pickRange": "要改的片段：{{from}}–{{to}} 秒（全長 {{total}} 秒）",
+    "useRange": "使用這段",
+    "preparing": "裁切中…",
+    "original": "原片",
+    "version": "第 {{n}} 版",
+    "running": "修改中 {{progress}}%",
+    "reset": "換一支影片",
+    "resetConfirm": "確定換掉？目前的版本都會清掉",
+    "editsCurrent": "會以「{{version}}」為基礎修改",
+    "instruction": "要改什麼",
+    "region": "位置（選填）",
+    "capture": "抓目前畫面來框",
+    "recapture": "重抓畫面",
+    "clearRegion": "清除",
+    "regionHint": "先把影片停在要改的那一格，按「抓目前畫面來框」，再在圖上拖一個框。不框就照文字描述。",
+    "removeImage": "點一下移除"
   }
 }
