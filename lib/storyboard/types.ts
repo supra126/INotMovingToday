@@ -67,6 +67,8 @@ export interface ShotVideo {
   startFrame?: Blob;
   endFrame?: Blob;
   made?: VideoMadeWith;
+  /** The video before it was first edited, so the edit can be undone */
+  beforeEdit?: { blob?: Blob; url?: string; sourceVideoUri?: string; duration: number };
 }
 
 export interface Shot extends ScriptShot {
@@ -119,6 +121,10 @@ export interface FilmVideo {
    * video on every extension, so its own copy degrades; the film is joined from these instead.
    */
   segments?: Blob[];
+  /** A segment's part before it was first edited, by index, so the edit can be undone */
+  segmentsBeforeEdit?: Record<number, Blob>;
+  /** An edit of one segment that is running or failed; the film stays playable meanwhile */
+  segmentEdit?: { index: number; status: "editing" | "failed"; progress: number; error?: string };
   /** Text sent for each segment */
   prompts: string[];
   options: FilmOptions;

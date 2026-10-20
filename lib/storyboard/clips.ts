@@ -33,6 +33,16 @@ export async function trimClip(blob: Blob, range?: ClipRange, quality = QUALITY_
   return new Blob([target.buffer!], { type: "video/mp4" });
 }
 
+/** Length of a clip in seconds */
+export async function clipLength(blob: Blob): Promise<number> {
+  return new Input({ source: new BlobSource(blob), formats: ALL_FORMATS }).computeDuration();
+}
+
+/** A clip re-encoded small enough to upload (Omni edits clips of 10 s or less) */
+export async function uploadableClip(blob: Blob): Promise<Blob> {
+  return trimClip(blob, undefined, QUALITY_HIGH);
+}
+
 /** The last `seconds` of a clip, at a quality fine for context, and how long it really is */
 export async function tailClip(blob: Blob, seconds: number): Promise<{ blob: Blob; seconds: number }> {
   const tail = await trimClip(blob, { last: seconds }, QUALITY_HIGH);

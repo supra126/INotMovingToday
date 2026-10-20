@@ -37,6 +37,26 @@ export interface VideoExtensionParams {
   referenceImages?: string[];
 }
 
+/**
+ * Edit a video with an instruction, e.g. swap an object for the one in a reference image.
+ * Tested 2026-10-16: the camera move, lighting and timing are kept, the length stays the same;
+ * small printed text on a swapped product does not come out exact.
+ */
+export interface VideoEditParams {
+  /** What to change, in plain words; reference images are listed after it */
+  prompt: string;
+  /** Base64 MP4 of 10 s or less to edit */
+  sourceVideo?: string;
+  /** Or the Omni interaction id of a generated video (no length limit) */
+  sourceVideoUri?: string;
+  /** Base64 images the edit should use, up to 3 */
+  referenceImages?: string[];
+  ratio: VideoRatio;
+  resolution?: VideoResolution;
+  /** Seconds of the source, for the time estimate */
+  duration: number;
+}
+
 export interface VideoGenerationResult {
   jobId: string;
   estimatedTime: number; // seconds
@@ -75,4 +95,5 @@ export interface VideoGenerationProvider {
   cancelJob?(jobId: string): Promise<void>;
   /** Extend an existing video */
   extendVideo?(params: VideoExtensionParams): Promise<VideoGenerationResult>;
+  editVideo?(params: VideoEditParams): Promise<VideoGenerationResult>;
 }

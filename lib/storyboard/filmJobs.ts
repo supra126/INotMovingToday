@@ -1,6 +1,6 @@
 import { cropImageToRatio } from "@/lib/video/crop";
 import { toDisplayError } from "@/lib/video/errors";
-import { runExtendJob, runVideoJob, type VideoJobHooks } from "@/lib/video/job";
+import { runEditJob, runExtendJob, runVideoJob, type VideoJobHooks } from "@/lib/video/job";
 import { cancelVideoGeneration } from "@/services/videoService";
 import { FILM_MAX_SECONDS, filmSeconds, filmSegmentPrompt, planFilm, type FilmOptions, type FilmSegment } from "./film";
 import type { JobContext } from "./imageJobs";
@@ -93,7 +93,20 @@ export async function redoFilmFrom(ctx: JobContext, project: StoryboardProject, 
   const prompts = filmPrompts(project, plan, film.options);
   const kept = film.segments!.slice(0, from);
   const duration = plan.slice(0, from).reduce((sum, s) => sum + s.seconds, 0);
-  setFilm(ctx, (f) => ({ ...f, status: "generating", progress: 0, done: from, duration, segments: kept, prompts, error: undefined }));
+  // Edits of the segments being redone no longer apply
+  const beforeEdit = Object.fromEntries(Object.entries(film.segmentsBeforeEdit ?? {}).filter(([i]) => Number(i) < from));
+  setFilm(ctx, (f) => ({
+    ...f,
+    status: "generating",
+    progress: 0,
+    done: from,
+    duration,
+    segments: kept,
+    segmentsBeforeEdit: beforeEdit,
+    segmentEdit: undefined,
+    prompts,
+    error: undefined,
+  }));
   await runSegments(ctx, project, film.options, plan, prompts, {
     done: from,
     duration,
@@ -234,4 +247,72 @@ async function joinParts(parts: Blob[]): Promise<Blob | undefined> {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Edit one finished segment with an instruction and optional images (e.g. swap the pack for the real one).
+ * Only that part is replaced and the film is joined again; the motion is kept, so the seams still match.
+ */
+export async function editFilmSegment(
+  ctx: JobContext,
+  project: StoryboardProject,
+  index: number,
+  instruction: string,
+  images: Blob[]
+) {
+  const film = project.film;
+  const part = film?.segments?.[index];
+  if (!film || !part || !instruction.trim() || film.status === "generating" || film.segmentEdit?.status === "editing") return;
+  const setEdit = (edit: FilmVideo["segmentEdit"], persist = true) => setFilm(ctx, (f) => ({ ...f, segmentEdit: edit }), persist);
+  setEdit({ index, status: "editing", progress: 0 });
+  try {
+    const { clipLength, trimClip, uploadableClip } = await import("./clips");
+    const upload = await uploadableClip(part);
+    const result = await runEditJob(
+      {
+        prompt: instruction,
+        sourceVideo: await blobToBase64(upload),
+        referenceImages: await Promise.all(images.slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))),
+        ratio: project.ratio,
+        resolution: film.options.resolution,
+        duration: Math.round(await clipLength(part)),
+      },
+      {
+        apiKey: ctx.apiKey,
+        isCancelled: () => false,
+        onProgress: (progress) => setEdit({ index, status: "editing", progress }, false),
+      }
+    );
+    const stored = result && (await toStoredVideo(result.videoUrl));
+    if (!stored?.blob) throw new Error("errors.videoGenerationFailed");
+    // Same encoder settings as the other parts, so the film joins without re-encoding
+    const edited = await trimClip(stored.blob);
+    const segments = [...film.segments!];
+    segments[index] = edited;
+    const joined = await joinParts(segments);
+    setFilm(ctx, (f) => ({
+      ...f,
+      segments,
+      ...(joined ? { blob: joined } : {}),
+      // Keep the original, not an earlier edit, so undo always returns to the generated part
+      segmentsBeforeEdit: { ...f.segmentsBeforeEdit, [index]: f.segmentsBeforeEdit?.[index] ?? part },
+      segmentEdit: undefined,
+    }));
+  } catch (err) {
+    setEdit({ index, status: "failed", progress: 0, error: toDisplayError(err instanceof Error ? err.message : "") });
+  }
+}
+
+/** Put a segment back the way it was generated */
+export async function undoFilmSegmentEdit(ctx: JobContext, project: StoryboardProject, index: number) {
+  const film = project.film;
+  const original = film?.segmentsBeforeEdit?.[index];
+  if (!film?.segments || !original || film.status === "generating") return;
+  const segments = [...film.segments];
+  segments[index] = original;
+  const joined = await joinParts(segments);
+  setFilm(ctx, (f) => {
+    const rest = Object.fromEntries(Object.entries(f.segmentsBeforeEdit ?? {}).filter(([i]) => Number(i) !== index));
+    return { ...f, segments, ...(joined ? { blob: joined } : {}), segmentsBeforeEdit: rest, segmentEdit: undefined };
+  });
 }

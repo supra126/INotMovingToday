@@ -1,5 +1,5 @@
-import { checkVideoStatus, extendVideo, startVideoGeneration } from "@/services/videoService";
-import type { VideoExtensionParams, VideoGenerationParams } from "@/services/video-providers/types";
+import { checkVideoStatus, editVideo, extendVideo, startVideoGeneration } from "@/services/videoService";
+import type { VideoEditParams, VideoExtensionParams, VideoGenerationParams } from "@/services/video-providers/types";
 import type { AudioMode, VideoRatio, VideoResolution } from "@/types";
 import { cropImageToRatio } from "./crop";
 
@@ -91,6 +91,15 @@ export async function runVideoJob(input: VideoJobInput, hooks: VideoJobHooks): P
  */
 export async function runExtendJob(params: VideoExtensionParams, hooks: VideoJobHooks): Promise<VideoJobResult | null> {
   const job = await extendVideo(params, hooks.apiKey);
+  hooks.onJobId?.(job.jobId);
+  return pollUntilDone(job.jobId, hooks);
+}
+
+/**
+ * Edit a video and poll the edit to the end
+ */
+export async function runEditJob(params: VideoEditParams, hooks: VideoJobHooks): Promise<VideoJobResult | null> {
+  const job = await editVideo(params, hooks.apiKey);
   hooks.onJobId?.(job.jobId);
   return pollUntilDone(job.jobId, hooks);
 }

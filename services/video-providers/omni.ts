@@ -16,6 +16,7 @@ import type {
   VideoJobStatus,
   ProviderCapabilities,
   VideoExtensionParams,
+  VideoEditParams,
 } from "./types";
 import { omniLogger as logger } from "@/lib/logger";
 import { AUDIO_DIRECTION } from "@/lib/ai/prompts";
@@ -264,6 +265,37 @@ export class OmniProvider implements VideoGenerationProvider {
     });
 
     return this.trackJob(interaction.id, duration);
+  }
+
+  /**
+   * Edit a video: an uploaded clip, or a generated one by its interaction id.
+   * Reference images are named <IMAGE_REF_n> in the order they are sent.
+   */
+  async editVideo(params: VideoEditParams): Promise<VideoGenerationResult> {
+    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const images = (params.referenceImages ?? []).slice(0, 3);
+    const names = images.map((_, i) => `參考圖 ${i + 1} = <IMAGE_REF_${i}>`).join("；");
+    // The docs advise short edit prompts; "keep everything else" stops unrelated changes
+    const text = [params.prompt.trim(), names, "其他部分保持不變。"].filter(Boolean).join("\n");
+
+    const interaction = await this.ai.interactions.create({
+      model: OMNI_MODEL,
+      ...(uploaded ? {} : { previous_interaction_id: params.sourceVideoUri }),
+      input: [
+        ...(uploaded ? [{ type: "video" as const, uri: uploaded }] : []),
+        ...images.map(imagePart),
+        { type: "text", text },
+      ],
+      response_format: {
+        type: "video",
+        aspect_ratio: params.ratio === "9:16" ? "9:16" : "16:9",
+        resolution: params.resolution || "720p",
+      },
+      background: true,
+      store: true,
+    });
+
+    return this.trackJob(interaction.id, params.duration);
   }
 
   /** Upload a clip through the Files API and wait until Omni can read it */

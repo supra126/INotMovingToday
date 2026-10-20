@@ -11,6 +11,8 @@ vi.mock("./clips", () => ({
   trimClip: async (_blob: Blob, range?: { from: number } | { last: number }) =>
     new Blob([!range ? "all" : "from" in range ? `from${range.from}` : `last${range.last}`]),
   tailClip: async (blob: Blob) => ({ blob: new Blob([`tail(${await blob.text()})`]), seconds: 5 }),
+  uploadableClip: async (blob: Blob) => new Blob([`up(${await blob.text()})`]),
+  clipLength: async () => 10,
 }));
 vi.mock("./export", () => ({
   concatVideos: async (blobs: Blob[]) => new Blob([(await Promise.all(blobs.map((b) => b.text()))).join("+")]),
@@ -18,11 +20,11 @@ vi.mock("./export", () => ({
 vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
 // Each started job records its input and waits until the test settles it
 const job = vi.hoisted(() => ({
-  calls: [] as { kind: "generate" | "extend"; input: Record<string, unknown> }[],
+  calls: [] as { kind: "generate" | "extend" | "edit"; input: Record<string, unknown> }[],
   settle: [] as ((outcome: "ok" | Error) => void)[],
 }));
 vi.mock("@/lib/video/job", () => {
-  const start = (kind: "generate" | "extend") =>
+  const start = (kind: "generate" | "extend" | "edit") =>
     async (input: Record<string, unknown>, hooks: { isCancelled: () => boolean; onJobId?: (id: string) => void }) => {
       if (hooks.isCancelled()) return null;
       job.calls.push({ kind, input });
@@ -32,9 +34,9 @@ vi.mock("@/lib/video/job", () => {
       if (outcome instanceof Error) throw outcome;
       return hooks.isCancelled() ? null : { videoUrl: `data:video/mp4;base64,${btoa(id)}`, sourceVideoUri: id };
     };
-  return { runVideoJob: start("generate"), runExtendJob: start("extend") };
+  return { runVideoJob: start("generate"), runExtendJob: start("extend"), runEditJob: start("edit") };
 });
-import { canResumeFilm, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm } from "./filmJobs";
+import { canResumeFilm, editFilmSegment, generateFilm, redoFilmFrom, redoableFrom, resumeFilm, stopFilm, undoFilmSegmentEdit } from "./filmJobs";
 import { newProject, toShot } from "./shots";
 import type { StoryboardProject } from "./types";
 
@@ -233,5 +235,49 @@ describe("generateFilm", () => {
     await finishNext();
     await running;
     expect(job.calls[1].input.referenceImages).toEqual(["cropped:img2"]);
+  });
+
+  it("edits one segment, rejoins the film, and can undo it", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await running;
+    expect(await h.film().blob!.text()).toBe("all+from5");
+
+    job.calls = [];
+    const editing = editFilmSegment(h.ctx, h.get(), 1, "把包裝換成參考圖的產品", [new Blob(["product"])]);
+    await tick();
+    expect(h.film().segmentEdit).toMatchObject({ index: 1, status: "editing" });
+    await finishNext();
+    await editing;
+    expect(job.calls[0]).toMatchObject({
+      kind: "edit",
+      input: { prompt: "把包裝換成參考圖的產品", sourceVideo: btoa("up(from5)"), referenceImages: ["cropped:product"], duration: 10 },
+    });
+    // The edited part replaces only segment 2
+    expect(await Promise.all(h.film().segments!.map((b) => b.text()))).toEqual(["all", "all"]);
+    expect(await h.film().blob!.text()).toBe("all+all");
+    expect(await h.film().segmentsBeforeEdit![1].text()).toBe("from5");
+    expect(h.film().segmentEdit).toBeUndefined();
+
+    await undoFilmSegmentEdit(h.ctx, h.get(), 1);
+    expect(await h.film().blob!.text()).toBe("all+from5");
+    expect(h.film().segmentsBeforeEdit).toEqual({});
+  });
+
+  it("keeps the film when an edit fails", async () => {
+    const p = project([10, 10]);
+    const h = harness(p);
+    const running = generateFilm(h.ctx, p, options);
+    await finishNext();
+    await finishNext();
+    await running;
+    const editing = editFilmSegment(h.ctx, h.get(), 0, "改成綠燈", []);
+    await finishNext(new Error("500 There was a problem processing your request"));
+    await editing;
+    expect(h.film()).toMatchObject({ status: "completed", segmentEdit: { index: 0, status: "failed" } });
+    expect(await h.film().blob!.text()).toBe("all+from5");
   });
 });
