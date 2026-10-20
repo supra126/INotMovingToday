@@ -7,6 +7,7 @@ import {
   Mp4OutputFormat,
   Output,
   QUALITY_HIGH,
+  QUALITY_MEDIUM,
   QUALITY_VERY_HIGH,
 } from "mediabunny";
 
@@ -38,13 +39,47 @@ export async function clipLength(blob: Blob): Promise<number> {
   return new Input({ source: new BlobSource(blob), formats: ALL_FORMATS }).computeDuration();
 }
 
-/** A clip re-encoded small enough to upload (Omni edits clips of 10 s or less) */
-export async function uploadableClip(blob: Blob): Promise<Blob> {
-  return trimClip(blob, undefined, QUALITY_HIGH);
+// Short side of clips sent to Omni as input. Omni only reads them; the output resolution is set separately.
+// A detailed 10 s clip at 1080p came to 21 MB as base64, over the 20 MB request limit (2026-10-20).
+const UPLOAD_SHORT_SIDE = 720;
+
+/** Encode part of a clip small enough to upload: at most 720p, medium quality */
+async function encodeForUpload(blob: Blob, range?: ClipRange): Promise<Blob> {
+  const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+  const track = await input.getPrimaryVideoTrack();
+  if (!track) throw new Error("errors.unsupportedVideo");
+  const short = Math.min(track.displayWidth, track.displayHeight);
+  const scale = Math.min(1, UPLOAD_SHORT_SIDE / short);
+  // H.264 needs even sizes
+  const even = (n: number) => Math.max(2, Math.round((n * scale) / 2) * 2);
+  const start = !range ? 0 : "from" in range ? range.from : Math.max(0, (await input.computeDuration()) - range.last);
+  const target = new BufferTarget();
+  const conversion = await Conversion.init({
+    input,
+    output: new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target }),
+    trim: { start, ...(range && "to" in range && range.to !== undefined ? { end: range.to } : {}) },
+    video: {
+      forceTranscode: true,
+      codec: "avc",
+      quality: QUALITY_MEDIUM,
+      width: even(track.displayWidth),
+      height: even(track.displayHeight),
+      fit: "fill",
+    },
+    audio: { forceTranscode: true, codec: "aac", bitrate: QUALITY_MEDIUM },
+  });
+  if (!conversion.isValid) throw new Error("errors.mergeMismatch");
+  await conversion.execute();
+  return new Blob([target.buffer!], { type: "video/mp4" });
 }
 
-/** The last `seconds` of a clip, at a quality fine for context, and how long it really is */
+/** A clip re-encoded small enough to upload (Omni edits clips of 10 s or less) */
+export async function uploadableClip(blob: Blob): Promise<Blob> {
+  return encodeForUpload(blob);
+}
+
+/** The last `seconds` of a clip, small enough to upload, and how long it really is */
 export async function tailClip(blob: Blob, seconds: number): Promise<{ blob: Blob; seconds: number }> {
-  const tail = await trimClip(blob, { last: seconds }, QUALITY_HIGH);
+  const tail = await encodeForUpload(blob, { last: seconds });
   return { blob: tail, seconds: await new Input({ source: new BlobSource(tail), formats: ALL_FORMATS }).computeDuration() };
 }
