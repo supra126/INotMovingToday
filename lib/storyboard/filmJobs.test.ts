@@ -17,7 +17,7 @@ vi.mock("./clips", () => ({
 vi.mock("./export", () => ({
   concatVideos: async (blobs: Blob[]) => new Blob([(await Promise.all(blobs.map((b) => b.text()))).join("+")]),
 }));
-vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
+vi.mock("@/lib/video/crop", () => ({ referenceImageForRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
 // Each started job records its input and waits until the test settles it
 const job = vi.hoisted(() => ({
   calls: [] as { kind: "generate" | "extend" | "edit"; input: Record<string, unknown> }[],
