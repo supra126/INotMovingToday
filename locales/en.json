@@ -483,7 +483,7 @@
   },
   "edit": {
     "title": "Edit a video",
-    "intro": "Upload a video, pick the part to change (up to {{max}} seconds at a time, anywhere in it), say what to change, optionally box where, and add reference images. The edited part goes back in place and the rest stays; edit it part by part.",
+    "intro": "Upload a video, pick the range to change (up to {{max}} s, anywhere in it; over {{piece}} s it is edited in parts and joined back), say what to change, box where, and add images. The edited part goes back in place and the rest stays as is; edit one part after another.",
     "upload": "Upload a video",
     "original": "Original",
     "version": "Version {{n}}",
@@ -498,10 +498,52 @@
     "clearRegion": "Clear",
     "regionHint": "Pause on the frame to change, press \"Box on this frame\", then drag a box. Without a box the text decides.",
     "removeImage": "Click to remove",
-    "rangeLabel": "Part to edit: {{from}}–{{to}} s ({{span}} s of {{total}} s, at most {{max}} s at a time)",
+    "rangeLabel": "Range to edit: {{from}}–{{to}} s ({{span}} s of {{total}} s, up to {{max}} s)",
     "rangeFrom": "Start",
     "rangeTo": "End",
     "joinFailed": "The edited part could not be joined back into the video, so it is saved as its own version (just that part); download it and join it in an editor.",
-    "partOnly": " (this part only)"
+    "partOnly": " (this part only)",
+    "runningPiece": "Editing part {{piece}}/{{pieces}} {{progress}}%",
+    "piecesHint": "Over 10 s, the range is edited as {{pieces}} parts (about {{seconds}} s each) and joined back, paid {{pieces}} times. Parts may look slightly different; High similarity is the steadiest.",
+    "piecesRescoreHint": " New music is scored per part too, so it changes at each join.",
+    "piecesDone": " (only {{done}}/{{total}} parts done)",
+    "similarityLabel": "Similarity",
+    "similarity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "similarityDesc": {
+      "high": "Keep the framing, camera, scene and light; change only what you asked.",
+      "medium": "Keep the camera, pacing, light and colors; redesign the scene, background and props.",
+      "low": "Keep only the pacing and mood; reimagine the scene, light, colors and framing."
+    },
+    "rescore": "New music",
+    "rescoreHint": "Drop the video's own sound and let the AI score new music (its sound effects and voices are replaced too).",
+    "mode": "Mode",
+    "modeEdit": "Edit",
+    "modeReference": "From reference",
+    "modeEditHint": "Change part of the video; it keeps its length and goes back in place.",
+    "modeReferenceHint": "AI watches the picked range and writes a new timecoded script at your similarity and length; read and edit it, then generate a new video.",
+    "referenceRangeLabel": "Reference: {{from}}–{{to}} s ({{span}} s of {{total}} s, up to {{max}} s)",
+    "referencePlaceholder": "e.g. the product only in the last 5 s; more splashes",
+    "outputLength": "Output length",
+    "referencePiecesHint": "One generation makes up to 10 s, so it is cut at shot boundaries into {{count}} parts ({{seconds}} s) and joined, each paid.",
+    "referenceSubmit": "2. Generate from script",
+    "referenceLabel": "From {{from}}–{{to}}s, {{seconds}} s: ",
+    "referenceInstruction": "What you want (optional)",
+    "referenceSimilarityDesc": {
+      "high": "Same shot order, content and camera as the reference; only the hero changes.",
+      "medium": "The reference's colors, light and pacing, with new shots.",
+      "low": "Only the reference's colors and mood; everything else is new."
+    },
+    "referenceCurrent": "Takes after “{{version}}”",
+    "referenceMusicHint": "The new video always gets its own sound, never the reference's; on = effects with music, off = effects only.",
+    "planWrite": "1. Write script",
+    "planRewrite": "Rewrite script",
+    "planWriting": "AI is watching and writing…",
+    "planLabel": "Script ({{seconds}} s, edit freely)",
+    "planHint": "One shot per line as “start–end s: what”; the first line is the overall style. Generation follows it exactly.",
+    "planInvalid": "Needs at least one “start–end s: what” line, {{min}}–{{max}} s in total."
   }
 }

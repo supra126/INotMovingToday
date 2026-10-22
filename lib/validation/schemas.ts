@@ -27,6 +27,7 @@ export const EditVideoParamsSchema = z.object({
   ratio: VideoRatioSchema,
   resolution: VideoResolutionSchema.optional(),
   duration: z.number().min(1).max(30),
+  keepRest: z.boolean().optional(),
 }).refine((p) => p.sourceVideo || p.sourceVideoUri, "Source video is required");
 
 // Extend video params schema

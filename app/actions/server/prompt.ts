@@ -3,6 +3,8 @@
 import { toActionResult, type ActionResult } from "@/lib/action-result";
 import { GeminiClient, parseThinkingLevel } from "@/lib/ai/gemini-client";
 import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
+import type { ReferencePlanInput } from "@/lib/ai/reference-prompts";
+import type { Timeline } from "@/lib/edit/timeline";
 import type { PromptDraft, PromptFields } from "@/types";
 
 /**
@@ -41,4 +43,18 @@ export async function composePromptAction(
   apiKey?: string
 ): Promise<ActionResult<string>> {
   return toActionResult(() => createClient(apiKey).composePrompt(fields, ctx));
+}
+
+/**
+ * Watch a reference video and write a timecoded plan for a new video.
+ * Base64 strings travel inside objects: React counts strings placed straight in an array toward a
+ * 1,000,000-slot limit and refused a 5 MB video passed as a plain argument (2026-10-22)
+ */
+export async function planFromReferenceAction(
+  request: { video: string; images: { data: string }[]; input: ReferencePlanInput },
+  apiKey?: string
+): Promise<ActionResult<Timeline>> {
+  return toActionResult(() =>
+    createClient(apiKey).planFromReference(request.video, request.images.map((image) => image.data), request.input)
+  );
 }

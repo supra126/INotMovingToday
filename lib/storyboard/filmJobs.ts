@@ -1,4 +1,4 @@
-import { cropImageToRatio } from "@/lib/video/crop";
+import { referenceImageForRatio } from "@/lib/video/crop";
 import { toDisplayError } from "@/lib/video/errors";
 import { runEditJob, runExtendJob, runVideoJob, type VideoJobHooks } from "@/lib/video/job";
 import { cancelVideoGeneration } from "@/services/videoService";
@@ -162,7 +162,7 @@ async function runSegments(
         result = await runVideoJob({ ...base, duration: segment.seconds, startImage: frame }, hooks);
       } else {
         const referenceImages = await Promise.all(
-          [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))
+          [...(frame ? [frame] : []), ...products].slice(0, 3).map((image) => referenceImageForRatio(image, project.ratio))
         );
         const extend = (source: { sourceVideo: string } | { sourceVideoUri: string }) =>
           runExtendJob({ ...base, ...source, extensionDuration: segment.seconds, referenceImages }, hooks);
@@ -277,7 +277,7 @@ export async function editFilmSegment(
       {
         prompt: instruction,
         sourceVideo: await blobToBase64(upload),
-        referenceImages: await Promise.all(images.slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))),
+        referenceImages: await Promise.all(images.slice(0, 3).map((image) => referenceImageForRatio(image, project.ratio))),
         ratio: project.ratio,
         resolution: film.options.resolution,
         duration: Math.round(await clipLength(part)),

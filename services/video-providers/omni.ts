@@ -276,7 +276,8 @@ export class OmniProvider implements VideoGenerationProvider {
     const images = (params.referenceImages ?? []).slice(0, 3);
     const names = images.map((_, i) => `參考圖 ${i + 1} = <IMAGE_REF_${i}>`).join("；");
     // The docs advise short edit prompts; "keep everything else" stops unrelated changes
-    const text = [params.prompt.trim(), names, "其他部分保持不變。"].filter(Boolean).join("\n");
+    const keep = params.keepRest === false ? "" : "其他部分保持不變。";
+    const text = [params.prompt.trim(), names, keep].filter(Boolean).join("\n");
 
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,

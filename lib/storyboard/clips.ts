@@ -43,8 +43,8 @@ export async function clipLength(blob: Blob): Promise<number> {
 // A detailed 10 s clip at 1080p came to 21 MB as base64, over the 20 MB request limit (2026-10-20).
 const UPLOAD_SHORT_SIDE = 720;
 
-/** Encode part of a clip small enough to upload: at most 720p, medium quality */
-async function encodeForUpload(blob: Blob, range?: ClipRange): Promise<Blob> {
+/** Encode part of a clip small enough to upload: at most 720p, medium quality; `mute` drops the sound */
+async function encodeForUpload(blob: Blob, range?: ClipRange, mute = false): Promise<Blob> {
   const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
   const track = await input.getPrimaryVideoTrack();
   if (!track) throw new Error("errors.unsupportedVideo");
@@ -66,16 +66,19 @@ async function encodeForUpload(blob: Blob, range?: ClipRange): Promise<Blob> {
       height: even(track.displayHeight),
       fit: "fill",
     },
-    audio: { forceTranscode: true, codec: "aac", bitrate: QUALITY_MEDIUM },
+    audio: mute ? { discard: true } : { forceTranscode: true, codec: "aac", bitrate: QUALITY_MEDIUM },
   });
   if (!conversion.isValid) throw new Error("errors.mergeMismatch");
   await conversion.execute();
   return new Blob([target.buffer!], { type: "video/mp4" });
 }
 
-/** A clip re-encoded small enough to upload (Omni edits clips of 10 s or less) */
-export async function uploadableClip(blob: Blob): Promise<Blob> {
-  return encodeForUpload(blob);
+/**
+ * A clip re-encoded small enough to upload (Omni edits clips of 10 s or less).
+ * Muted when the edit should score new music: Omni keeps a clip's own sound and ignores "replace the music" (2026-10-21).
+ */
+export async function uploadableClip(blob: Blob, mute = false): Promise<Blob> {
+  return encodeForUpload(blob, undefined, mute);
 }
 
 /** The last `seconds` of a clip, small enough to upload, and how long it really is */

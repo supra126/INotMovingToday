@@ -1,7 +1,7 @@
 import { checkVideoStatus, editVideo, extendVideo, startVideoGeneration } from "@/services/videoService";
 import type { VideoEditParams, VideoExtensionParams, VideoGenerationParams } from "@/services/video-providers/types";
 import type { AudioMode, VideoRatio, VideoResolution } from "@/types";
-import { cropImageToRatio } from "./crop";
+import { cropImageToRatio, referenceImageForRatio } from "./crop";
 
 const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
@@ -77,7 +77,7 @@ export async function runVideoJob(input: VideoJobInput, hooks: VideoJobHooks): P
     params.firstFrameImage = await crop(input.startImage);
     if (input.endImage) params.lastFrameImage = await crop(input.endImage);
   } else if (input.referenceImages?.length) {
-    params.referenceImages = await Promise.all(input.referenceImages.map(crop));
+    params.referenceImages = await Promise.all(input.referenceImages.map((image) => referenceImageForRatio(image, input.ratio)));
   }
   if (hooks.isCancelled()) return null;
 

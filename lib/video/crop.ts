@@ -1,10 +1,10 @@
 import type { VideoRatio } from "@/types";
 
 /**
- * Crop and resize image to fit target aspect ratio (cover mode)
- * Returns base64 encoded JPEG
+ * Crop and resize image to fit target aspect ratio (cover mode), or with "contain" keep the whole
+ * image and pad it with white. Returns base64 encoded JPEG
  */
-export async function cropImageToRatio(file: Blob, targetRatio: VideoRatio): Promise<string> {
+export async function cropImageToRatio(file: Blob, targetRatio: VideoRatio, fit: "cover" | "contain" = "cover"): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -66,12 +66,22 @@ export async function cropImageToRatio(file: Blob, targetRatio: VideoRatio): Pro
         return;
       }
 
-      // Draw cropped image onto canvas
-      ctx.drawImage(
-        img,
-        cropX, cropY, cropWidth, cropHeight,  // Source rectangle
-        0, 0, outWidth, outHeight              // Destination rectangle
-      );
+      if (fit === "contain") {
+        // Whole image, centered on white
+        const scale = Math.min(outWidth / imgWidth, outHeight / imgHeight);
+        const w = imgWidth * scale;
+        const h = imgHeight * scale;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, outWidth, outHeight);
+        ctx.drawImage(img, (outWidth - w) / 2, (outHeight - h) / 2, w, h);
+      } else {
+        // Draw cropped image onto canvas
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight,  // Source rectangle
+          0, 0, outWidth, outHeight              // Destination rectangle
+        );
+      }
 
       // Convert to base64 JPEG
       canvas.toBlob(
@@ -101,4 +111,13 @@ export async function cropImageToRatio(file: Blob, targetRatio: VideoRatio): Pro
 
     img.src = url;
   });
+}
+
+/**
+ * A reference image (a product photo, a frame) for Omni: the whole image, padded to the video's ratio.
+ * Cropping cut the sides off a square product photo (a 9:16 crop keeps the middle 56%), so Omni never
+ * saw the full pack and made up the missing text (2026-10-21). A frame already in the ratio is unchanged.
+ */
+export function referenceImageForRatio(file: Blob, targetRatio: VideoRatio): Promise<string> {
+  return cropImageToRatio(file, targetRatio, "contain");
 }
