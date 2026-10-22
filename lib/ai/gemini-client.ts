@@ -24,6 +24,8 @@ import {
   type ScriptReviseInput,
   type ShotPolishInput,
 } from "./storyboard-prompts";
+import { buildReferencePlanPrompt, parseReferencePlan, type ReferencePlanInput } from "./reference-prompts";
+import type { Timeline } from "@/lib/edit/timeline";
 import { geminiLogger as logger } from "@/lib/logger";
 
 const MODEL_NAME = "gemini-3.8-flash";
@@ -191,6 +193,18 @@ export class GeminiClient {
       throw new Error("Failed to parse AI response: missing subject");
     }
     return { summary: parsed.summary?.trim() ?? "", fields };
+  }
+
+  /**
+   * Watch a reference video (base64 MP4) and write a timecoded plan for a new video of the requested length
+   */
+  async planFromReference(video: string, images: string[], input: ReferencePlanInput): Promise<Timeline> {
+    const parts: Part[] = [
+      { inlineData: { mimeType: "video/mp4", data: video } },
+      ...images.map((data) => ({ inlineData: { mimeType: data.startsWith("iVBOR") ? "image/png" : "image/jpeg", data } })),
+    ];
+    const text = await this.generateJson(buildReferencePlanPrompt(input), parts);
+    return parseReferencePlan(this.parse<unknown>(text), input.seconds);
   }
 
   /**
