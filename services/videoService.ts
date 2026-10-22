@@ -1,5 +1,7 @@
 import { unwrapActionResult } from "@/lib/action-result";
 import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
+import type { ReferencePlanInput } from "@/lib/ai/reference-prompts";
+import type { Timeline } from "@/lib/edit/timeline";
 import type { PromptDraft, PromptFields } from "@/types";
 import type { VideoEditParams, VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
 
@@ -32,6 +34,20 @@ export async function draftPrompt(
   }
   const { draftPromptAction } = await import("@/app/actions/server/prompt");
   return unwrapActionResult(await draftPromptAction(images, input, apiKey));
+}
+
+/**
+ * Watch a reference video (base64 MP4) and write a timecoded plan for a new video
+ */
+export async function planFromReference(video: string, images: string[], input: ReferencePlanInput, apiKey?: string): Promise<Timeline> {
+  if (isStaticBuild) {
+    const { planFromReferenceClient } = await import("./videoClient");
+    return planFromReferenceClient(video, images, input, requireKey(apiKey));
+  }
+  const { planFromReferenceAction } = await import("@/app/actions/server/prompt");
+  return unwrapActionResult(
+    await planFromReferenceAction({ video, images: images.map((data) => ({ data })), input }, apiKey)
+  );
 }
 
 /**

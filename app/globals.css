@@ -101,6 +101,34 @@
     outline-offset: 2px;
   }
 
+  /* Sliders in the theme's greys instead of the browser's blue; --fill is the filled share of the track */
+  input[type="range"] {
+    appearance: none;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--fg-muted) var(--fill, 0%), var(--line-strong) var(--fill, 0%));
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--panel);
+    background: var(--accent);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--panel);
+    background: var(--accent);
+  }
+  input[type="range"]:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
