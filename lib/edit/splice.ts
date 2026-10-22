@@ -43,8 +43,9 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
   const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target });
   const videoOut = new mb.VideoSampleSource({ codec: "avc", bitrate: mb.QUALITY_VERY_HIGH });
   output.addVideoTrack(videoOut, { frameRate });
-  // A silent source stays silent; Omni's added sound would have nothing to join to
-  const audioOut = wholeAudio ? new mb.AudioSampleSource({ codec: "aac", bitrate: mb.QUALITY_HIGH }) : null;
+  // Sound if the source or any edit has it (new music on a silent source); parts without sound get silence
+  const firstAudio = wholeAudio ?? edited.find((e) => e.audio)?.audio ?? null;
+  const audioOut = firstAudio ? new mb.AudioSampleSource({ codec: "aac", bitrate: mb.QUALITY_HIGH }) : null;
   if (audioOut) output.addAudioTrack(audioOut);
   await output.start();
 
@@ -81,9 +82,26 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
       sample.close();
     }
   }
-  if (audioOut) {
+  if (audioOut && firstAudio) {
+    const sampleRate = await firstAudio.getSampleRate();
+    const numberOfChannels = await firstAudio.getNumberOfChannels();
     for (const part of kept) {
-      if (!part.audio) continue;
+      if (!part.audio) {
+        // One-second blocks of silence, so the parts after it keep their place
+        for (let t = 0; t < part.end - part.start - 1e-3; t += 1) {
+          const frames = Math.round(Math.min(1, part.end - part.start - t) * sampleRate);
+          const silence = new mb.AudioSample({
+            data: new Float32Array(frames * numberOfChannels),
+            format: "f32-planar",
+            numberOfChannels,
+            sampleRate,
+            timestamp: part.at + t,
+          });
+          await audioOut.add(silence);
+          silence.close();
+        }
+        continue;
+      }
       for await (const sample of new mb.AudioSampleSink(part.audio).samples(part.start, part.end)) {
         sample.setTimestamp(part.at + Math.max(0, sample.timestamp - part.start));
         await audioOut.add(sample);
