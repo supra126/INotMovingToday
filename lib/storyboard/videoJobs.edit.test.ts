@@ -6,7 +6,7 @@ vi.mock("@/services/videoService", () => ({
   draftPrompt: async () => { throw new Error("unused"); },
   cancelVideoGeneration: async () => {},
 }));
-vi.mock("@/lib/video/crop", () => ({ cropImageToRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
+vi.mock("@/lib/video/crop", () => ({ referenceImageForRatio: async (blob: Blob) => `cropped:${await blob.text()}` }));
 vi.mock("@/lib/video/job", () => ({
   runVideoJob: async () => null,
   runExtendJob: async () => null,
