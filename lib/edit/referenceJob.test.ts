@@ -90,6 +90,34 @@ describe("runReferenceGeneration", () => {
     expect(await result!.video.text()).toBe("gen+ext2[last 8]");
   });
 
+  it("keeps the finished parts when stopped, and nothing when stopped before any is done", async () => {
+    reset();
+    let stop = false;
+    const stopAfterFirst = { ...hooks, isCancelled: () => stop, onProgress: () => {} };
+    const first = runReferenceGeneration(request, {
+      ...stopAfterFirst,
+      onJobId: () => {
+        // Stopped while the second part runs
+        if (calls.generate.length === 1 && calls.extend.length === 0) stop = false;
+      },
+    });
+    expect(await (await first)!.video.text()).toBe("gen+ext1[from 5]");
+    reset();
+    stop = true;
+    expect(await runReferenceGeneration(request, stopAfterFirst)).toBeNull();
+  });
+
+  it("joins only the last two parts for the next tail, not the whole video again", async () => {
+    reset();
+    const long = {
+      ...request,
+      timeline: { style: "", shots: [{ start: 0, end: 10, text: "a" }, { start: 10, end: 20, text: "b" }, { start: 20, end: 30, text: "c" }] },
+    };
+    const result = await runReferenceGeneration(long, hooks);
+    expect(calls.extend[1].sourceVideo).toBe("b64(tail(gen+ext1[from 5]))");
+    expect(result).toMatchObject({ done: 3 });
+  });
+
   it("keeps the seconds already made when a later part fails", async () => {
     reset(["any", "any"]);
     const result = await runReferenceGeneration(request, hooks);

@@ -77,8 +77,8 @@ async function encodeForUpload(blob: Blob, range?: ClipRange, mute = false): Pro
  * A clip re-encoded small enough to upload (Omni edits clips of 10 s or less).
  * Muted when the edit should score new music: Omni keeps a clip's own sound and ignores "replace the music" (2026-10-21).
  */
-export async function uploadableClip(blob: Blob, mute = false): Promise<Blob> {
-  return encodeForUpload(blob, undefined, mute);
+export async function uploadableClip(blob: Blob, mute = false, range?: ClipRange): Promise<Blob> {
+  return encodeForUpload(blob, range, mute);
 }
 
 /** The last `seconds` of a clip, small enough to upload, and how long it really is */

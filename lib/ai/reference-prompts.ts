@@ -39,7 +39,7 @@ export function buildReferencePlanPrompt(input: ReferencePlanInput): string {
     [
       "輸出 JSON：",
       '{"style": "一段話：整支的色系、光線、質感、聲音與音樂", "shots": [{"start": 0, "end": 3, "text": "這個鏡頭拍什麼、怎麼動、運鏡"}]}',
-      `- shots 從 0 秒接到 ${input.seconds} 秒，前後相接不重疊，每個鏡頭至少 1 秒，秒數用整數或 0.5。`,
+      `- shots 從 0 秒接到 ${input.seconds} 秒，前後相接不重疊，每個鏡頭至少 1 秒，秒數一律用整數。`,
       "- text 用繁體中文，具體寫畫面與運鏡，一個鏡頭一兩句。",
       "- 畫面上不要加任何文字、標題或字幕；不要寫參考影片原本的品牌或產品名稱。",
     ].join("\n"),
@@ -65,13 +65,17 @@ export function parseReferencePlan(raw: unknown, seconds: number): Timeline {
   }
   if (shots.length === 0) throw new Error("Failed to parse AI response: no shots");
   shots.sort((a, b) => a.start - b.start);
+  // Whole seconds only, at least 1 s per shot
+  const kept = shots.slice(0, Math.max(1, Math.floor(seconds)));
   // Back to back from 0, scaled to the requested length if the AI missed it
-  const scale = seconds / shots[shots.length - 1].end;
+  const scale = seconds / Math.max(...kept.map((s) => s.end));
   let at = 0;
-  const fitted = shots.map((s, i) => {
-    const end = i === shots.length - 1 ? seconds : Math.round(s.end * scale * 2) / 2;
-    const shot = { start: at, end: Math.max(at + 0.5, end), text: s.text };
-    at = shot.end;
+  const fitted = kept.map((s, i) => {
+    const left = kept.length - 1 - i;
+    // Leave 1 s for every shot still to come
+    const end = left === 0 ? seconds : Math.min(seconds - left, Math.max(at + 1, Math.round(s.end * scale)));
+    const shot = { start: at, end, text: s.text };
+    at = end;
     return shot;
   });
   return { style: str(data.style), shots: fitted };

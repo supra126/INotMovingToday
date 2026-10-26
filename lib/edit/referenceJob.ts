@@ -60,12 +60,13 @@ export interface ReferenceHooks {
 
 /**
  * Generate a plan of up to 30 s: the first part generated, each later part continuing the video so far.
- * Returns what was made so far with the error if a later part fails, so paid-for seconds are kept.
+ * Returns what was made so far with the error if a later part fails, and when stopped (cancelled: true),
+ * so paid-for seconds are kept. Null only when nothing was made.
  */
 export async function runReferenceGeneration(
   request: ReferenceRequest,
   hooks: ReferenceHooks
-): Promise<{ video: Blob; seconds: number; pieces: number; done: number; error?: unknown } | null> {
+): Promise<{ video: Blob; seconds: number; pieces: number; done: number; error?: unknown; cancelled?: boolean } | null> {
   const { tailClip, trimClip } = await import("@/lib/storyboard/clips");
   const { concatVideos } = await import("@/lib/storyboard/export");
   const cuts = timelineCuts(request.timeline);
@@ -81,22 +82,26 @@ export async function runReferenceGeneration(
   });
 
   const parts: Blob[] = [];
-  let video: Blob | undefined;
   let interactionId: string | undefined;
+  const made = (extra: { error?: unknown; cancelled?: boolean } = {}) =>
+    concatParts(parts, concatVideos).then((video) => ({ video, seconds: timelineSeconds(request.timeline), pieces: count, done: parts.length, ...extra }));
+  // Stopped: what is done is kept, or nothing if no part was finished
+  const stopped = () => (parts.length ? made({ cancelled: true }) : null);
   try {
     for (let i = 0; i < count; i++) {
-      if (hooks.isCancelled()) return null;
+      if (hooks.isCancelled()) return stopped();
       const seconds = cuts[i + 1] - cuts[i];
       const prompt = piecePrompt(timelineSlice(request.timeline, cuts[i], cuts[i + 1]), seconds, i === 0, hasProduct);
       let part: Blob;
       if (i === 0) {
         const result = await runVideoJob({ ...base, prompt, duration: seconds, referenceImages: request.images.slice(0, 3) }, jobHooks(i));
-        if (!result || hooks.isCancelled()) return null;
+        if (!result || hooks.isCancelled()) return stopped();
         // Re-encoded like the later parts, so all parts can be joined without another encode
         part = await trimClip(await download(result.videoUrl));
         interactionId = result.sourceVideoUri;
       } else {
-        const tail = await tailClip(video!, TAIL_SECONDS);
+        // The last two parts hold the last 5 s (each is at least 3 s), so the whole video is not joined again
+        const tail = await tailClip(await concatParts(parts.slice(-2), concatVideos), TAIL_SECONDS);
         const params = { ...base, prompt, extensionDuration: seconds, referenceImages: images };
         let result;
         let cut: { from: number } | { last: number } = { from: tail.seconds };
@@ -109,18 +114,21 @@ export async function runReferenceGeneration(
           result = await runExtendJob({ ...params, sourceVideoUri: interactionId }, jobHooks(i));
           cut = { last: seconds };
         }
-        if (!result || hooks.isCancelled()) return null;
+        if (!result || hooks.isCancelled()) return stopped();
         part = await trimClip(await download(result.videoUrl), cut);
         interactionId = result.sourceVideoUri;
       }
       parts.push(part);
-      video = parts.length === 1 ? parts[0] : await concatVideos(parts);
     }
   } catch (error) {
-    if (!video) throw error;
-    return { video, seconds: timelineSeconds(request.timeline), pieces: count, done: parts.length, error };
+    if (!parts.length) throw error;
+    return made({ error });
   }
-  return { video: video!, seconds: timelineSeconds(request.timeline), pieces: count, done: parts.length };
+  return made();
+}
+
+async function concatParts(parts: Blob[], concat: (parts: Blob[]) => Promise<Blob>): Promise<Blob> {
+  return parts.length === 1 ? parts[0] : concat(parts);
 }
 
 async function download(videoUrl: string): Promise<Blob> {

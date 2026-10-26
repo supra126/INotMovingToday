@@ -10,7 +10,7 @@ import { useLocale } from "@/contexts/LocaleContext";
 import { SIMILARITIES, editPieces, runVideoEdit, type Similarity } from "@/lib/edit/editJob";
 import type { Region } from "@/lib/edit/region";
 import { REFERENCE_MAX_SECONDS, REFERENCE_MIN_SECONDS, planPieces, runReferenceGeneration } from "@/lib/edit/referenceJob";
-import { formatTimeline, parseTimeline, timelineSeconds } from "@/lib/edit/timeline";
+import { formatTimeline, parseTimeline, timelineContinuous, timelineSeconds } from "@/lib/edit/timeline";
 import {
   MAX_EDIT_SECONDS,
   MAX_RANGE_SECONDS,
@@ -28,6 +28,8 @@ import type { VideoResolution } from "@/types";
 import { RegionPicker } from "./RegionPicker";
 
 const MAX_IMAGES = 3;
+// Next.js server actions take 20 MB; leave room for the rest of the request
+const MAX_PLAN_REQUEST_CHARS = 19_000_000;
 
 /** Edit part of the video in place, or make a new video of any length that takes after it */
 type Mode = "edit" | "reference";
@@ -195,13 +197,20 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
     try {
       const { from, to } = range;
       const whole = from <= 0.05 && to >= seconds - 0.05;
-      const { trimClip, uploadableClip } = await import("@/lib/storyboard/clips");
+      const { uploadableClip } = await import("@/lib/storyboard/clips");
       const { blobToBase64 } = await import("@/lib/storyboard/blob");
       const { referenceImageForRatio } = await import("@/lib/video/crop");
-      const clip = whole ? version.blob : await trimClip(version.blob, { from, to });
+      // Cut and shrunk in one encode
+      const video = await blobToBase64(await uploadableClip(version.blob, false, whole ? undefined : { from, to }));
+      const photos = await Promise.all(images.map((x) => referenceImageForRatio(x.blob, session.ratio)));
+      // Over the server action body limit (20 MB, base64 included) the request would fail with no clear reason
+      if (video.length + photos.reduce((sum, p) => sum + p.length, 0) > MAX_PLAN_REQUEST_CHARS) {
+        setError(t("edit.planTooLarge"));
+        return;
+      }
       const timeline = await planFromReference(
-        await blobToBase64(await uploadableClip(clip)),
-        await Promise.all(images.map((x) => referenceImageForRatio(x.blob, session.ratio))),
+        video,
+        photos,
         { similarity, seconds: outputSeconds, referenceSeconds: to - from, productCount: images.length, instruction },
         apiKey
       );
@@ -234,8 +243,8 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
           onProgress: (progress, piece, pieces) => !token.stopped && setRunning({ progress, piece, pieces }),
         }
       );
-      if (!result || token.stopped) return;
-      // Seconds already paid for are kept even when a later extension fails
+      if (!result) return;
+      // Seconds already paid for are kept even when a later extension fails or the run is stopped
       if (result.error) showError(result.error);
       const label = [
         t("edit.referenceLabel", { seconds: result.seconds, from: range.from.toFixed(1), to: range.to.toFixed(1) }),
@@ -288,23 +297,24 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
             isCancelled: () => token.stopped,
             onJobId: (id) => {
               token.jobId = id;
-              if (token.stopped) void cancelVideoGeneration(id, apiKey).catch(() => {});
+              if (token.stopped) void cancelVideoGeneration(id, apiKey).catch(() => setError(t("errors.cancelFailed")));
             },
             onProgress: (progress) => !token.stopped && setRunning({ progress, piece: i + 1, pieces: pieces.length }),
           }
         );
-        if (!edited || token.stopped) return;
+        // Stopped: the pieces finished so far are still saved below
+        if (!edited) break;
         done.push({ ...piece, blob: edited });
+        if (token.stopped) break;
       }
     } catch (err) {
       failure = err;
     }
     try {
-      if (token.stopped) return;
-      if (failure) showError(failure);
-      // Pieces already paid for are kept even when a later one fails
+      if (failure && !token.stopped) showError(failure);
+      // Pieces already paid for are kept even when a later one fails or the run is stopped
       if (done.length === 0) return;
-      setRunning({ progress: 100, piece: pieces.length, pieces: pieces.length });
+      if (!token.stopped) setRunning({ progress: 100, piece: pieces.length, pieces: pieces.length });
       // The edited parts go back where they came from; the rest of the video is kept.
       // If they cannot be joined, a single paid-for edit is still kept as a version on its own.
       const onlyPart = done.length === 1 && done[0].from <= 0.05 && done[0].to >= seconds - 0.05;
@@ -316,18 +326,20 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
         } catch {
           joined = false;
           setError(t("edit.joinFailed"));
-          if (done.length > 1) return;
         }
       }
-      if (token.stopped) return;
-      const editedTo = done[done.length - 1].to;
-      const label = [
-        `${from.toFixed(1)}–${editedTo.toFixed(1)}s：${editPromptLabel(instruction, region)}`,
-        `（${t(`edit.similarity.${similarity}`)}${rescore ? `・${t("edit.rescore")}` : ""}）`,
-        joined ? "" : t("edit.partOnly"),
-        done.length < pieces.length ? t("edit.piecesDone", { done: done.length, total: pieces.length }) : "",
-      ].join("");
-      const versions = [...session.versions, { blob, prompt: label, at: Date.now() }];
+      const tag = (start: number, end: number, partial: boolean) =>
+        [
+          `${start.toFixed(1)}–${end.toFixed(1)}s：${editPromptLabel(instruction, region)}`,
+          `（${t(`edit.similarity.${similarity}`)}${rescore ? `・${t("edit.rescore")}` : ""}）`,
+          joined ? "" : t("edit.partOnly"),
+          partial ? t("edit.piecesDone", { done: done.length, total: pieces.length }) : "",
+        ].join("");
+      // Not joined: every edited piece is kept as a version of its own
+      const added = joined
+        ? [{ blob, prompt: tag(from, done[done.length - 1].to, done.length < pieces.length), at: Date.now() }]
+        : done.map((d, n) => ({ blob: d.blob, prompt: tag(d.from, d.to, false), at: Date.now() + n }));
+      const versions = [...session.versions, ...added];
       commit({ ...session, versions, current: versions.length - 1 });
     } catch (err) {
       if (!token.stopped) showError(err);
@@ -378,7 +390,8 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
   // Seconds billed per generation: the edit pieces, or the reference video's generation and extensions
   const timeline = parseTimeline(plan);
   const planSeconds = timelineSeconds(timeline);
-  const planReady = timeline.shots.length > 0 && planSeconds >= REFERENCE_MIN_SECONDS && planSeconds <= REFERENCE_MAX_SECONDS;
+  const planContinuous = timelineContinuous(timeline);
+  const planReady = planContinuous && planSeconds >= REFERENCE_MIN_SECONDS && planSeconds <= REFERENCE_MAX_SECONDS;
   const pieceSeconds: number[] =
     mode === "edit" ? pieces.map((p) => Math.max(1, Math.round(p.to - p.from))) : planReady ? planPieces(timeline) : [];
   const costs = pieceSeconds.map((s) => videoCost(s, session.resolution));
@@ -576,7 +589,11 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
                   className="rounded-[var(--radius-control)] border border-line bg-sunken px-2.5 py-1.5 font-mono text-xs text-fg focus:border-line-strong focus:outline-none"
                 />
                 <span className="text-fg-subtle">
-                  {planReady ? t("edit.planHint") : t("edit.planInvalid", { min: REFERENCE_MIN_SECONDS, max: REFERENCE_MAX_SECONDS })}
+                  {planReady
+                    ? t("edit.planHint")
+                    : timeline.shots.length > 0 && !planContinuous
+                      ? t("edit.planGaps")
+                      : t("edit.planInvalid", { min: REFERENCE_MIN_SECONDS, max: REFERENCE_MAX_SECONDS })}
                 </span>
               </label>
             )}

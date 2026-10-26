@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTimeline, parseTimeline, timelineCuts, timelineSeconds, timelineSlice, type Timeline } from "./timeline";
+import { formatTimeline, parseTimeline, timelineContinuous, timelineCuts, timelineSeconds, timelineSlice, type Timeline } from "./timeline";
 
 const plan: Timeline = {
   style: "紅黑色系，暗調硬光",
@@ -48,5 +48,24 @@ describe("timelineSlice", () => {
       { start: 4, end: 8, text: "產品站上發光台" },
     ]);
     expect(timelineSlice(plan, 0, 10).shots.at(-1)).toEqual({ start: 7, end: 10, text: "紅色漩渦" });
+  });
+});
+
+describe("timeline gaps and half seconds", () => {
+  it("only accepts shots that run back to back from 0 s", () => {
+    expect(timelineContinuous(parseTimeline("0–3s：a\n3–8s：b"))).toBe(true);
+    expect(timelineContinuous(parseTimeline("3–8s：a"))).toBe(false);
+    expect(timelineContinuous(parseTimeline("0–3s：a\n4–8s：b"))).toBe(false);
+    expect(timelineContinuous(parseTimeline("0–5s：a\n4–8s：b"))).toBe(false);
+    expect(timelineContinuous(parseTimeline("風格：x"))).toBe(false);
+  });
+
+  it("reads a shot line without the s unit", () => {
+    expect(parseTimeline("0–3：a\n3–6：b").shots).toHaveLength(2);
+  });
+
+  it("cuts on a whole-second shot end, not on a rounded half second, and keeps the plan's whole length", () => {
+    const plan = parseTimeline("0–2.5s：a\n2.5–7.5s：b\n7.5–9s：c\n9–14.5s：d");
+    expect(timelineCuts(plan)).toEqual([0, 9, 15]);
   });
 });

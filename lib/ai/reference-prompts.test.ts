@@ -39,6 +39,18 @@ describe("parseReferencePlan", () => {
     ]);
   });
 
+  it("scales by the latest end, keeps whole seconds and never runs past the requested length", () => {
+    const plan = parseReferencePlan(
+      { shots: [{ start: 0, end: 8, text: "a" }, { start: 2, end: 4, text: "b" }, { start: 8, end: 9, text: "c" }] },
+      18
+    );
+    expect(plan.shots.at(-1)!.end).toBe(18);
+    expect(plan.shots.every((s) => Number.isInteger(s.start) && Number.isInteger(s.end) && s.end - s.start >= 1)).toBe(true);
+    const many = parseReferencePlan({ shots: Array.from({ length: 8 }, (_, i) => ({ start: i * 0.5, end: i * 0.5 + 0.5, text: `s${i}` })) }, 5);
+    expect(many.shots).toHaveLength(5);
+    expect(many.shots.at(-1)!.end).toBe(5);
+  });
+
   it("fails without any shot", () => {
     expect(() => parseReferencePlan({ style: "x", shots: [] }, 10)).toThrow();
   });

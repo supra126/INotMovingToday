@@ -58,7 +58,6 @@ export async function saveSession(session: EditSession | null): Promise<void> {
 export const MAX_EDIT_SECONDS = 10;
 /** A longer range is edited in pieces of 10 seconds or less and joined back */
 export const MAX_RANGE_SECONDS = 30;
-export const EDIT_LENGTHS = [10, 15, 20, 25, 30];
 
 export function ratioOf(width: number, height: number): VideoRatio {
   return height > width ? "9:16" : "16:9";

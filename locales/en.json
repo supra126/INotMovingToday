@@ -544,6 +544,8 @@
     "planWriting": "AI is watching and writing…",
     "planLabel": "Script ({{seconds}} s, edit freely)",
     "planHint": "One shot per line as “start–end s: what”; the first line is the overall style. Generation follows it exactly.",
-    "planInvalid": "Needs at least one “start–end s: what” line, {{min}}–{{max}} s in total."
+    "planInvalid": "Needs at least one “start–end s: what” line, {{min}}–{{max}} s in total.",
+    "planGaps": "Shots must start at 0 s and run back to back, with no gap and no overlap.",
+    "planTooLarge": "The reference video plus the product photos is too large to send. Pick fewer seconds or use fewer photos."
   }
 }

@@ -19,7 +19,7 @@ const MAX_PIECE = 10;
 const MIN_PIECE = 3;
 
 const STYLE_LABEL = "風格：";
-const SHOT_LINE = /^\s*(\d+(?:\.\d+)?)\s*[–—~\-－]\s*(\d+(?:\.\d+)?)\s*(?:s|秒)\s*[：:]\s*(.+?)\s*$/i;
+const SHOT_LINE = /^\s*(\d+(?:\.\d+)?)\s*[–—~\-－]\s*(\d+(?:\.\d+)?)\s*(?:s|秒)?\s*[：:]\s*(.+?)\s*$/i;
 
 const num = (n: number) => String(+n.toFixed(1));
 
@@ -56,14 +56,26 @@ export function timelineSeconds(timeline: Timeline): number {
   return timeline.shots.reduce((end, s) => Math.max(end, s.end), 0);
 }
 
+/** Whether the shots run back to back from 0 s: a gap or an overlap leaves a stretch with no direction or two */
+export function timelineContinuous(timeline: Timeline): boolean {
+  let at = 0;
+  for (const shot of timeline.shots) {
+    if (Math.abs(shot.start - at) > 0.05) return false;
+    at = shot.end;
+  }
+  return timeline.shots.length > 0;
+}
+
 /**
  * Where to cut the plan into generations of 3–10 s: as few as possible, each cut on a shot boundary
  * when one is close enough, so no shot is split across two generations
  */
 export function timelineCuts(timeline: Timeline): number[] {
-  const total = Math.round(timelineSeconds(timeline));
+  // Generations are whole seconds; a plan ending on a half second gets the second it needs
+  const total = Math.ceil(timelineSeconds(timeline) - 1e-6);
   const count = Math.max(1, Math.ceil(total / MAX_PIECE));
-  const bounds = timeline.shots.map((s) => Math.round(s.end)).filter((b) => b > 0 && b < total);
+  // Only whole-second boundaries can be cut on, so a half-second shot end is never split
+  const bounds = timeline.shots.map((s) => s.end).filter((b) => Number.isInteger(b) && b > 0 && b < total);
   const cuts = [0];
   for (let k = 1; k < count; k++) {
     const prev = cuts[k - 1];

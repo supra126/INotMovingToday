@@ -103,7 +103,21 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
         continue;
       }
       for await (const sample of new mb.AudioSampleSink(part.audio).samples(part.start, part.end)) {
-        sample.setTimestamp(part.at + Math.max(0, sample.timestamp - part.start));
+        const timestamp = part.at + Math.max(0, sample.timestamp - part.start);
+        // One AAC track has one sample rate and channel layout; Omni's sound may come back in another
+        const fitted =
+          sample.sampleRate === sampleRate && sample.numberOfChannels === numberOfChannels
+            ? null
+            : await resample(mb, sample, sampleRate, numberOfChannels, timestamp);
+        if (fitted) {
+          sample.close();
+          for (const piece of fitted) {
+            await audioOut.add(piece);
+            piece.close();
+          }
+          continue;
+        }
+        sample.setTimestamp(timestamp);
         await audioOut.add(sample);
         sample.close();
       }
@@ -111,6 +125,22 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
   }
   await output.finalize();
   return new Blob([target.buffer!], { type: "video/mp4" });
+}
+
+/** The sample at another sample rate and channel count; the browser mixes the channels */
+async function resample(
+  mb: typeof import("mediabunny"),
+  sample: InstanceType<typeof import("mediabunny").AudioSample>,
+  sampleRate: number,
+  numberOfChannels: number,
+  timestamp: number
+) {
+  const context = new OfflineAudioContext(numberOfChannels, Math.max(1, Math.ceil(sample.duration * sampleRate)), sampleRate);
+  const source = context.createBufferSource();
+  source.buffer = sample.toAudioBuffer();
+  source.connect(context.destination);
+  source.start();
+  return mb.AudioSample.fromAudioBuffer(await context.startRendering(), timestamp);
 }
 
 /** Keep a picked range inside the video and no longer than the edit limit, moving the other end if needed */
