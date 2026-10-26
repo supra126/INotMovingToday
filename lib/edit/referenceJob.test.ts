@@ -131,6 +131,13 @@ describe("runReferenceGeneration", () => {
     expect((result!.error as Error).message).toMatch(/timed out/);
   });
 
+  it("refuses a plan with a gap before anything is billed", async () => {
+    reset();
+    const gap = { ...request, timeline: { style: "", shots: [{ start: 0, end: 4, text: "a" }, { start: 6, end: 10, text: "b" }] } };
+    await expect(runReferenceGeneration(gap, hooks)).rejects.toThrow();
+    expect(calls.generate).toHaveLength(0);
+  });
+
   it("refuses a plan outside 3–30 s before anything is billed", async () => {
     reset();
     const short = { ...request, timeline: { style: "", shots: [{ start: 0, end: 2, text: "a" }] } };

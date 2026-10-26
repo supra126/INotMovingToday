@@ -358,8 +358,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
     if (!token) return;
     token.stopped = true;
     if (token.jobId) void cancelVideoGeneration(token.jobId, requireApiKey() ?? undefined).catch(() => setError(t("errors.cancelFailed")));
-    runRef.current = null;
-    setRunning(null);
+    // The run stays on screen until it has saved what it finished, so a new run cannot start over it
   };
 
   const download = () => {
@@ -393,7 +392,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
   const timeline = parseTimeline(plan);
   const planSeconds = timelineSeconds(timeline);
   const planContinuous = timelineContinuous(timeline);
-  const planReady = planContinuous && planSeconds >= REFERENCE_MIN_SECONDS && planSeconds <= REFERENCE_MAX_SECONDS;
+  const planReady = planContinuous && planSeconds >= REFERENCE_MIN_SECONDS && Math.ceil(planSeconds - 1e-6) <= REFERENCE_MAX_SECONDS;
   const pieceSeconds: number[] =
     mode === "edit" ? pieces.map((p) => Math.max(1, Math.round(p.to - p.from))) : planReady ? planPieces(timeline) : [];
   const costs = pieceSeconds.map((s) => videoCost(s, session.resolution));

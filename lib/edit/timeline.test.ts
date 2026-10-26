@@ -67,6 +67,12 @@ describe("timeline gaps and half seconds", () => {
     expect(parseTimeline("風格：x\n0–3s：a").unreadable).toBeUndefined();
   });
 
+  it("keeps a style line that starts with a number", () => {
+    const plan = parseTimeline("3D 質感，柔光\n0–3s：a");
+    expect(plan.unreadable).toBeUndefined();
+    expect(plan.style).toBe("3D 質感，柔光");
+  });
+
   it("reads a shot line without the s unit", () => {
     expect(parseTimeline("0–3：a\n3–6：b").shots).toHaveLength(2);
   });

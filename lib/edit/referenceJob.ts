@@ -3,7 +3,7 @@ import { toStoredVideo } from "@/lib/storyboard/videoJobs";
 import { runExtendJob, runVideoJob } from "@/lib/video/job";
 import { referenceImageForRatio } from "@/lib/video/crop";
 import type { VideoRatio, VideoResolution } from "@/types";
-import { formatTimeline, timelineCuts, timelineSeconds, timelineSlice, type Timeline } from "./timeline";
+import { formatTimeline, timelineCuts, timelineContinuous, timelineSeconds, timelineSlice, type Timeline } from "./timeline";
 
 /**
  * Make a new video in the style of a reference: AI watches the reference and writes a timecoded plan
@@ -69,9 +69,10 @@ export async function runReferenceGeneration(
 ): Promise<{ video: Blob; seconds: number; pieces: number; done: number; error?: unknown; cancelled?: boolean } | null> {
   const { tailClip, trimClip } = await import("@/lib/storyboard/clips");
   const { concatVideos } = await import("@/lib/storyboard/export");
-  const total = timelineSeconds(request.timeline);
-  if (total < REFERENCE_MIN_SECONDS || total > REFERENCE_MAX_SECONDS) {
-    throw new Error(`The plan must run ${REFERENCE_MIN_SECONDS}–${REFERENCE_MAX_SECONDS} s`);
+  // Whole seconds are what is generated; the UI checks the same before it lets a plan start
+  const total = Math.ceil(timelineSeconds(request.timeline) - 1e-6);
+  if (!timelineContinuous(request.timeline) || total < REFERENCE_MIN_SECONDS || total > REFERENCE_MAX_SECONDS) {
+    throw new Error(`The plan must run back to back from 0 s, ${REFERENCE_MIN_SECONDS}–${REFERENCE_MAX_SECONDS} s`);
   }
   const cuts = timelineCuts(request.timeline);
   const count = cuts.length - 1;
@@ -118,7 +119,7 @@ export async function runReferenceGeneration(
           // An uploaded clip is refused now and then (speech, a real face) with a generic error; Google's own
           // chain usually takes it. Its output ends with the new part, but what comes before it varies
           // A timeout or a stop happened after the job was billed: a second job would bill the piece again
-          if (!interactionId || hooks.isCancelled() || /timed out|cancel/i.test(err instanceof Error ? err.message : "")) throw err;
+          if (!interactionId || hooks.isCancelled() || /timed out|cancel|429|rate limit|quota/i.test(err instanceof Error ? err.message : "")) throw err;
           result = await runExtendJob({ ...params, sourceVideoUri: interactionId }, jobHooks(i));
           cut = { last: seconds };
         }
