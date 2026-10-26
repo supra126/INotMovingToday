@@ -72,7 +72,7 @@ export async function runVideoEdit(
       referenceImages: await Promise.all(request.images.slice(0, 3).map((image) => referenceImageForRatio(image, request.ratio))),
       ratio: request.ratio,
       resolution: request.resolution,
-      duration: Math.round(request.seconds),
+      duration: Math.max(1, Math.round(request.seconds)),
       // "Keep everything else" would fight a looser edit, and the new music (tested without it)
       keepRest: request.similarity === "high" && !request.rescore,
     },

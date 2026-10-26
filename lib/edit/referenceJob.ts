@@ -103,7 +103,8 @@ export async function runReferenceGeneration(
       let part: Blob;
       if (i === 0) {
         const result = await runVideoJob({ ...base, prompt, duration: seconds, referenceImages: request.images.slice(0, 3) }, jobHooks(i));
-        if (!result || hooks.isCancelled()) return stopped();
+        // A piece that finished as the run was stopped is paid for, so it is kept
+        if (!result) return stopped();
         // Re-encoded like the later parts, so all parts can be joined without another encode
         part = await trimClip(await download(result.videoUrl));
         interactionId = result.sourceVideoUri;
@@ -123,7 +124,7 @@ export async function runReferenceGeneration(
           result = await runExtendJob({ ...params, sourceVideoUri: interactionId }, jobHooks(i));
           cut = { last: seconds };
         }
-        if (!result || hooks.isCancelled()) return stopped();
+        if (!result) return stopped();
         part = await trimClip(await download(result.videoUrl), cut);
         interactionId = result.sourceVideoUri;
       }

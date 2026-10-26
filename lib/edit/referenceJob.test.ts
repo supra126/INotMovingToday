@@ -91,6 +91,14 @@ describe("runReferenceGeneration", () => {
     expect(await result!.video.text()).toBe("gen+ext2[last 8]");
   });
 
+  it("keeps a part that finished at the moment of stopping", async () => {
+    reset();
+    // Stopped while the first part was generating: it is true only once that job has run
+    const result = await runReferenceGeneration(request, { ...hooks, isCancelled: () => calls.generate.length > 0 });
+    expect(await result!.video.text()).toBe("gen");
+    expect(result).toMatchObject({ done: 1, cancelled: true });
+  });
+
   it("keeps the finished parts when stopped, and nothing when stopped before any is done", async () => {
     reset();
     let stop = false;
