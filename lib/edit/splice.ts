@@ -32,7 +32,7 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
         const input = open(edit.blob);
         const video = await input.getPrimaryVideoTrack();
         if (!video) throw new Error("errors.unsupportedVideo");
-        return { ...edit, video, audio: await input.getPrimaryAudioTrack(), seconds: await input.computeDuration() };
+        return { ...edit, video, audio: await input.getPrimaryAudioTrack(), seconds: await video.computeDuration() };
       })
   );
   const width = wholeVideo.displayWidth;
@@ -102,22 +102,22 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
         }
         continue;
       }
-      for await (const sample of new mb.AudioSampleSink(part.audio).samples(part.start, part.end)) {
-        const timestamp = part.at + Math.max(0, sample.timestamp - part.start);
-        // One AAC track has one sample rate and channel layout; Omni's sound may come back in another
-        const fitted =
-          sample.sampleRate === sampleRate && sample.numberOfChannels === numberOfChannels
-            ? null
-            : await resample(mb, sample, sampleRate, numberOfChannels, timestamp);
-        if (fitted) {
-          sample.close();
-          for (const piece of fitted) {
-            await audioOut.add(piece);
-            piece.close();
-          }
-          continue;
+      const read: InstanceType<typeof mb.AudioSample>[] = [];
+      for await (const sample of new mb.AudioSampleSink(part.audio).samples(part.start, part.end)) read.push(sample);
+      if (read.length === 0) continue;
+      // One AAC track has one sample rate and channel layout; Omni's sound may come back in another
+      if (read.some((s) => s.sampleRate !== sampleRate || s.numberOfChannels !== numberOfChannels)) {
+        const first = read[0].timestamp;
+        const fitted = await resample(mb, read, sampleRate, numberOfChannels, part.at + Math.max(0, first - part.start));
+        read.forEach((s) => s.close());
+        for (const piece of fitted) {
+          await audioOut.add(piece);
+          piece.close();
         }
-        sample.setTimestamp(timestamp);
+        continue;
+      }
+      for (const sample of read) {
+        sample.setTimestamp(part.at + Math.max(0, sample.timestamp - part.start));
         await audioOut.add(sample);
         sample.close();
       }
@@ -127,17 +127,28 @@ export async function spliceEdits(whole: Blob, total: number, edits: EditedPart[
   return new Blob([target.buffer!], { type: "video/mp4" });
 }
 
-/** The sample at another sample rate and channel count; the browser mixes the channels */
+/** A part's samples joined and converted once to another sample rate and channel count; the browser mixes the channels */
 async function resample(
   mb: typeof import("mediabunny"),
-  sample: InstanceType<typeof import("mediabunny").AudioSample>,
+  samples: InstanceType<typeof import("mediabunny").AudioSample>[],
   sampleRate: number,
   numberOfChannels: number,
   timestamp: number
 ) {
-  const context = new OfflineAudioContext(numberOfChannels, Math.max(1, Math.ceil(sample.duration * sampleRate)), sampleRate);
+  const from = samples[0];
+  const length = samples.reduce((sum, s) => sum + s.numberOfFrames, 0);
+  const joined = new AudioBuffer({ length, numberOfChannels: from.numberOfChannels, sampleRate: from.sampleRate });
+  for (let channel = 0; channel < from.numberOfChannels; channel++) {
+    const data = joined.getChannelData(channel);
+    let offset = 0;
+    for (const sample of samples) {
+      sample.copyTo(data.subarray(offset, offset + sample.numberOfFrames), { planeIndex: channel, format: "f32-planar" });
+      offset += sample.numberOfFrames;
+    }
+  }
+  const context = new OfflineAudioContext(numberOfChannels, Math.max(1, Math.ceil((length / from.sampleRate) * sampleRate)), sampleRate);
   const source = context.createBufferSource();
-  source.buffer = sample.toAudioBuffer();
+  source.buffer = joined;
   source.connect(context.destination);
   source.start();
   return mb.AudioSample.fromAudioBuffer(await context.startRendering(), timestamp);

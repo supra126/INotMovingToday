@@ -69,10 +69,16 @@ export async function runReferenceGeneration(
 ): Promise<{ video: Blob; seconds: number; pieces: number; done: number; error?: unknown; cancelled?: boolean } | null> {
   const { tailClip, trimClip } = await import("@/lib/storyboard/clips");
   const { concatVideos } = await import("@/lib/storyboard/export");
+  const total = timelineSeconds(request.timeline);
+  if (total < REFERENCE_MIN_SECONDS || total > REFERENCE_MAX_SECONDS) {
+    throw new Error(`The plan must run ${REFERENCE_MIN_SECONDS}–${REFERENCE_MAX_SECONDS} s`);
+  }
   const cuts = timelineCuts(request.timeline);
   const count = cuts.length - 1;
   const hasProduct = request.images.length > 0;
-  const images = await Promise.all(request.images.slice(0, 3).map((image) => referenceImageForRatio(image, request.ratio)));
+  // Only extensions take them converted; the first part converts its own
+  const images =
+    count > 1 ? await Promise.all(request.images.slice(0, 3).map((image) => referenceImageForRatio(image, request.ratio))) : [];
   const base = { ratio: request.ratio, resolution: request.resolution, audioMode: request.music ? ("sfx_music" as const) : ("sfx" as const) };
   const jobHooks = (piece: number) => ({
     apiKey: hooks.apiKey,
@@ -84,7 +90,8 @@ export async function runReferenceGeneration(
   const parts: Blob[] = [];
   let interactionId: string | undefined;
   const made = (extra: { error?: unknown; cancelled?: boolean } = {}) =>
-    concatParts(parts, concatVideos).then((video) => ({ video, seconds: timelineSeconds(request.timeline), pieces: count, done: parts.length, ...extra }));
+    // `seconds` is what was made, not what was planned
+    concatParts(parts, concatVideos).then((video) => ({ video, seconds: cuts[parts.length], pieces: count, done: parts.length, ...extra }));
   // Stopped: what is done is kept, or nothing if no part was finished
   const stopped = () => (parts.length ? made({ cancelled: true }) : null);
   try {
@@ -110,7 +117,8 @@ export async function runReferenceGeneration(
         } catch (err) {
           // An uploaded clip is refused now and then (speech, a real face) with a generic error; Google's own
           // chain usually takes it. Its output ends with the new part, but what comes before it varies
-          if (!interactionId || hooks.isCancelled()) throw err;
+          // A timeout or a stop happened after the job was billed: a second job would bill the piece again
+          if (!interactionId || hooks.isCancelled() || /timed out|cancel/i.test(err instanceof Error ? err.message : "")) throw err;
           result = await runExtendJob({ ...params, sourceVideoUri: interactionId }, jobHooks(i));
           cut = { last: seconds };
         }
@@ -121,6 +129,7 @@ export async function runReferenceGeneration(
       parts.push(part);
     }
   } catch (error) {
+    if (hooks.isCancelled()) return stopped();
     if (!parts.length) throw error;
     return made({ error });
   }

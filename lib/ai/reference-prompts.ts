@@ -65,10 +65,14 @@ export function parseReferencePlan(raw: unknown, seconds: number): Timeline {
   }
   if (shots.length === 0) throw new Error("Failed to parse AI response: no shots");
   shots.sort((a, b) => a.start - b.start);
-  // Whole seconds only, at least 1 s per shot
-  const kept = shots.slice(0, Math.max(1, Math.floor(seconds)));
+  // Whole seconds only, at least 1 s per shot: shots beyond that fold into the last one, so the ending stays
+  const room = Math.max(1, Math.floor(seconds));
+  const kept =
+    shots.length <= room
+      ? shots
+      : [...shots.slice(0, room - 1), { ...shots[room - 1], text: shots.slice(room - 1).map((s) => s.text).join("；") }];
   // Back to back from 0, scaled to the requested length if the AI missed it
-  const scale = seconds / Math.max(...kept.map((s) => s.end));
+  const scale = seconds / Math.max(...shots.map((s) => s.end));
   let at = 0;
   const fitted = kept.map((s, i) => {
     const left = kept.length - 1 - i;

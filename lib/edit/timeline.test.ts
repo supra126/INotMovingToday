@@ -60,6 +60,13 @@ describe("timeline gaps and half seconds", () => {
     expect(timelineContinuous(parseTimeline("風格：x"))).toBe(false);
   });
 
+  it("flags lines that start like a shot but cannot be read", () => {
+    const plan = parseTimeline("0–3s：a\n3 to 6s：b\n6–9s：c");
+    expect(plan.unreadable).toEqual(["3 to 6s：b"]);
+    expect(timelineContinuous(plan)).toBe(false);
+    expect(parseTimeline("風格：x\n0–3s：a").unreadable).toBeUndefined();
+  });
+
   it("reads a shot line without the s unit", () => {
     expect(parseTimeline("0–3：a\n3–6：b").shots).toHaveLength(2);
   });

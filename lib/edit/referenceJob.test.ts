@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-const calls = vi.hoisted(() => ({ generate: [] as Record<string, unknown>[], extend: [] as Record<string, unknown>[], failExtend: [] as string[] }));
+const calls = vi.hoisted(() => ({ generate: [] as Record<string, unknown>[], extend: [] as Record<string, unknown>[], failExtend: [] as string[], timeout: false }));
 vi.mock("@/lib/video/job", () => ({
   runVideoJob: async (input: Record<string, unknown>) => {
     calls.generate.push(input);
@@ -9,6 +9,7 @@ vi.mock("@/lib/video/job", () => ({
   runExtendJob: async (params: Record<string, unknown>) => {
     calls.extend.push(params);
     const how = params.sourceVideo ? "upload" : "chain";
+    if (calls.timeout) throw new Error("Video generation timed out");
     const fail = calls.failExtend.shift();
     if (fail === how || fail === "any") throw new Error("500 There was a problem");
     return { videoUrl: `ext${calls.extend.length}`, sourceVideoUri: `i-${calls.extend.length + 1}` };
@@ -116,6 +117,25 @@ describe("runReferenceGeneration", () => {
     const result = await runReferenceGeneration(long, hooks);
     expect(calls.extend[1].sourceVideo).toBe("b64(tail(gen+ext1[from 5]))");
     expect(result).toMatchObject({ done: 3 });
+  });
+
+  it("does not start a second paid job after a timeout, and reports only the seconds made", async () => {
+    reset();
+    calls.failExtend = [];
+    const timedOut = vi.fn();
+    calls.timeout = true;
+    const result = await runReferenceGeneration(request, { ...hooks, onProgress: timedOut });
+    calls.timeout = false;
+    expect(calls.extend).toHaveLength(1);
+    expect(result).toMatchObject({ done: 1, seconds: 7 });
+    expect((result!.error as Error).message).toMatch(/timed out/);
+  });
+
+  it("refuses a plan outside 3–30 s before anything is billed", async () => {
+    reset();
+    const short = { ...request, timeline: { style: "", shots: [{ start: 0, end: 2, text: "a" }] } };
+    await expect(runReferenceGeneration(short, hooks)).rejects.toThrow();
+    expect(calls.generate).toHaveLength(0);
   });
 
   it("keeps the seconds already made when a later part fails", async () => {

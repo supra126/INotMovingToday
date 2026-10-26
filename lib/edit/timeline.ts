@@ -12,6 +12,8 @@ export interface Timeline {
   /** Colors, light, texture and sound for the whole video */
   style: string;
   shots: TimelineShot[];
+  /** Lines that start like a shot (with a number) but could not be read */
+  unreadable?: string[];
 }
 
 // Omni makes 3–10 s per generation
@@ -37,18 +39,22 @@ export function formatTimeline(timeline: Timeline): string {
 export function parseTimeline(text: string): Timeline {
   const style: string[] = [];
   const shots: TimelineShot[] = [];
+  const unreadable: string[] = [];
   for (const line of text.split("\n")) {
     const match = SHOT_LINE.exec(line);
     if (match) {
       const start = Number(match[1]);
       const end = Number(match[2]);
       if (end > start) shots.push({ start, end, text: match[3] });
+      else unreadable.push(line.trim());
+    } else if (/^\s*\d/.test(line)) {
+      unreadable.push(line.trim());
     } else if (line.trim()) {
       style.push(line.trim().replace(/^風格[：:]\s*/, ""));
     }
   }
   shots.sort((a, b) => a.start - b.start);
-  return { style: style.join(" "), shots };
+  return { style: style.join(" "), shots, ...(unreadable.length ? { unreadable } : {}) };
 }
 
 /** How long the plan runs */
@@ -63,7 +69,7 @@ export function timelineContinuous(timeline: Timeline): boolean {
     if (Math.abs(shot.start - at) > 0.05) return false;
     at = shot.end;
   }
-  return timeline.shots.length > 0;
+  return timeline.shots.length > 0 && !timeline.unreadable?.length;
 }
 
 /**

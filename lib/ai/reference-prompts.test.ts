@@ -51,6 +51,12 @@ describe("parseReferencePlan", () => {
     expect(many.shots.at(-1)!.end).toBe(5);
   });
 
+  it("folds shots beyond one per second into the last one, so the ending stays", () => {
+    const plan = parseReferencePlan({ shots: Array.from({ length: 12 }, (_, i) => ({ start: i, end: i + 1, text: `s${i}` })) }, 10);
+    expect(plan.shots).toHaveLength(10);
+    expect(plan.shots.at(-1)!.text).toBe("s9；s10；s11");
+  });
+
   it("fails without any shot", () => {
     expect(() => parseReferencePlan({ style: "x", shots: [] }, 10)).toThrow();
   });

@@ -202,7 +202,9 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       const { referenceImageForRatio } = await import("@/lib/video/crop");
       // Cut and shrunk in one encode
       const video = await blobToBase64(await uploadableClip(version.blob, false, whole ? undefined : { from, to }));
-      const photos = await Promise.all(images.map((x) => referenceImageForRatio(x.blob, session.ratio)));
+      // The same three photos generation uses
+      const used = images.slice(0, MAX_IMAGES);
+      const photos = await Promise.all(used.map((x) => referenceImageForRatio(x.blob, session.ratio)));
       // Over the server action body limit (20 MB, base64 included) the request would fail with no clear reason
       if (video.length + photos.reduce((sum, p) => sum + p.length, 0) > MAX_PLAN_REQUEST_CHARS) {
         setError(t("edit.planTooLarge"));
@@ -211,7 +213,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       const timeline = await planFromReference(
         video,
         photos,
-        { similarity, seconds: outputSeconds, referenceSeconds: to - from, productCount: images.length, instruction },
+        { similarity, seconds: outputSeconds, referenceSeconds: to - from, productCount: used.length, instruction },
         apiKey
       );
       setPlan(formatTimeline(timeline));
@@ -245,7 +247,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
       );
       if (!result) return;
       // Seconds already paid for are kept even when a later extension fails or the run is stopped
-      if (result.error) showError(result.error);
+      if (result.error && !result.cancelled) showError(result.error);
       const label = [
         t("edit.referenceLabel", { seconds: result.seconds, from: range.from.toFixed(1), to: range.to.toFixed(1) }),
         `（${t(`edit.similarity.${similarity}`)}${referenceMusic ? `・${t("edit.rescore")}` : ""}）`,
@@ -592,7 +594,7 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
                   {planReady
                     ? t("edit.planHint")
                     : timeline.shots.length > 0 && !planContinuous
-                      ? t("edit.planGaps")
+                      ? t(timeline.unreadable?.length ? "edit.planUnreadable" : "edit.planGaps")
                       : t("edit.planInvalid", { min: REFERENCE_MIN_SECONDS, max: REFERENCE_MAX_SECONDS })}
                 </span>
               </label>
