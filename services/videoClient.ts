@@ -1,5 +1,7 @@
 import { createGeminiClient } from "@/lib/ai/gemini-client";
 import type { PromptContext, PromptDraftInput } from "@/lib/ai/prompts";
+import type { ReferencePlanInput } from "@/lib/ai/reference-prompts";
+import type { Timeline } from "@/lib/edit/timeline";
 import type { PromptDraft, PromptFields } from "@/types";
 import { createOmniProvider } from "./video-providers/omni";
 import type { VideoEditParams, VideoGenerationParams, VideoExtensionParams, VideoJobStatus } from "./video-providers/types";
@@ -12,6 +14,15 @@ export async function draftPromptClient(
   apiKey: string
 ): Promise<PromptDraft> {
   return createGeminiClient(apiKey).draftPrompt(images, input);
+}
+
+export async function planFromReferenceClient(
+  video: string,
+  images: string[],
+  input: ReferencePlanInput,
+  apiKey: string
+): Promise<Timeline> {
+  return createGeminiClient(apiKey).planFromReference(video, images, input);
 }
 
 export async function composePromptClient(fields: PromptFields, ctx: PromptContext, apiKey: string): Promise<string> {

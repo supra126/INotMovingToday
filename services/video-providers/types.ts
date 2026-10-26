@@ -55,6 +55,8 @@ export interface VideoEditParams {
   resolution?: VideoResolution;
   /** Seconds of the source, for the time estimate */
   duration: number;
+  /** Ask Omni to leave everything not mentioned as it is; off for looser, reimagined edits. Default on */
+  keepRest?: boolean;
 }
 
 export interface VideoGenerationResult {

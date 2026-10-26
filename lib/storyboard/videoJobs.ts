@@ -1,6 +1,6 @@
 import type { PromptContext } from "@/lib/ai/prompts";
 import { toDisplayError } from "@/lib/video/errors";
-import { cropImageToRatio } from "@/lib/video/crop";
+import { referenceImageForRatio } from "@/lib/video/crop";
 import { runEditJob, runExtendJob, runVideoJob } from "@/lib/video/job";
 import { cancelVideoGeneration, composePrompt, draftPrompt } from "@/services/videoService";
 import type { Locale, VideoResolution } from "@/types";
@@ -388,7 +388,7 @@ export async function editShotVideo(
       {
         prompt: instruction,
         ...source,
-        referenceImages: await Promise.all(images.slice(0, 3).map((image) => cropImageToRatio(image, project.ratio))),
+        referenceImages: await Promise.all(images.slice(0, 3).map((image) => referenceImageForRatio(image, project.ratio))),
         ratio: project.ratio,
         resolution: shotResolution(shot, project),
         duration: previous.duration,

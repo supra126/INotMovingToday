@@ -483,7 +483,7 @@
   },
   "edit": {
     "title": "影片修改",
-    "intro": "上傳一支影片，選要改的範圍（一次最多 {{max}} 秒，可以是中間任何一段），說要改什麼、可以在畫面上框位置、附參考圖。改好的那段會接回原本的位置，其他部分不動；可以一段一段改。",
+    "intro": "上傳一支影片，選要改的範圍（最多 {{max}} 秒，可以是中間任何一段；超過 {{piece}} 秒會分段改再接起來），說要改什麼、可以在畫面上框位置、附參考圖。改好的部分會接回原本的位置，其他部分不動；可以一段一段改。",
     "upload": "上傳影片",
     "original": "原片",
     "version": "第 {{n}} 版",
@@ -498,10 +498,55 @@
     "clearRegion": "清除",
     "regionHint": "先把影片停在要改的那一格，按「抓目前畫面來框」，再在圖上拖一個框。不框就照文字描述。",
     "removeImage": "點一下移除",
-    "rangeLabel": "要改的範圍：{{from}}–{{to}} 秒（{{span}} 秒，全長 {{total}} 秒，一次最多 {{max}} 秒）",
+    "rangeLabel": "要改的範圍：{{from}}–{{to}} 秒（{{span}} 秒，全長 {{total}} 秒，最多 {{max}} 秒）",
     "rangeFrom": "開始",
     "rangeTo": "結束",
     "joinFailed": "改好的片段沒辦法接回原片，已先存成單獨一版（只有改過的那段），可以下載到剪輯軟體裡接。",
-    "partOnly": "（只有這段）"
+    "partOnly": "（只有這段）",
+    "runningPiece": "修改中 第 {{piece}}/{{pieces}} 段 {{progress}}%",
+    "piecesHint": "超過 10 秒會分成 {{pieces}} 段（每段約 {{seconds}} 秒）各改一次再接起來，要付 {{pieces}} 次費用；段跟段之間的樣子可能有落差，相似度選「高」最穩。",
+    "piecesRescoreHint": "重新配樂也是每段各配，接縫處音樂會換。",
+    "piecesDone": "（只完成 {{done}}/{{total}} 段）",
+    "similarityLabel": "相似度",
+    "similarity": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "similarityDesc": {
+      "high": "照原片的構圖、運鏡、場景、光線，只改你說的部分。",
+      "medium": "保留運鏡、節奏、光線與色調，場景、背景、道具重新設計。",
+      "low": "只沿用原片的節奏與氛圍，場景、光線、色調、構圖全部重新發想。"
+    },
+    "rescore": "重新配樂",
+    "rescoreHint": "拿掉原片的聲音，讓 AI 配全新的背景音樂（原本的音效、人聲也會一起換掉）。",
+    "mode": "做法",
+    "modeEdit": "修改",
+    "modeReference": "參考生成",
+    "modeEditHint": "改原片的一段，長度不變，改好接回原位。",
+    "modeReferenceHint": "AI 先看選的範圍，照相似度和長度寫一份帶時間碼的新腳本，你看過、可以改，再生成全新的影片。",
+    "referenceRangeLabel": "當參考的範圍：{{from}}–{{to}} 秒（{{span}} 秒，全長 {{total}} 秒，最多 {{max}} 秒）",
+    "referencePlaceholder": "例如：產品只在最後 5 秒出現；要多一點水花",
+    "outputLength": "輸出長度",
+    "referencePiecesHint": "一次最多生成 10 秒，會在鏡頭交界切成 {{count}} 段（{{seconds}} 秒）接起來，各付一次費用。",
+    "referenceSubmit": "2. 照腳本生成",
+    "referenceLabel": "參考 {{from}}–{{to}}s 生成 {{seconds}} 秒：",
+    "referenceInstruction": "想要什麼（選填）",
+    "referenceSimilarityDesc": {
+      "high": "鏡頭順序、內容、運鏡都照參考片，只換主角。",
+      "medium": "照參考片的色系、光線、節奏，鏡頭內容重新設計。",
+      "low": "只取參考片的色系與氛圍，其他全部重新發想。"
+    },
+    "referenceCurrent": "會拿「{{version}}」當參考",
+    "referenceMusicHint": "新的影片一定是全新的聲音，不會沿用參考片；勾選＝音效＋背景音樂，不勾＝只有音效。",
+    "planWrite": "1. 寫腳本",
+    "planRewrite": "重寫腳本",
+    "planWriting": "AI 看片寫腳本中…",
+    "planLabel": "腳本（共 {{seconds}} 秒，可以直接改）",
+    "planHint": "一行一個鏡頭，格式「開始–結束s：內容」；第一行是整支的風格。生成會完全照這份走。",
+    "planInvalid": "要有至少一行「開始–結束s：內容」，總長 {{min}}–{{max}} 秒。",
+    "planUnreadable": "有幾行讀不懂，請寫成「開始–結束s：內容」。",
+    "planGaps": "鏡頭要從 0 秒開始、前後相接：不能有空檔，也不能重疊。",
+    "planTooLarge": "參考影片加產品圖太大，沒辦法一次送出。請縮短選取的秒數或減少產品圖。"
   }
 }
