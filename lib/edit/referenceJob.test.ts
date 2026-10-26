@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-const calls = vi.hoisted(() => ({ generate: [] as Record<string, unknown>[], extend: [] as Record<string, unknown>[], failExtend: [] as string[], timeout: false }));
+const calls = vi.hoisted(() => ({ generate: [] as Record<string, unknown>[], extend: [] as Record<string, unknown>[], failExtend: [] as string[], timeout: false, failJoin: false }));
 vi.mock("@/lib/video/job", () => ({
   runVideoJob: async (input: Record<string, unknown>) => {
     calls.generate.push(input);
@@ -29,7 +29,7 @@ vi.mock("@/lib/storyboard/clips", () => ({
     ]),
 }));
 vi.mock("@/lib/storyboard/export", () => ({
-  concatVideos: async (parts: Blob[]) => new Blob([(await Promise.all(parts.map((p) => p.text()))).join("+")]),
+  concatVideos: async (parts: Blob[]) => calls.failJoin && parts.length > 1 ? Promise.reject(new Error("errors.mergeMismatch")) : new Blob([(await Promise.all(parts.map((p) => p.text()))).join("+")]),
 }));
 import { piecePrompt, planPieces, runReferenceGeneration } from "./referenceJob";
 import type { Timeline } from "./timeline";
@@ -73,7 +73,7 @@ describe("runReferenceGeneration", () => {
     expect(calls.extend).toHaveLength(1);
     expect(calls.extend[0]).toMatchObject({ extensionDuration: 8, sourceVideo: "b64(tail(gen))" });
     expect(calls.extend[0].prompt).toContain("0–4s：漩渦\n4–8s：產品");
-    expect(await result!.video.text()).toBe("gen+ext1[from 5]");
+    expect(await result!.video!.text()).toBe("gen+ext1[from 5]");
     expect(result).toMatchObject({ seconds: 15, pieces: 2, done: 2 });
     expect(result!.error).toBeUndefined();
   });
@@ -88,14 +88,14 @@ describe("runReferenceGeneration", () => {
     reset(["upload"]);
     const result = await runReferenceGeneration(request, hooks);
     expect(calls.extend[1]).toMatchObject({ sourceVideoUri: "i-1", extensionDuration: 8 });
-    expect(await result!.video.text()).toBe("gen+ext2[last 8]");
+    expect(await result!.video!.text()).toBe("gen+ext2[last 8]");
   });
 
   it("keeps a part that finished at the moment of stopping", async () => {
     reset();
     // Stopped while the first part was generating: it is true only once that job has run
     const result = await runReferenceGeneration(request, { ...hooks, isCancelled: () => calls.generate.length > 0 });
-    expect(await result!.video.text()).toBe("gen");
+    expect(await result!.video!.text()).toBe("gen");
     expect(result).toMatchObject({ done: 1, cancelled: true });
   });
 
@@ -110,7 +110,7 @@ describe("runReferenceGeneration", () => {
         if (calls.generate.length === 1 && calls.extend.length === 0) stop = false;
       },
     });
-    expect(await (await first)!.video.text()).toBe("gen+ext1[from 5]");
+    expect(await (await first)!.video!.text()).toBe("gen+ext1[from 5]");
     reset();
     stop = true;
     expect(await runReferenceGeneration(request, stopAfterFirst)).toBeNull();
@@ -139,6 +139,16 @@ describe("runReferenceGeneration", () => {
     expect((result!.error as Error).message).toMatch(/timed out/);
   });
 
+  it("hands back the parts when they cannot be joined, so paid-for seconds are not lost", async () => {
+    reset();
+    calls.failJoin = true;
+    const result = await runReferenceGeneration(request, hooks);
+    calls.failJoin = false;
+    expect(result!.video).toBeNull();
+    expect(result!.parts).toHaveLength(2);
+    expect(result!.error).toBeInstanceOf(Error);
+  });
+
   it("refuses a plan with a gap before anything is billed", async () => {
     reset();
     const gap = { ...request, timeline: { style: "", shots: [{ start: 0, end: 4, text: "a" }, { start: 6, end: 10, text: "b" }] } };
@@ -156,7 +166,7 @@ describe("runReferenceGeneration", () => {
   it("keeps the seconds already made when a later part fails", async () => {
     reset(["any", "any"]);
     const result = await runReferenceGeneration(request, hooks);
-    expect(await result!.video.text()).toBe("gen");
+    expect(await result!.video!.text()).toBe("gen");
     expect(result).toMatchObject({ pieces: 2, done: 1 });
     expect(result!.error).toBeInstanceOf(Error);
   });

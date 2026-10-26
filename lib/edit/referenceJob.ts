@@ -58,6 +58,17 @@ export interface ReferenceHooks {
   onProgress: (progress: number, piece: number, pieces: number) => void;
 }
 
+export interface ReferenceResult {
+  /** The parts joined; null when they could not be joined (the parts are still all there) */
+  video: Blob | null;
+  parts: Blob[];
+  seconds: number;
+  pieces: number;
+  done: number;
+  error?: unknown;
+  cancelled?: boolean;
+}
+
 /**
  * Generate a plan of up to 30 s: the first part generated, each later part continuing the video so far.
  * Returns what was made so far with the error if a later part fails, and when stopped (cancelled: true),
@@ -66,7 +77,7 @@ export interface ReferenceHooks {
 export async function runReferenceGeneration(
   request: ReferenceRequest,
   hooks: ReferenceHooks
-): Promise<{ video: Blob; seconds: number; pieces: number; done: number; error?: unknown; cancelled?: boolean } | null> {
+): Promise<ReferenceResult | null> {
   const { tailClip, trimClip } = await import("@/lib/storyboard/clips");
   const { concatVideos } = await import("@/lib/storyboard/export");
   // Whole seconds are what is generated; the UI checks the same before it lets a plan start
@@ -92,7 +103,11 @@ export async function runReferenceGeneration(
   let interactionId: string | undefined;
   const made = (extra: { error?: unknown; cancelled?: boolean } = {}) =>
     // `seconds` is what was made, not what was planned
-    concatParts(parts, concatVideos).then((video) => ({ video, seconds: cuts[parts.length], pieces: count, done: parts.length, ...extra }));
+    concatParts(parts, concatVideos).then(
+      (video): ReferenceResult => ({ video, parts, seconds: cuts[parts.length], pieces: count, done: parts.length, ...extra }),
+      // Paid-for parts are kept even when they cannot be joined
+      (joinError): ReferenceResult => ({ video: null, parts, seconds: cuts[parts.length], pieces: count, done: parts.length, ...extra, error: extra.error ?? joinError })
+    );
   // Stopped: what is done is kept, or nothing if no part was finished
   const stopped = () => (parts.length ? made({ cancelled: true }) : null);
   try {

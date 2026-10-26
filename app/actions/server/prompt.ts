@@ -54,7 +54,11 @@ export async function planFromReferenceAction(
   request: { video: string; images: { data: string }[]; input: ReferencePlanInput },
   apiKey?: string
 ): Promise<ActionResult<Timeline>> {
-  return toActionResult(() =>
-    createClient(apiKey).planFromReference(request.video, request.images.map((image) => image.data), request.input)
-  );
+  return toActionResult(async () => {
+    const { input } = request;
+    if (!["low", "medium", "high"].includes(input.similarity)) throw new Error("Invalid similarity");
+    if (!Number.isFinite(input.seconds) || input.seconds < 3 || input.seconds > 30) throw new Error("Invalid length");
+    if (request.images.length > 3 || (input.instruction ?? "").length > 1000) throw new Error("Request is too large");
+    return createClient(apiKey).planFromReference(request.video, request.images.map((image) => image.data), input);
+  });
 }

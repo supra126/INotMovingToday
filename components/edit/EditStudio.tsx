@@ -254,7 +254,11 @@ export function EditStudio({ requireApiKey }: { requireApiKey: () => string | nu
         result.done < result.pieces ? t("edit.piecesDone", { done: result.done, total: result.pieces }) : "",
         `\n${plan.trim()}`,
       ].join("");
-      const versions = [...session.versions, { blob: result.video, prompt: label, at: Date.now() }];
+      // Not joined: each part is kept as a version of its own
+      const added = result.video
+        ? [{ blob: result.video, prompt: label, at: Date.now() }]
+        : result.parts.map((blob, n) => ({ blob, prompt: `${label}${t("edit.partOnly")}`, at: Date.now() + n }));
+      const versions = [...session.versions, ...added];
       commit({ ...session, versions, current: versions.length - 1 });
     } catch (err) {
       if (!token.stopped) showError(err);

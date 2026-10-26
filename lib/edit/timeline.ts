@@ -47,7 +47,7 @@ export function parseTimeline(text: string): Timeline {
       const end = Number(match[2]);
       if (end > start) shots.push({ start, end, text: match[3] });
       else unreadable.push(line.trim());
-    } else if (/^\s*\d+(?:\.\d+)?\s*(?:[–—~\-－]|to\b)\s*\d/i.test(line)) {
+    } else if (/^\s*\d+(?:\.\d+)?\s*(?:[–—~\-－]|to\b)\s*\d.*[：:]/i.test(line)) {
       unreadable.push(line.trim());
     } else if (line.trim()) {
       style.push(line.trim().replace(/^風格[：:]\s*/, ""));

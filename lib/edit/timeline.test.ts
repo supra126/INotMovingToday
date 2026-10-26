@@ -65,6 +65,8 @@ describe("timeline gaps and half seconds", () => {
     expect(plan.unreadable).toEqual(["3 to 6s：b"]);
     expect(timelineContinuous(plan)).toBe(false);
     expect(parseTimeline("風格：x\n0–3s：a").unreadable).toBeUndefined();
+    // Free text with a number range but no colon is style, not a shot
+    expect(parseTimeline("3-5 種顏色的搭配\n0–3s：a").unreadable).toBeUndefined();
   });
 
   it("keeps a style line that starts with a number", () => {
