@@ -98,7 +98,15 @@ export async function runVideoJob(input: VideoJobInput, hooks: VideoJobHooks): P
 /** "Silent" videos lose their sound track here; Omni itself always adds sound */
 async function silenced(result: VideoJobResult | null, audioMode?: AudioMode): Promise<VideoJobResult | null> {
   if (!result || audioMode !== "none") return result;
-  return { ...result, videoUrl: await stripAudioUrl(result.videoUrl) };
+  try {
+    const videoUrl = await stripAudioUrl(result.videoUrl);
+    if (result.videoUrl.startsWith("blob:")) URL.revokeObjectURL(result.videoUrl);
+    return { ...result, videoUrl };
+  } catch (err) {
+    // The video is already paid for: keep it (with sound) rather than failing the whole job
+    console.warn("Could not remove the audio track", err);
+    return result;
+  }
 }
 
 /**
