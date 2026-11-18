@@ -180,7 +180,8 @@ export class OmniProvider implements VideoGenerationProvider {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.ai = new GoogleGenAI({ apiKey });
+    // genai 3 defaults to the v1 API, where Omni is not available yet
+    this.ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1beta" } });
   }
 
   getCapabilities(): ProviderCapabilities {
