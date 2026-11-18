@@ -22,14 +22,20 @@ import { omniLogger as logger } from "@/lib/logger";
 import { AUDIO_DIRECTION } from "@/lib/ai/prompts";
 import type { AudioMode } from "@/types";
 
-export const OMNI_MODEL = "gemini-omni-1.1-flash";
+// 1.2 (GA 2026-11-05): 15 s clips, 360p drafts, ~30% cheaper. 1.1 routes to 1.2 from 2026-12-03.
+export const OMNI_MODEL = "gemini-omni-1.2-flash";
+// genai 3 defaults to the v1 API, where Omni is not available yet (404 "model not found")
+export const OMNI_API_VERSION = "v1beta";
 export const OMNI_PROVIDER_NAME = "Google Gemini Omni Flash";
 
-// Omni clip length per generation / extension, and total length cap with extensions
+// Omni clip length: text / single image up to 15 s; first+last frame and each extension up to 10 s
 const MIN_DURATION = 3;
-const MAX_DURATION = 10;
-// Docs say 40 s; extending past 30 s fails with a generic 400 (tested 2026-10-16)
+const MAX_DURATION = 15;
+const MAX_STEP_DURATION = 10;
+// Total length cap with extensions (docs and a 2026-10-16 test agree on 30 s)
 const MAX_TOTAL_DURATION = 30;
+// Reference videos: up to 3 for clips of 10 s or less, only 1 for longer ones
+const MAX_REFERENCE_VIDEOS = 3;
 
 // Rough wall-clock estimate used for the progress bar
 const ESTIMATED_SECONDS_PER_VIDEO_SECOND = 12;
@@ -108,16 +114,19 @@ function imagePart(base64Data: string) {
   return { type: "image" as const, data: base64Data, mime_type: detectMimeType(base64Data) };
 }
 
-function clampDuration(seconds: number | undefined, fallback: number): number {
+function clampDuration(seconds: number | undefined, fallback: number, max = MAX_DURATION): number {
   const value = Math.round(Number(seconds) || fallback);
-  return Math.max(MIN_DURATION, Math.min(MAX_DURATION, value));
+  return Math.max(MIN_DURATION, Math.min(max, value));
 }
 
 /**
  * Omni has no negativePrompt or audio field: both go into the prompt text
  */
-function buildPromptText(prompt: string, audioMode?: AudioMode, negativePrompt?: string): string {
+function buildPromptText(prompt: string, audioMode?: AudioMode, negativePrompt?: string, motionReference = false): string {
   const parts = [prompt.trim()];
+  if (motionReference) {
+    parts.push("Follow the motion and camera movement of the reference video(s); take the look from the images and the text.");
+  }
   if (audioMode) {
     parts.push(AUDIO_DIRECTION[audioMode]);
   }
@@ -173,7 +182,7 @@ export class OmniProvider implements VideoGenerationProvider {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.ai = new GoogleGenAI({ apiKey });
+    this.ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: OMNI_API_VERSION } });
   }
 
   getCapabilities(): ProviderCapabilities {
@@ -192,16 +201,22 @@ export class OmniProvider implements VideoGenerationProvider {
   }
 
   async generateVideo(params: VideoGenerationParams): Promise<VideoGenerationResult> {
-    const duration = clampDuration(params.duration, 8);
+    // First + last frame interpolation is limited to 10 s
+    const duration = clampDuration(params.duration, 8, params.firstFrameImage && params.lastFrameImage ? MAX_STEP_DURATION : MAX_DURATION);
 
     // Image parts go before the prompt: first frame, optional last frame, or up to 3 references
     const images: string[] = params.firstFrameImage
       ? [params.firstFrameImage, ...(params.lastFrameImage ? [params.lastFrameImage] : [])]
       : (params.referenceImages ?? []).slice(0, 3);
 
+    // Motion reference clips (new generations only, their audio is ignored); not combined with a first frame
+    const videoLimit = duration > MAX_STEP_DURATION ? 1 : MAX_REFERENCE_VIDEOS;
+    const referenceVideos = params.firstFrameImage ? [] : (params.referenceVideos ?? []).slice(0, videoLimit);
+    const videoUris = await this.uploadVideos(referenceVideos);
+
     const task = params.firstFrameImage
       ? "image_to_video"
-      : images.length > 0
+      : images.length > 0 || videoUris.length > 0
         ? "reference_to_video"
         : "text_to_video";
 
@@ -213,13 +228,15 @@ export class OmniProvider implements VideoGenerationProvider {
       audioMode: params.audioMode,
       task,
       imageCount: images.length,
+      videoCount: videoUris.length,
     });
 
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
       input: [
         ...images.map(imagePart),
-        { type: "text", text: buildPromptText(params.prompt, params.audioMode, params.negativePrompt) },
+        ...videoUris.map((uri) => ({ type: "video" as const, uri, mime_type: "video/mp4" as const })),
+        { type: "text", text: buildPromptText(params.prompt, params.audioMode, params.negativePrompt, videoUris.length > 0) },
       ],
       response_format: {
         type: "video",
@@ -240,9 +257,9 @@ export class OmniProvider implements VideoGenerationProvider {
    * Extend a previously generated video. sourceVideoUri holds the Omni interaction id.
    */
   async extendVideo(params: VideoExtensionParams): Promise<VideoGenerationResult> {
-    const duration = clampDuration(params.extensionDuration, 8);
+    const duration = clampDuration(params.extensionDuration, 8, MAX_STEP_DURATION);
 
-    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const uploaded = params.sourceVideo ? (await this.uploadVideo(params.sourceVideo)).uri : undefined;
 
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
@@ -272,7 +289,7 @@ export class OmniProvider implements VideoGenerationProvider {
    * Reference images are named <IMAGE_REF_n> in the order they are sent.
    */
   async editVideo(params: VideoEditParams): Promise<VideoGenerationResult> {
-    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const uploaded = params.sourceVideo ? (await this.uploadVideo(params.sourceVideo)).uri : undefined;
     const images = (params.referenceImages ?? []).slice(0, 3);
     const names = images.map((_, i) => `參考圖 ${i + 1} = <IMAGE_REF_${i}>`).join("；");
     // The docs advise short edit prompts; "keep everything else" stops unrelated changes
@@ -300,15 +317,35 @@ export class OmniProvider implements VideoGenerationProvider {
   }
 
   /** Upload a clip through the Files API and wait until Omni can read it */
-  private async uploadVideo(base64: string): Promise<string> {
+  private async uploadVideo(base64: string): Promise<{ uri: string; name: string }> {
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     let file = await this.ai.files.upload({ file: new Blob([bytes], { type: "video/mp4" }), config: { mimeType: "video/mp4" } });
-    for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      file = await this.ai.files.get({ name: file.name! });
+    try {
+      for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        file = await this.ai.files.get({ name: file.name! });
+      }
+      if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
+    } catch (err) {
+      await this.deleteFiles([file.name]);
+      throw err;
     }
-    if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
-    return file.uri;
+    return { uri: file.uri, name: file.name! };
+  }
+
+  /** Upload several clips; if one fails, the others are removed again instead of piling up in the quota */
+  private async uploadVideos(videos: string[]): Promise<string[]> {
+    const results = await Promise.allSettled(videos.map((video) => this.uploadVideo(video)));
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (failed) {
+      await this.deleteFiles(results.map((r) => (r.status === "fulfilled" ? r.value.name : undefined)));
+      throw failed.reason;
+    }
+    return results.map((r) => (r as PromiseFulfilledResult<{ uri: string }>).value.uri);
+  }
+
+  private async deleteFiles(names: (string | undefined)[]): Promise<void> {
+    await Promise.allSettled(names.filter((n): n is string => !!n).map((name) => this.ai.files.delete({ name })));
   }
 
   private trackJob(interactionId: string, duration: number): VideoGenerationResult {

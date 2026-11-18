@@ -33,6 +33,8 @@ export default function Home() {
   const video = useVideoGeneration();
 
   const [description, setDescription] = useState("");
+  // Motion reference clips (first 3 s of each upload, muted)
+  const [referenceVideos, setReferenceVideos] = useState<Blob[]>([]);
   const [showGuideModal, setShowGuideModal] = useState(false);
   // Which button produced the current video, so "Regenerate" repeats it
   const [lastSource, setLastSource] = useState<"draft" | "direct">("draft");
@@ -90,6 +92,7 @@ export default function Home() {
     video.generate({
       fields: promptDraft.fields,
       images,
+      referenceVideos,
       mode: videoSettings.videoMode,
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
@@ -106,6 +109,7 @@ export default function Home() {
     video.generate({
       rawPrompt: description,
       images,
+      referenceVideos,
       mode: videoSettings.videoMode,
       ratio: videoSettings.videoRatio,
       resolution: videoSettings.videoResolution,
@@ -139,6 +143,7 @@ export default function Home() {
               startFrame={videoSettings.startFrame}
               endFrame={videoSettings.endFrame}
               references={videoSettings.references}
+              referenceVideos={referenceVideos}
               description={description}
               negativePrompt={videoSettings.negativePrompt}
               videoRatio={videoSettings.videoRatio}
@@ -151,6 +156,7 @@ export default function Home() {
               onStartFrameChange={handleStartFrameChange}
               onEndFrameChange={videoSettings.setEndFrame}
               onReferencesChange={videoSettings.setReferences}
+              onReferenceVideosChange={setReferenceVideos}
               onDescriptionChange={setDescription}
               onNegativePromptChange={videoSettings.setNegativePrompt}
               onVideoRatioChange={videoSettings.setVideoRatio}

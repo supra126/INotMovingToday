@@ -4,6 +4,7 @@ import type {
   ImagePromptRewriteInput,
   ImagePromptsInput,
   ScriptParseInput,
+  FramesParseInput,
   ScriptResult,
   ScriptReviseInput,
   ShotPolishInput,
@@ -21,6 +22,18 @@ export async function parseScript(
   }
   const { parseScriptAction } = await import("@/app/actions/server/storyboard");
   return unwrapActionResult(await parseScriptAction(input, files.source, files.products, apiKey));
+}
+
+export async function parseFrames(
+  input: FramesParseInput,
+  files: { frames: File[]; products: File[] },
+  apiKey: string
+): Promise<ScriptResult> {
+  if (isStaticBuild) {
+    return createGeminiClient(apiKey).parseFrames(input, files.frames, files.products);
+  }
+  const { parseFramesAction } = await import("@/app/actions/server/storyboard");
+  return unwrapActionResult(await parseFramesAction(input, files.frames, files.products, apiKey));
 }
 
 export async function reviseScript(input: ScriptReviseInput, apiKey: string): Promise<ScriptResult> {

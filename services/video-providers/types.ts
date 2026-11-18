@@ -15,6 +15,11 @@ export interface VideoGenerationParams {
   firstFrameImage?: string;
   /** Last frame image for frames-to-video transition (base64 encoded) */
   lastFrameImage?: string;
+  /**
+   * Motion reference clips, base64 MP4 of 3 s or less each (audio is ignored).
+   * Up to 3 for clips of 10 s or less, 1 for longer ones; not used with a first frame.
+   */
+  referenceVideos?: string[];
 }
 
 export interface VideoExtensionParams {

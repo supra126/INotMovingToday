@@ -24,6 +24,8 @@ export interface GenerateRequest {
   /** Send this text as the prompt as-is (skips composing) */
   rawPrompt?: string;
   images: UploadedImage[];
+  /** Motion reference clips; with these, a lone main image is sent as a reference instead of the first frame */
+  referenceVideos?: Blob[];
   mode: VideoGenerationMode;
   ratio: VideoRatio;
   resolution: VideoResolution;
@@ -52,7 +54,10 @@ export interface VideoGenerationActions {
   resetVideo: () => void;
 }
 
-export const MAX_TOTAL_DURATION = 40;
+// Omni caps a video at 30 s including extensions (docs, and a 2026-10-16 test)
+export const MAX_TOTAL_DURATION = 30;
+// First + last frame interpolation is limited to 10 s
+export const MAX_FRAMES_DURATION = 10;
 
 // The user's own key: static builds call Gemini from the browser,
 // server builds forward it so the server key is only a fallback
@@ -132,18 +137,23 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
       setStatus("generating");
 
       const files = request.images.map((img) => img.file);
+      const transition = request.mode === "frames_to_video";
+      const duration = transition ? Math.min(request.duration, MAX_FRAMES_DURATION) : request.duration;
+      // Omni takes up to 3 reference videos for clips of 10 s or less, only 1 for longer ones
+      const videos = transition ? [] : (request.referenceVideos ?? []).slice(0, duration > 10 ? 1 : 3);
       const done = await runVideoJob(
         {
           prompt,
           ratio: request.ratio,
           resolution: request.resolution,
-          duration: request.duration,
+          duration,
           audioMode: request.audioMode,
           negativePrompt: request.negativePrompt,
-          // Same mapping as before: end frame → transition, 1 image → first frame, 2-3 → references
-          startImage: request.mode === "frames_to_video" || files.length === 1 ? files[0] : undefined,
-          endImage: request.mode === "frames_to_video" ? files[1] : undefined,
-          referenceImages: request.mode !== "frames_to_video" && files.length > 1 ? files : undefined,
+          // End frame → transition; 1 image → first frame (a reference when motion clips are added); 2-3 → references
+          startImage: transition || (files.length === 1 && videos.length === 0) ? files[0] : undefined,
+          endImage: transition ? files[1] : undefined,
+          referenceImages: !transition && (files.length > 1 || videos.length > 0) && files.length > 0 ? files : undefined,
+          referenceVideos: videos.length > 0 ? videos : undefined,
         },
         jobHooks(runId, key)
       );
@@ -152,7 +162,7 @@ export function useVideoGeneration(): VideoGenerationState & VideoGenerationActi
 
       shownJobIdRef.current = job.jobId;
       setVideoUrl(done.videoUrl);
-      setTotalDuration(request.duration);
+      setTotalDuration(duration);
       lastRequestRef.current = done.sourceVideoUri
         ? {
             sourceVideoUri: done.sourceVideoUri,

@@ -10,11 +10,13 @@ interface DurationSelectorProps {
   onChange: (duration: VideoDuration) => void;
   disabled?: boolean;
   hint?: string;
+  /** Longest selectable length; Omni allows 15 s, but first+last frame and storyboard shots stop at 10 s */
+  max?: VideoDuration;
 }
 
-const durations: VideoDuration[] = [4, 6, 8, 10];
+const durations: VideoDuration[] = [4, 6, 8, 10, 12, 15];
 
-export function DurationSelector({ value, onChange, disabled = false, hint }: DurationSelectorProps) {
+export function DurationSelector({ value, onChange, disabled = false, hint, max = 10 }: DurationSelectorProps) {
   const { t } = useLocale();
   const label = t("upload.duration.label");
   return (
@@ -23,7 +25,7 @@ export function DurationSelector({ value, onChange, disabled = false, hint }: Du
         label={label}
         value={String(value)}
         onChange={(next) => onChange(Number(next) as VideoDuration)}
-        options={durations.map((duration) => ({
+        options={durations.filter((duration) => duration <= max).map((duration) => ({
           value: String(duration),
           label: `${duration}${t("upload.duration.unit")}`,
           disabled,

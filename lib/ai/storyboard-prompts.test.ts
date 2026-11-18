@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildFramesParsePrompt,
+  parseFramesResult,
   buildImagePromptRewritePrompt,
   buildImagePromptsPrompt,
   buildShotPolishPrompt,
@@ -124,5 +126,32 @@ describe("polish one shot", () => {
   it("reads the polished picture and camera", () => {
     expect(parsePolishedShot({ visual: " 新畫面 ", camera: "慢推" })).toEqual({ visual: "新畫面", camera: "慢推" });
     expect(() => parsePolishedShot({ camera: "x" })).toThrow();
+  });
+});
+
+describe("frames storyboard", () => {
+  const ctx = { ratio: "9:16" as const, tone: "", packagingText: "", locale: "zh" as const, hasProduct: false };
+  const row = (id: string, transition: string) => ({ id, seconds: 4, visual: `畫面 ${id}`, camera: "", sound: "", music: "無", onScreenText: "", transition, hasPackaging: false });
+
+  it("asks for exactly one shot per frame and explains 接續 / 硬切", () => {
+    const prompt = buildFramesParsePrompt({ ...ctx, frameCount: 5, productCount: 1, notes: "要有音樂" });
+    expect(prompt).toContain("exactly 5 shots");
+    expect(prompt).toContain("接續");
+    expect(prompt).toContain("硬切");
+    expect(prompt).toContain("要有音樂");
+    expect(prompt).toContain("the product, for reference only");
+    // A shot never restages what its frame already shows (an action replayed twice at the seam)
+    expect(prompt).toContain("never describe an action that already happened");
+  });
+
+  it("renumbers shots by position and ends on a cut", () => {
+    const result = parseFramesResult({ shots: [row("s07", "接續：推近"), row("s02", "接續：拉遠")] }, 2);
+    expect(result.shots.map((s) => s.id)).toEqual(["s01", "s02"]);
+    expect(result.shots[0].transition).toBe("接續：推近");
+    expect(result.shots[1].transition).toBe("硬切");
+  });
+
+  it("rejects a table that does not match the frames", () => {
+    expect(() => parseFramesResult({ shots: [row("s01", "硬切")] }, 3)).toThrow(/1 shots for 3 frames/);
   });
 });

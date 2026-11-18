@@ -11,7 +11,8 @@ interface ResolutionSelectorProps {
   disabled?: boolean;
 }
 
-const resolutions: VideoResolution[] = ["720p", "1080p", "4k"];
+// 360p is a cheap draft (~1/3 of 720p) for checking motion before a full render
+const resolutions: VideoResolution[] = ["360p", "720p", "1080p", "4k"];
 
 export function ResolutionSelector({ value, onChange, disabled = false }: ResolutionSelectorProps) {
   const { t } = useLocale();

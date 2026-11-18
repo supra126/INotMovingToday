@@ -2,10 +2,10 @@
 
 export type VideoRatio = "9:16" | "16:9";
 
-export type VideoResolution = "720p" | "1080p" | "4k";
+export type VideoResolution = "360p" | "720p" | "1080p" | "4k";
 
-// 影片長度選項（Omni 單段 3-10 秒）
-export type VideoDuration = 4 | 6 | 8 | 10;
+// 影片長度選項（Omni 1.2 單段 3-15 秒；首尾幀與延伸每段最多 10 秒）
+export type VideoDuration = 4 | 6 | 8 | 10 | 12 | 15;
 
 // 影片生成模式（依上傳的圖片自動判斷）
 export type VideoGenerationMode =
@@ -13,8 +13,8 @@ export type VideoGenerationMode =
   | "frames_to_video"   // 首尾幀轉場（主圖 + 結束畫面）
   | "text_only";        // 純文字生成（不使用圖片）
 
-// 影片音訊：只有音效，或音效加背景音樂
-export type AudioMode = "sfx" | "sfx_music";
+// 影片音訊：只有音效、音效加背景音樂，或無聲（生成後拿掉音軌）
+export type AudioMode = "sfx" | "sfx_music" | "none";
 
 // 分鏡圖尺寸（Nano Banana）
 export type ImageSize = "1K" | "2K" | "4K";

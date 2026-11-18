@@ -102,6 +102,51 @@ export function buildScriptParsePrompt(
   ].join("\n");
 }
 
+/**
+ * The user already has the storyboard frames: one shot per frame, in order, and how each frame joins the next.
+ * "接續" makes the shot travel from its frame to the next one (first + last frame video); "硬切" cuts.
+ */
+export function buildFramesParsePrompt(
+  ctx: ScriptContext & { frameCount: number; productCount: number; notes: string }
+): string {
+  return [
+    "You are a short-video director. The user already drew or chose the storyboard frames and wants them joined into one video by an AI video model.",
+    "",
+    "Context:",
+    ...contextLines(ctx),
+    `- The first ${ctx.frameCount} images are the user's storyboard frames, in order. Frame 1 is shot s01, frame 2 is shot s02, and so on.`,
+    ctx.productCount
+      ? `- The last ${ctx.productCount > 1 ? `${ctx.productCount} images are` : "image is"} the product, for reference only (not frames).`
+      : "",
+    "",
+    ctx.notes.trim() ? `User's notes about the video:\n${ctx.notes.trim()}` : "",
+    "",
+    `Write exactly ${ctx.frameCount} shots, one per frame, in the same order, with ids s01, s02, ... Never add, drop, merge or reorder shots, and never change what a frame shows.`,
+    "For each pair of neighbouring frames, decide how they join, and write it in the earlier shot's transition:",
+    "- Start the transition with \"接續\" when the next frame continues the same scene (same place and subject, a move, a reveal, a change that can happen on camera). That shot's video then starts on its frame and ends exactly on the next frame, so describe that movement in visual and camera, e.g. \"接續：鏡頭推近到瓶身特寫\".",
+    "- Start it with \"硬切\" when the next frame is a different place, angle jump or time skip that should be a cut. That shot then only animates its own frame.",
+    "- The last shot's transition is \"硬切\" (it is the end).",
+    "Each shot covers only what happens from its own frame onward. A shot starts in the state its frame shows: never describe an action that already happened by that frame or in the shot before (if frame 2 already shows the lid being lifted, shot s02 does not lift it again; it continues from there).",
+    "visual: what the frame shows plus the action during the shot; camera: the camera move; sound: sound effects; music: \"無\" unless the notes ask for music; onScreenText: empty unless the notes give text; hasPackaging: true when the product packaging is in the frame.",
+    "seconds: 3 to 10. A 接續 shot needs enough time for its move (usually 4 to 6); a still or simple shot 3 to 4.",
+    "",
+    ...resultInstructions(ctx.locale),
+    "In suggestions, point out frames that will be hard to connect (very different people, product or light) so the user can change them to 硬切.",
+  ].filter((line) => line !== "").join("\n");
+}
+
+/** The frames table must keep one shot per frame in order; ids are taken from the position */
+export function parseFramesResult(raw: unknown, frameCount: number): ScriptResult {
+  const result = parseScriptResult(raw);
+  if (result.shots.length !== frameCount) {
+    throw new Error(`Failed to parse AI response: ${result.shots.length} shots for ${frameCount} frames`);
+  }
+  const shots = result.shots.map((shot, index) => ({ ...shot, id: `s${String(index + 1).padStart(2, "0")}` }));
+  // The last frame ends the video, so it never continues into anything
+  shots[shots.length - 1] = { ...shots[shots.length - 1], transition: "硬切" };
+  return { ...result, shots };
+}
+
 export function buildScriptRevisePrompt(
   ctx: ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string }
 ): string {
@@ -276,6 +321,7 @@ export function parseRewrittenPrompt(raw: unknown): string {
 }
 
 export type ScriptParseInput = ScriptContext & { sourceText: string };
+export type FramesParseInput = ScriptContext & { notes: string };
 export type ScriptReviseInput = ScriptContext & { shots: ScriptShot[]; chat: ChatMessage[]; message: string };
 export type ImagePromptsInput = ScriptContext & { shots: ScriptShot[]; existingPrompts?: Record<string, string> };
 export type ImagePromptRewriteInput = ScriptContext & {

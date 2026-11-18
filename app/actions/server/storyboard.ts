@@ -6,6 +6,7 @@ import type {
   ImagePromptRewriteInput,
   ImagePromptsInput,
   ScriptParseInput,
+  FramesParseInput,
   ScriptResult,
   ScriptReviseInput,
   ShotPolishInput,
@@ -26,6 +27,16 @@ export async function parseScriptAction(
   apiKey: string
 ): Promise<ActionResult<ScriptResult>> {
   return toActionResult(() => createClient(apiKey).parseScript(input, source, products));
+}
+
+export async function parseFramesAction(
+  input: FramesParseInput,
+  frames: File[],
+  products: File[],
+  apiKey: string
+): Promise<ActionResult<ScriptResult>> {
+  // The frame-sequence page works like the single-shot page: the server key is a fallback
+  return toActionResult(() => createClient(apiKey || process.env.GEMINI_API_KEY || "").parseFrames(input, frames, products));
 }
 
 export async function reviseScriptAction(input: ScriptReviseInput, apiKey: string): Promise<ActionResult<ScriptResult>> {

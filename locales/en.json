@@ -33,6 +33,8 @@
     "apiSettingsConnected": "API Settings (Connected)",
     "github": "GitHub",
     "modeSingle": "Single shot",
+    "modeFrames": "Start & end",
+    "modeSequence": "Join frames",
     "modeStoryboard": "Storyboard",
     "modeEdit": "Edit"
   },
@@ -157,19 +159,23 @@
       }
     },
     "resolution": {
+      "360p": "360p draft",
       "720p": "720p",
       "1080p": "1080p",
       "4k": "4K"
     },
     "duration": {
       "label": "Video Duration",
-      "unit": "sec"
+      "unit": "sec",
+      "framesLimit": "Up to 10 s with an end frame"
     },
     "audio": {
       "label": "Audio",
       "sfx_music": "SFX + music",
       "sfx": "SFX only",
-      "sfxHint": "No background music, so you can add your own in your editor"
+      "sfxHint": "No background music, so you can add your own in your editor",
+      "none": "Silent",
+      "noneHint": "The sound track is removed after generation"
     },
     "modeUploader": {
       "endFrame": "End frame",
@@ -194,6 +200,13 @@
     "priceEstimate": {
       "label": "Estimated cost ~{{price}}",
       "labelUpscaled": "Estimated cost from ~{{price}} (1080p / 4K are upscaled and may cost more)"
+    },
+    "referenceVideo": {
+      "label": "Motion reference videos (optional)",
+      "add": "Add video\nfirst 3 s",
+      "hint": "Only the first 3 s of each clip is used, without sound, to guide motion and camera; a single main image becomes a reference.",
+      "overLimit": "Videos over 10 s use only the first reference video",
+      "error": "This video could not be read, try another one"
     }
   },
   "errors": {
@@ -479,6 +492,19 @@
       "undo": "Undo segment {{n}}",
       "undoShot": "Undo the edit",
       "shotEditing": "Editing"
+    },
+    "frames": {
+      "title": "Already have your storyboard frames?",
+      "description": "Upload your frames in order. AI decides whether each pair should continue (the video moves from one frame to the next) or cut, writes the table, and skips the script and image steps. The product images, packaging text and tone above are used too.",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "e.g. about 20 s in total, with background music, end on the front of the product",
+      "start": "Build the table from {{count}} frames",
+      "working": "AI is reading the frames…",
+      "needTwo": "Upload at least 2 frames",
+      "replaceConfirm": "This project already has a storyboard. Building from new frames replaces the table and its images. Continue?",
+      "chatUser": "Build the storyboard from my {{count}} frames",
+      "moveEarlier": "Move earlier",
+      "moveLater": "Move later"
     }
   },
   "edit": {
@@ -548,5 +574,57 @@
     "planUnreadable": "Some lines can’t be read. Write them as “start–end s: what”.",
     "planGaps": "Shots must start at 0 s and run back to back, with no gap and no overlap.",
     "planTooLarge": "The reference video plus the product photos is too large to send. Pick fewer seconds or use fewer photos."
+  },
+  "frames": {
+    "start": "Start frame",
+    "end": "End frame",
+    "swap": "Swap start and end frames",
+    "hint": "The video moves from the start frame to the end frame; Omni fills in the camera move and action. Use the same ratio for both.",
+    "needBoth": "Upload both a start and an end frame",
+    "description": {
+      "label": "What happens in between?",
+      "placeholder": "e.g. The camera slowly pushes in as the product rises out of the box and stops on a front close-up"
+    },
+    "emptyHint": "Upload a start and an end frame; the video shows up here"
+  },
+  "sequence": {
+    "frames": "Storyboard frames (in order)",
+    "framesHint": "Upload the frames you already have; use ← → to reorder. AI decides whether each pair continues or cuts.",
+    "plan": "Plan the seams ({{count}} frames)",
+    "empty": "Upload 2 or more frames. AI plans each seam, then one click makes every clip and joins them into one video",
+    "visual": "What happens in this shot",
+    "generating": "Generating {{percent}}%",
+    "notYet": "Not made yet",
+    "redo": "Redo this clip",
+    "seam": "Seam",
+    "continue": "Continue",
+    "cut": "Cut",
+    "continueHint": "The video moves from frame {{from}} to frame {{to}}",
+    "cutHint": "This clip only animates its own frame; the next one cuts in",
+    "lastFrame": "Last frame",
+    "lastAsEnd": "End point only",
+    "lastAsClip": "Make a clip too",
+    "endpoint": "The video ends on this frame; no clip of its own",
+    "generateAll": "Make {{count}} clips (~{{price}})",
+    "running": "Generating {{done}}/{{total}}",
+    "stop": "Stop",
+    "openInStoryboard": "This is also saved as a storyboard project; open it in Storyboard to extend or edit single clips.",
+    "startOver": "Start with new frames",
+    "result": "Joined video",
+    "joining": "Joining…",
+    "drafting": "AI is writing the prompts…",
+    "draftingShot": "Writing the prompt…",
+    "allDone": "Every clip is up to date",
+    "insert": "+ Insert a frame",
+    "remove": "Remove",
+    "visualPlaceholder": "Optional: what happens in this shot (empty = AI decides from the picture)",
+    "runDraft": "① Writing prompts {{percent}}%",
+    "runVideo": "② Making videos {{percent}}% ({{done}}/{{total}} done)",
+    "estimated": "estimated from time",
+    "stepDraft": "① Prompt {{percent}}%",
+    "stepVideo": "② Video {{percent}}%",
+    "waiting": "Waiting",
+    "restore": "Back to previous {{resolution}} ({{count}} kept)",
+    "restoreHint": "The current take is kept and can be brought back. Clips must share one resolution to be joined"
   }
 }

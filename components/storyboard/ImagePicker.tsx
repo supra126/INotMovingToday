@@ -11,11 +11,19 @@ interface ImagePickerProps {
   max: number;
   onChange: (images: StoredImage[]) => void;
   disabled?: boolean;
+  /** Numbers the images and lets the user move them (order matters, e.g. storyboard frames) */
+  reorderable?: boolean;
 }
 
-export function ImagePicker({ images, max, onChange, disabled = false }: ImagePickerProps) {
+export function ImagePicker({ images, max, onChange, disabled = false, reorderable = false }: ImagePickerProps) {
   const { t } = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const move = (from: number, to: number) => {
+    const next = [...images];
+    [next[from], next[to]] = [next[to], next[from]];
+    onChange(next);
+  };
 
   const add = async (files: File[]) => {
     const added = await Promise.all(files.filter((file) => file.type.startsWith("image/")).map(copyImageFile));
@@ -35,6 +43,31 @@ export function ImagePicker({ images, max, onChange, disabled = false }: ImagePi
             >
               {t("upload.modeUploader.remove")}
             </button>
+          )}
+          {reorderable && (
+            <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 text-xs text-white">{index + 1}</span>
+          )}
+          {reorderable && !disabled && images.length > 1 && (
+            <div className="absolute inset-x-1 bottom-1 flex justify-between">
+              <button
+                type="button"
+                aria-label={t("storyboard.frames.moveEarlier")}
+                disabled={index === 0}
+                onClick={() => move(index, index - 1)}
+                className="rounded bg-black/70 px-1.5 text-xs text-white disabled:invisible"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                aria-label={t("storyboard.frames.moveLater")}
+                disabled={index === images.length - 1}
+                onClick={() => move(index, index + 1)}
+                className="rounded bg-black/70 px-1.5 text-xs text-white disabled:invisible"
+              >
+                →
+              </button>
+            </div>
           )}
         </div>
       ))}

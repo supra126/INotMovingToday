@@ -33,6 +33,8 @@
     "apiSettingsConnected": "API 設定 (已連線)",
     "github": "GitHub",
     "modeSingle": "單鏡生成",
+    "modeFrames": "首尾幀",
+    "modeSequence": "接分鏡",
     "modeStoryboard": "分鏡模式",
     "modeEdit": "影片修改"
   },
@@ -157,19 +159,23 @@
       }
     },
     "resolution": {
+      "360p": "360p 草稿",
       "720p": "720p",
       "1080p": "1080p",
       "4k": "4K"
     },
     "duration": {
       "label": "影片長度",
-      "unit": "秒"
+      "unit": "秒",
+      "framesLimit": "有結束畫面時最長 10 秒"
     },
     "audio": {
       "label": "音訊",
       "sfx_music": "音效 + 背景音樂",
       "sfx": "只有音效",
-      "sfxHint": "不加背景音樂，方便之後在剪輯軟體自己配樂"
+      "sfxHint": "不加背景音樂，方便之後在剪輯軟體自己配樂",
+      "none": "無聲",
+      "noneHint": "生成後會拿掉音軌，影片完全沒有聲音"
     },
     "modeUploader": {
       "endFrame": "結束畫面",
@@ -194,6 +200,13 @@
     "priceEstimate": {
       "label": "預估費用約 {{price}}",
       "labelUpscaled": "預估費用約 {{price}} 起（1080p / 4K 為升頻，可能較高）"
+    },
+    "referenceVideo": {
+      "label": "動作參考影片（選填）",
+      "add": "加入影片\n取前 3 秒",
+      "hint": "只取每支的前 3 秒、不含聲音，用來帶動作和運鏡；有一張主圖時會改當參考圖。",
+      "overLimit": "超過 10 秒的影片只會用第一支參考影片",
+      "error": "這支影片無法讀取，換一支試試"
     }
   },
   "errors": {
@@ -479,6 +492,19 @@
       "undo": "還原第 {{n}} 段",
       "undoShot": "還原成編輯前",
       "shotEditing": "編輯中"
+    },
+    "frames": {
+      "title": "已經有自己的分鏡圖？",
+      "description": "依順序上傳分鏡圖，AI 會判斷每兩張之間要「接續」（影片從這張動到下一張）還是「硬切」，排好分鏡表後直接跳過寫腳本和生圖。上面的產品圖、包裝文字和調性也會一起參考。",
+      "notes": "補充說明（選填）",
+      "notesPlaceholder": "例如：整支 20 秒左右、要有背景音樂、最後停在產品正面",
+      "start": "用這 {{count}} 張排分鏡表",
+      "working": "AI 看圖排分鏡中…",
+      "needTwo": "至少上傳 2 張",
+      "replaceConfirm": "這個專案已經有分鏡表，用新的分鏡圖重排會取代現有的分鏡表和圖。要繼續嗎？",
+      "chatUser": "用我上傳的 {{count}} 張分鏡圖排分鏡表",
+      "moveEarlier": "往前移",
+      "moveLater": "往後移"
     }
   },
   "edit": {
@@ -548,5 +574,57 @@
     "planUnreadable": "有幾行讀不懂，請寫成「開始–結束s：內容」。",
     "planGaps": "鏡頭要從 0 秒開始、前後相接：不能有空檔，也不能重疊。",
     "planTooLarge": "參考影片加產品圖太大，沒辦法一次送出。請縮短選取的秒數或減少產品圖。"
+  },
+  "frames": {
+    "start": "起始畫面",
+    "end": "結束畫面",
+    "swap": "對調起始與結束畫面",
+    "hint": "影片會從起始畫面動到結束畫面，中間的運鏡和動作由 Omni 補上；兩張的比例最好一致。",
+    "needBoth": "起始和結束畫面都要上傳",
+    "description": {
+      "label": "中間要怎麼變？",
+      "placeholder": "例如：鏡頭緩慢推近，產品從盒子裡升起，最後停在正面特寫"
+    },
+    "emptyHint": "上傳起始和結束畫面後，影片會顯示在這裡"
+  },
+  "sequence": {
+    "frames": "分鏡圖（依順序）",
+    "framesHint": "上傳你已經有的分鏡圖，可以用 ← → 調整順序。AI 會判斷每兩張之間要「接續」還是「硬切」。",
+    "plan": "AI 排接縫（{{count}} 張）",
+    "empty": "上傳 2 張以上的分鏡圖，AI 會排好每個接縫，再一鍵生成並接成一支影片",
+    "visual": "這一鏡發生什麼",
+    "generating": "生成中 {{percent}}%",
+    "notYet": "還沒生成",
+    "redo": "重做這段",
+    "seam": "接法",
+    "continue": "接續",
+    "cut": "硬切",
+    "continueHint": "影片從第 {{from}} 張動到第 {{to}} 張",
+    "cutHint": "這段只讓這張自己動，下一張直接切進來",
+    "lastFrame": "最後一張",
+    "lastAsEnd": "只當終點",
+    "lastAsClip": "也生成一段",
+    "endpoint": "影片停在這張，不另外生成一段",
+    "generateAll": "生成 {{count}} 段（約 {{price}}）",
+    "running": "生成中 {{done}}/{{total}}",
+    "stop": "停止",
+    "openInStoryboard": "這份也會存成分鏡專案，想細修（延伸、修改單段）可以到「分鏡模式」打開。",
+    "startOver": "換一組分鏡圖",
+    "result": "合成影片",
+    "joining": "合成中…",
+    "drafting": "AI 準備提示詞中…",
+    "draftingShot": "AI 準備提示詞中…",
+    "allDone": "每一段都是最新的",
+    "insert": "＋ 插入一張",
+    "remove": "移除這張",
+    "visualPlaceholder": "選填：這一鏡發生什麼（留空就讓 AI 看圖決定）",
+    "runDraft": "① AI 寫提示詞 {{percent}}%",
+    "runVideo": "② 生成影片 {{percent}}%（{{done}}/{{total}} 段完成）",
+    "estimated": "依時間估算",
+    "stepDraft": "① 寫提示詞 {{percent}}%",
+    "stepVideo": "② 生成影片 {{percent}}%",
+    "waiting": "等待中",
+    "restore": "換回上一版 {{resolution}}（共 {{count}} 版）",
+    "restoreHint": "目前這版會留著，可以再換回來。換回不同解析度的版本後，要整支同解析度才能合成"
   }
 }
