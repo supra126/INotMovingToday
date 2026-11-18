@@ -60,7 +60,7 @@ _Let AI Do The Work_
 
 ### Video Generation
 
-Powered by **Google Gemini Omni Flash** (`gemini-omni-1.1-flash`).
+Powered by **Google Gemini Omni Flash** (`gemini-omni-1.2-flash`).
 
 - 3-10 seconds per clip, with native audio
 - Image-to-video, reference images, first/last frame
@@ -274,7 +274,7 @@ _讓 AI 做事_
 
 ### 影片生成
 
-由 **Google Gemini Omni Flash**（`gemini-omni-1.1-flash`）驅動。
+由 **Google Gemini Omni Flash**（`gemini-omni-1.2-flash`）驅動。
 
 - 單段 3-10 秒，內建音效
 - 支援圖生影片、參考圖、首尾幀

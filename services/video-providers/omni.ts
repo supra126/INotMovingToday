@@ -24,6 +24,8 @@ import type { AudioMode } from "@/types";
 
 // 1.2 (GA 2026-11-05): 15 s clips, 360p drafts, ~30% cheaper. 1.1 routes to 1.2 from 2026-12-03.
 export const OMNI_MODEL = "gemini-omni-1.2-flash";
+// genai 3 defaults to the v1 API, where Omni is not available yet (404 "model not found")
+export const OMNI_API_VERSION = "v1beta";
 export const OMNI_PROVIDER_NAME = "Google Gemini Omni Flash";
 
 // Omni clip length: text / single image up to 15 s; first+last frame and each extension up to 10 s
@@ -180,8 +182,7 @@ export class OmniProvider implements VideoGenerationProvider {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    // genai 3 defaults to the v1 API, where Omni is not available yet
-    this.ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: "v1beta" } });
+    this.ai = new GoogleGenAI({ apiKey, httpOptions: { apiVersion: OMNI_API_VERSION } });
   }
 
   getCapabilities(): ProviderCapabilities {
