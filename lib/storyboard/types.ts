@@ -92,6 +92,10 @@ export interface Shot extends ScriptShot {
   duration: VideoDuration;
   /** Overrides the project default */
   resolution?: VideoResolution;
+  /** Overrides the sound picked from the music column (e.g. a silent frame sequence) */
+  audio?: AudioMode;
+  /** Earlier finished videos, newest first, so a better take can be brought back */
+  takes?: ShotVideo[];
   endFrame: EndFrame;
   /** The user's own plain-language description of the shot's motion; the fields are rewritten from it */
   brief?: string;

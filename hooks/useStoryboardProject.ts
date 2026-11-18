@@ -21,35 +21,44 @@ function getStore(): ProjectStore {
 
 const SERVER_SNAPSHOT: StoreSnapshot = { projects: [], project: null, isLoading: true, saveError: null };
 
-export function useStoryboardProject() {
+/**
+ * The shared project store. `lastKey` remembers which project this page reopens, so the
+ * frame-sequence page and the storyboard page each come back to their own project.
+ */
+export function useStoryboardProject(lastKey: string = LAST_PROJECT_KEY) {
   const projectStore = getStore();
   const snapshot = useSyncExternalStore(projectStore.subscribe, projectStore.getSnapshot, () => SERVER_SNAPSHOT);
 
   useEffect(() => {
-    projectStore.init(localStorage.getItem(LAST_PROJECT_KEY));
+    const lastId = localStorage.getItem(lastKey);
+    projectStore.init(lastId);
+    // The store is shared by the tab: another page may have opened a different project
+    if (lastId && projectStore.getSnapshot().project?.id !== lastId) projectStore.open(lastId);
     const flush = () => void projectStore.flush();
     window.addEventListener("beforeunload", flush);
     return () => window.removeEventListener("beforeunload", flush);
-  }, [projectStore]);
+  }, [projectStore, lastKey]);
 
   const open = useCallback(
     (id: string) => {
-      localStorage.setItem(LAST_PROJECT_KEY, id);
+      localStorage.setItem(lastKey, id);
       projectStore.open(id);
     },
-    [projectStore]
+    [projectStore, lastKey]
   );
 
   const create = useCallback(() => {
-    localStorage.setItem(LAST_PROJECT_KEY, projectStore.create().id);
-  }, [projectStore]);
+    const project = projectStore.create();
+    localStorage.setItem(lastKey, project.id);
+    return project;
+  }, [projectStore, lastKey]);
 
   const remove = useCallback(
     async (id: string) => {
-      if (localStorage.getItem(LAST_PROJECT_KEY) === id) localStorage.removeItem(LAST_PROJECT_KEY);
+      if (localStorage.getItem(lastKey) === id) localStorage.removeItem(lastKey);
       await projectStore.remove(id);
     },
-    [projectStore]
+    [projectStore, lastKey]
   );
 
   const update = useCallback(

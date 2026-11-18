@@ -6,7 +6,7 @@ import { formatUsd, imageCost } from "@/lib/pricing";
 import { toFile } from "@/lib/storyboard/blob";
 import { toDisplayError } from "@/lib/video/errors";
 import { CANDIDATES_PER_SHOT, generateCandidates, scriptContext } from "@/lib/storyboard/imageJobs";
-import { applyScriptEdit, mergeScriptShots, needsFrames, resolveSelectedShot } from "@/lib/storyboard/shots";
+import { applyScriptEdit, canEnterStep, mergeScriptShots, needsFrames, resolveSelectedShot } from "@/lib/storyboard/shots";
 import type { ScriptShot, StoryboardProject } from "@/lib/storyboard/types";
 import { parseScript, polishShot, reviseScript, writeImagePrompts } from "@/services/storyboardService";
 import { Button } from "@/components/ui/Button";
@@ -108,12 +108,13 @@ export function ScriptStep({ project, update, requireApiKey, goTo, selectedShotI
         : {};
       let confirmed: StoryboardProject | null = null;
       update((p) => {
-        confirmed = {
+        const next: StoryboardProject = {
           ...p,
-          step: 3,
           script: { ...p.script, confirmed: true },
           shots: p.shots.map((s) => (s.imagePrompt ? s : { ...s, imagePrompt: prompts[s.id] ?? "" })),
         };
+        // Every frame already final (e.g. the user's own frames): go straight to the videos
+        confirmed = { ...next, step: canEnterStep(next, 4) ? 4 : 3 };
         return confirmed;
       });
       const snapshot = confirmed as StoryboardProject | null;

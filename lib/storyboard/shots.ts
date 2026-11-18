@@ -38,8 +38,10 @@ export function applyScriptEdit(shot: Shot, row: ScriptShot, isLast: boolean): S
     ...shot,
     ...row,
     imagePrompt: pictureChanged ? "" : shot.imagePrompt,
-    // Images still being generated were made from the old row too
-    stale: shot.stale || (pictureChanged && (shot.candidates.length > 0 || shot.imageStatus === "generating")),
+    // Images still being generated were made from the old row too; the user's own frames never go stale
+    stale:
+      shot.stale ||
+      (pictureChanged && shot.frameSource !== "upload" && (shot.candidates.length > 0 || shot.imageStatus === "generating")),
     duration: shot.seconds === row.seconds ? shot.duration : snapDuration(row.seconds),
     endFrame: shot.transition === row.transition ? shot.endFrame : defaultEndFrame(row.transition, isLast),
   };
@@ -167,6 +169,25 @@ export function newProject(id: string, now: number): StoryboardProject {
   };
 }
 
+/**
+ * Shots from the user's own frames: each frame is the shot's final image, never regenerated.
+ * The image prompt is the row's picture, so confirming the table needs no AI call for these shots.
+ */
+export function shotsFromFrames(rows: ScriptShot[], frames: StoredImage[]): Shot[] {
+  return rows.map((row, index) => {
+    const frame: StoredImage = { ...frames[index], uploaded: true };
+    return {
+      ...toShot(row, index === rows.length - 1),
+      // Never empty: the storyboard mode treats an empty prompt as "not confirmed yet"
+      imagePrompt: row.visual || "user frame",
+      frameSource: "upload",
+      candidates: [frame],
+      selected: 0,
+      finalImage: frame,
+    };
+  });
+}
+
 /** Description handed to the field draft (same input as the single-shot mode) */
 export function shotDescription(shot: ScriptShot): string {
   return [
@@ -210,7 +231,8 @@ export function hasMusic(music: string): boolean {
 }
 
 /** Music is decided per shot: only shots with music get an Omni soundtrack */
-export function shotAudioMode(shot: ScriptShot): AudioMode {
+export function shotAudioMode(shot: ScriptShot & { audio?: AudioMode }): AudioMode {
+  if (shot.audio) return shot.audio;
   return hasMusic(shot.music) ? "sfx_music" : "sfx";
 }
 

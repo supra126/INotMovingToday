@@ -18,6 +18,8 @@ interface ResultPanelProps {
   onCancel: () => void;
   onRegenerate: () => void;
   onExtend: (prompt: string, seconds: number) => void;
+  /** i18n key shown before anything is uploaded */
+  emptyHint?: string;
 }
 
 const EXTEND_STEPS = [4, 6, 8, 10];
@@ -25,6 +27,7 @@ const EXTEND_STEPS = [4, 6, 8, 10];
 export function ResultPanel({
   ratio,
   previewImage,
+  emptyHint = "upload.preview.uploadHint",
   status,
   progress,
   videoUrl,
@@ -99,7 +102,7 @@ export function ResultPanel({
           <img src={previewImage.previewUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center p-8">
-            <p className="text-center text-sm text-muted">{t("upload.preview.uploadHint")}</p>
+            <p className="text-center text-sm text-muted">{t(emptyHint)}</p>
           </div>
         )}
 

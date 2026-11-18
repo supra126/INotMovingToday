@@ -5,17 +5,18 @@ import { RatioSelector } from "@/components/upload/RatioSelector";
 import { useLocale } from "@/contexts/LocaleContext";
 import { canEnterStep, isRatioLocked, setProductImages, setReferenceImages } from "@/lib/storyboard/shots";
 import { ImagePicker } from "./ImagePicker";
+import { OwnFramesPanel } from "./OwnFramesPanel";
 import type { StepProps } from "./types";
 
 const inputClass =
   "w-full rounded-[var(--radius-control)] border border-line bg-sunken px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-line-strong focus:outline-none";
 
-export function ProjectSetupStep({ project, update, goTo }: StepProps) {
+export function ProjectSetupStep({ project, update, goTo, requireApiKey }: StepProps) {
   const { t } = useLocale();
   const ratioLocked = isRatioLocked(project);
 
   return (
-    <div className="flex flex-1 justify-center overflow-y-auto bg-canvas p-6">
+    <div className="flex flex-1 flex-col items-center gap-5 overflow-y-auto bg-canvas p-6">
       <div className="flex h-fit w-full max-w-[560px] flex-col gap-5 rounded-[var(--radius-panel)] border border-line bg-panel p-6">
       <label className="flex flex-col gap-1.5 text-xs text-fg-muted">
         {t("storyboard.setup.name")}
@@ -79,6 +80,7 @@ export function ProjectSetupStep({ project, update, goTo }: StepProps) {
         {t("storyboard.next")}
       </Button>
       </div>
+      <OwnFramesPanel project={project} update={update} requireApiKey={requireApiKey} goTo={goTo} />
     </div>
   );
 }

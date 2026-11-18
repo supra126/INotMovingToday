@@ -6,6 +6,7 @@ import { ModeImageUploader, SingleUploadBox } from "@/components/upload/ModeImag
 import { DurationSelector } from "@/components/upload/DurationSelector";
 import { AudioModeSelector } from "@/components/upload/AudioModeSelector";
 import { PriceEstimate } from "@/components/upload/PriceEstimate";
+import { ReferenceVideoUploader } from "@/components/upload/ReferenceVideoUploader";
 import { useLocale } from "@/contexts/LocaleContext";
 import type { AudioMode, UploadedImage, VideoRatio, VideoResolution, VideoDuration } from "@/types";
 
@@ -13,6 +14,7 @@ interface InputPanelProps {
   startFrame?: UploadedImage;
   endFrame?: UploadedImage;
   references: UploadedImage[];
+  referenceVideos: Blob[];
   description: string;
   negativePrompt: string;
   videoRatio: VideoRatio;
@@ -26,6 +28,7 @@ interface InputPanelProps {
   onStartFrameChange: (image: UploadedImage | undefined) => void;
   onEndFrameChange: (image: UploadedImage | undefined) => void;
   onReferencesChange: (images: UploadedImage[]) => void;
+  onReferenceVideosChange: (videos: Blob[]) => void;
   onDescriptionChange: (description: string) => void;
   onNegativePromptChange: (prompt: string) => void;
   onVideoRatioChange: (ratio: VideoRatio) => void;
@@ -43,6 +46,7 @@ export function InputPanel({
   startFrame,
   endFrame,
   references,
+  referenceVideos,
   description,
   negativePrompt,
   videoRatio,
@@ -55,6 +59,7 @@ export function InputPanel({
   onStartFrameChange,
   onEndFrameChange,
   onReferencesChange,
+  onReferenceVideosChange,
   onDescriptionChange,
   onNegativePromptChange,
   onVideoRatioChange,
@@ -70,6 +75,10 @@ export function InputPanel({
   const canDraft = !isBusy && (!!startFrame || description.trim().length > 0);
   // Direct generation sends the description itself as the prompt
   const canGenerateDirect = !isBusy && description.trim().length > 0;
+  // Omni: first + last frame clips stop at 10 s; longer clips take only one reference video
+  const maxDuration = endFrame ? 10 : 15;
+  const duration = Math.min(videoDuration, maxDuration) as VideoDuration;
+  const videoLimit = duration > 10 ? 1 : 3;
 
   return (
     <section className="flex flex-col gap-5">
@@ -123,7 +132,7 @@ export function InputPanel({
             <summary className="cursor-pointer select-none list-none px-3.5 py-3 text-sm text-foreground flex items-center justify-between">
               <span>{t("upload.advanced.label")}</span>
               <span className="text-xs text-muted">
-                {videoResolution} · {videoDuration}
+                {videoResolution} · {duration}
                 {t("upload.duration.unit")}
                 <span className="ml-2 inline-block transition-transform group-open:rotate-90">›</span>
               </span>
@@ -135,9 +144,11 @@ export function InputPanel({
                 disabled={isBusy}
               />
               <DurationSelector
-                value={videoDuration}
+                value={duration}
                 onChange={onVideoDurationChange}
                 disabled={isBusy}
+                max={maxDuration}
+                hint={endFrame ? t("upload.duration.framesLimit") : undefined}
               />
               <div className="flex flex-col gap-2">
                 <label htmlFor="negativePrompt" className="block text-sm text-muted">
@@ -158,13 +169,24 @@ export function InputPanel({
                   hint={t("upload.modeUploader.endFrameHint")}
                   image={endFrame}
                   onImageChange={onEndFrameChange}
-                  disabled={isBusy || !startFrame || references.length > 0}
+                  disabled={isBusy || !startFrame || references.length > 0 || referenceVideos.length > 0}
                 />
               </div>
+              <ReferenceVideoUploader
+                videos={referenceVideos}
+                onChange={onReferenceVideosChange}
+                limit={videoLimit}
+                disabled={isBusy || !!endFrame}
+                hint={
+                  referenceVideos.length > videoLimit
+                    ? t("upload.referenceVideo.overLimit")
+                    : t("upload.referenceVideo.hint")
+                }
+              />
             </div>
           </details>
 
-      <PriceEstimate duration={videoDuration} resolution={videoResolution} />
+      <PriceEstimate duration={duration} resolution={videoResolution} />
 
       <div className="grid grid-cols-[1fr_auto] gap-2">
         <button

@@ -11,13 +11,13 @@ interface AudioModeSelectorProps {
   disabled?: boolean;
 }
 
-const modes: AudioMode[] = ["sfx_music", "sfx"];
+const modes: AudioMode[] = ["sfx_music", "sfx", "none"];
 
 export function AudioModeSelector({ value, onChange, disabled = false }: AudioModeSelectorProps) {
   const { t } = useLocale();
   const label = t("upload.audio.label");
   return (
-    <Field label={label} hint={value === "sfx" ? t("upload.audio.sfxHint") : undefined}>
+    <Field label={label} hint={value === "sfx" ? t("upload.audio.sfxHint") : value === "none" ? t("upload.audio.noneHint") : undefined}>
       <Segmented
         label={label}
         value={value}

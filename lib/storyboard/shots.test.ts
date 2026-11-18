@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  shotsFromFrames,
   applyScriptEdit,
   canEnterStep,
   exportEntries,
@@ -525,5 +526,28 @@ describe("skipped shots", () => {
     const done = { status: "completed" as const, progress: 100, prompt: "", duration: 4, blob: new Blob(["v"]) };
     const shots = [{ ...frame("s01"), video: done }, { ...frame("s02"), video: done, skipped: true }];
     expect(exportEntries(shots).map((e) => e.shot.id)).toEqual(["s01"]);
+  });
+});
+
+describe("shotsFromFrames", () => {
+  const row = (id: string, transition: string): ScriptShot => ({
+    id, seconds: 5, visual: `畫面 ${id}`, camera: "推近", sound: "", music: "無", onScreenText: "", transition, hasPackaging: false,
+  });
+  const frame = (name: string): StoredImage => ({ blob: new Blob([name]), mimeType: "image/png" });
+
+  it("uses each frame as the final image and links 接續 shots to the next frame", () => {
+    const frames = [frame("a"), frame("b"), frame("c")];
+    const shots = shotsFromFrames([row("s01", "接續：推近"), row("s02", "硬切"), row("s03", "硬切")], frames);
+    expect(shots.map((s) => s.finalImage?.blob)).toEqual(frames.map((f) => f.blob));
+    expect(shots.every((s) => s.frameSource === "upload" && s.finalImage?.uploaded && s.imagePrompt)).toBe(true);
+    expect(shots.map((s) => s.endFrame.kind)).toEqual(["next", "none", "none"]);
+    expect(endFrameImage(shots, 0)?.blob).toBe(frames[1].blob);
+  });
+
+  it("does not mark the user's own frame stale when its text changes", () => {
+    const [shot] = shotsFromFrames([row("s01", "硬切")], [frame("a")]);
+    const edited = applyScriptEdit(shot, { ...row("s01", "硬切"), visual: "改過的畫面" }, true);
+    expect(edited.stale).toBe(false);
+    expect(edited.finalImage).toBe(shot.finalImage);
   });
 });

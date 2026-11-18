@@ -20,7 +20,7 @@ const MODE_GUIDANCE: Record<VideoGenerationMode, string> = {
   single_image:
     "The first image is the opening frame. Animate it: the subject must stay exactly as it looks (shape, colour, logo, label, materials). Extra images, if any, are references for elements to bring into the shot.",
   frames_to_video:
-    "Two images are provided: the opening frame and the final frame. The shot is a smooth, believable transition from the first to the second.",
+    "Two images are provided: the opening frame and the final frame. The shot is a smooth, believable transition from the first to the second. The very first moment already looks exactly like the first image, in the state it shows: never restage how that state came about (an action already done in the first image, such as a lid already lifted, is not done again). Keep the motion going until the end, which looks exactly like the second image.",
   text_only: "No image is provided. Describe the subject and scene completely so the video can be generated from text alone.",
 };
 
@@ -28,11 +28,14 @@ const MODE_GUIDANCE: Record<VideoGenerationMode, string> = {
 export const AUDIO_DIRECTION: Record<AudioMode, string> = {
   sfx: "Audio: natural sound effects and ambience only. No background music, no soundtrack, no score.",
   sfx_music: "Audio: natural sound effects and ambience, mixed with fitting background music.",
+  // The track is removed after generation as well; this keeps Omni from planning dialogue or music
+  none: "Audio: silent. No speech, no music, no sound effects.",
 };
 
 const SOUND_GUIDE: Record<AudioMode, string> = {
   sfx: "- sound: ambience and sound effects only (no music), plus any spoken lines word for word in quotes",
   sfx_music: "- sound: ambience and sound effects, the style of background music, plus any spoken lines word for word in quotes",
+  none: "- sound: \"none\" (the video is silent)",
 };
 
 // Omni follows the prompt's language for speech, so an English prompt makes everyone speak English
@@ -116,7 +119,9 @@ export function buildPromptComposePrompt(fields: PromptFields, ctx: PromptContex
     "- English only (except spoken lines), 3 to 5 natural sentences, about 50-90 words, one continuous shot.",
     "- Keep every detail the user wrote; translate faithfully, do not add new subjects.",
     "- Order: subject and motion, setting, camera, lighting and mood, sound.",
-    ctx.audioMode === "sfx"
+    ctx.audioMode === "none"
+      ? "- Sound: the video is silent. Drop all sound, music and spoken lines from the plan and do not mention sound."
+      : ctx.audioMode === "sfx"
       ? "- Sound: sound effects and ambience only. Drop any music from the plan and do not mention music."
       : "- Sound: sound effects and ambience plus background music; keep the music style from the plan or pick one that fits.",
     speechRule(ctx.locale),

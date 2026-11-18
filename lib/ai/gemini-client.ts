@@ -17,9 +17,12 @@ import {
   parsePolishedShot,
   parseRewrittenPrompt,
   parseScriptResult,
+  buildFramesParsePrompt,
+  parseFramesResult,
   type ImagePromptRewriteInput,
   type ImagePromptsInput,
   type ScriptParseInput,
+  type FramesParseInput,
   type ScriptResult,
   type ScriptReviseInput,
   type ShotPolishInput,
@@ -253,6 +256,15 @@ export class GeminiClient {
       productCount: products.length,
     });
     return this.generateParsed(prompt, imageParts, parseScriptResult);
+  }
+
+  /**
+   * Storyboard from the user's own frames: one shot per frame and how each joins the next
+   */
+  async parseFrames(input: FramesParseInput, frames: File[], products: File[]): Promise<ScriptResult> {
+    const imageParts = await Promise.all([...frames, ...products].map((file) => this.fileToGenerativePart(file)));
+    const prompt = buildFramesParsePrompt({ ...input, frameCount: frames.length, productCount: products.length });
+    return this.generateParsed(prompt, imageParts, (raw) => parseFramesResult(raw, frames.length));
   }
 
   /**

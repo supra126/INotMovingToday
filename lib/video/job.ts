@@ -1,7 +1,9 @@
 import { checkVideoStatus, editVideo, extendVideo, startVideoGeneration } from "@/services/videoService";
 import type { VideoEditParams, VideoExtensionParams, VideoGenerationParams } from "@/services/video-providers/types";
 import type { AudioMode, VideoRatio, VideoResolution } from "@/types";
+import { blobToBase64 } from "@/lib/storyboard/blob";
 import { cropImageToRatio, referenceImageForRatio } from "./crop";
+import { stripAudioUrl } from "./strip";
 
 const POLL_INTERVAL = 3000;
 const MAX_POLLS = 200; // ~10 minutes max
@@ -23,13 +25,15 @@ export interface VideoJobInput {
   prompt: string;
   ratio: VideoRatio;
   resolution: VideoResolution;
-  /** Seconds, 3-10 */
+  /** Seconds, 3-15 (10 at most with an end frame) */
   duration: number;
   audioMode: AudioMode;
   negativePrompt?: string;
   startImage?: Blob;
   endImage?: Blob;
   referenceImages?: Blob[];
+  /** Motion reference clips (3 s or less, already muted and downsized); not used with a start image */
+  referenceVideos?: Blob[];
 }
 
 async function pollUntilDone(jobId: string, hooks: VideoJobHooks): Promise<VideoJobResult | null> {
@@ -76,14 +80,25 @@ export async function runVideoJob(input: VideoJobInput, hooks: VideoJobHooks): P
   if (input.startImage) {
     params.firstFrameImage = await crop(input.startImage);
     if (input.endImage) params.lastFrameImage = await crop(input.endImage);
-  } else if (input.referenceImages?.length) {
-    params.referenceImages = await Promise.all(input.referenceImages.map((image) => referenceImageForRatio(image, input.ratio)));
+  } else {
+    if (input.referenceImages?.length) {
+      params.referenceImages = await Promise.all(input.referenceImages.map((image) => referenceImageForRatio(image, input.ratio)));
+    }
+    if (input.referenceVideos?.length) {
+      params.referenceVideos = await Promise.all(input.referenceVideos.map(blobToBase64));
+    }
   }
   if (hooks.isCancelled()) return null;
 
   const job = await startVideoGeneration(params, hooks.apiKey);
   hooks.onJobId?.(job.jobId);
-  return pollUntilDone(job.jobId, hooks);
+  return silenced(await pollUntilDone(job.jobId, hooks), input.audioMode);
+}
+
+/** "Silent" videos lose their sound track here; Omni itself always adds sound */
+async function silenced(result: VideoJobResult | null, audioMode?: AudioMode): Promise<VideoJobResult | null> {
+  if (!result || audioMode !== "none") return result;
+  return { ...result, videoUrl: await stripAudioUrl(result.videoUrl) };
 }
 
 /**
@@ -92,7 +107,7 @@ export async function runVideoJob(input: VideoJobInput, hooks: VideoJobHooks): P
 export async function runExtendJob(params: VideoExtensionParams, hooks: VideoJobHooks): Promise<VideoJobResult | null> {
   const job = await extendVideo(params, hooks.apiKey);
   hooks.onJobId?.(job.jobId);
-  return pollUntilDone(job.jobId, hooks);
+  return silenced(await pollUntilDone(job.jobId, hooks), params.audioMode);
 }
 
 /**

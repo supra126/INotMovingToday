@@ -11,13 +11,15 @@ interface HeaderProps {
   serverHasKey: boolean;
   onApiSettingsClick: () => void;
   onGuideClick?: () => void;
-  active?: "single" | "storyboard" | "edit";
+  active?: "single" | "frames" | "sequence" | "storyboard" | "edit";
   /** Mode-specific controls in the middle (project picker, steps) */
   children?: ReactNode;
 }
 
 const MODES = [
   { mode: "single", href: "/", label: "header.modeSingle" },
+  { mode: "frames", href: "/frames", label: "header.modeFrames" },
+  { mode: "sequence", href: "/sequence", label: "header.modeSequence" },
   { mode: "storyboard", href: "/storyboard", label: "header.modeStoryboard" },
   { mode: "edit", href: "/edit", label: "header.modeEdit" },
 ] as const;
