@@ -144,3 +144,12 @@ describe("takes and run progress", () => {
     expect(shotRunPercent({ ...shot, video: video("x", "360p") }, "video", 0)).toBe(100);
   });
 });
+
+describe("seam of the last frame", () => {
+  it("does not keep 接續 when a shot becomes the last one", () => {
+    const { shots } = fiveFrames();
+    const next = removeFrame(linkSeams(shots, false), "s05");
+    expect(next[3].transition).toBe("硬切");
+    expect(next[3].endFrame.kind).toBe("none");
+  });
+});

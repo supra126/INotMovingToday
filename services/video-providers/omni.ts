@@ -210,7 +210,7 @@ export class OmniProvider implements VideoGenerationProvider {
     // Motion reference clips (new generations only, their audio is ignored); not combined with a first frame
     const videoLimit = duration > MAX_STEP_DURATION ? 1 : MAX_REFERENCE_VIDEOS;
     const referenceVideos = params.firstFrameImage ? [] : (params.referenceVideos ?? []).slice(0, videoLimit);
-    const videoUris = await Promise.all(referenceVideos.map((video) => this.uploadVideo(video)));
+    const videoUris = await this.uploadVideos(referenceVideos);
 
     const task = params.firstFrameImage
       ? "image_to_video"
@@ -257,7 +257,7 @@ export class OmniProvider implements VideoGenerationProvider {
   async extendVideo(params: VideoExtensionParams): Promise<VideoGenerationResult> {
     const duration = clampDuration(params.extensionDuration, 8, MAX_STEP_DURATION);
 
-    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const uploaded = params.sourceVideo ? (await this.uploadVideo(params.sourceVideo)).uri : undefined;
 
     const interaction = await this.ai.interactions.create({
       model: OMNI_MODEL,
@@ -287,7 +287,7 @@ export class OmniProvider implements VideoGenerationProvider {
    * Reference images are named <IMAGE_REF_n> in the order they are sent.
    */
   async editVideo(params: VideoEditParams): Promise<VideoGenerationResult> {
-    const uploaded = params.sourceVideo ? await this.uploadVideo(params.sourceVideo) : undefined;
+    const uploaded = params.sourceVideo ? (await this.uploadVideo(params.sourceVideo)).uri : undefined;
     const images = (params.referenceImages ?? []).slice(0, 3);
     const names = images.map((_, i) => `參考圖 ${i + 1} = <IMAGE_REF_${i}>`).join("；");
     // The docs advise short edit prompts; "keep everything else" stops unrelated changes
@@ -315,15 +315,35 @@ export class OmniProvider implements VideoGenerationProvider {
   }
 
   /** Upload a clip through the Files API and wait until Omni can read it */
-  private async uploadVideo(base64: string): Promise<string> {
+  private async uploadVideo(base64: string): Promise<{ uri: string; name: string }> {
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     let file = await this.ai.files.upload({ file: new Blob([bytes], { type: "video/mp4" }), config: { mimeType: "video/mp4" } });
-    for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      file = await this.ai.files.get({ name: file.name! });
+    try {
+      for (let i = 0; file.state === "PROCESSING" && i < 60; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        file = await this.ai.files.get({ name: file.name! });
+      }
+      if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
+    } catch (err) {
+      await this.deleteFiles([file.name]);
+      throw err;
     }
-    if (file.state !== "ACTIVE" || !file.uri) throw new Error("errors.videoGenerationFailed");
-    return file.uri;
+    return { uri: file.uri, name: file.name! };
+  }
+
+  /** Upload several clips; if one fails, the others are removed again instead of piling up in the quota */
+  private async uploadVideos(videos: string[]): Promise<string[]> {
+    const results = await Promise.allSettled(videos.map((video) => this.uploadVideo(video)));
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (failed) {
+      await this.deleteFiles(results.map((r) => (r.status === "fulfilled" ? r.value.name : undefined)));
+      throw failed.reason;
+    }
+    return results.map((r) => (r as PromiseFulfilledResult<{ uri: string }>).value.uri);
+  }
+
+  private async deleteFiles(names: (string | undefined)[]): Promise<void> {
+    await Promise.allSettled(names.filter((n): n is string => !!n).map((name) => this.ai.files.delete({ name })));
   }
 
   private trackJob(interactionId: string, duration: number): VideoGenerationResult {

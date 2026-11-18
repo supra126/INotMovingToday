@@ -33,7 +33,11 @@ export function endsOnLastFrame(shots: Shot[]): boolean {
 export function linkSeams(shots: Shot[], endOnLast: boolean): Shot[] {
   const last = shots.length - 1;
   return shots.map((shot, index): Shot => {
-    if (index === last) return { ...shot, skipped: endOnLast && last > 0, endFrame: { kind: "none" } };
+    // Nothing follows the last shot, so it cannot continue into anything
+    if (index === last) {
+      const transition = isContinuous(shot) ? "硬切" : shot.transition;
+      return { ...shot, transition, skipped: endOnLast && last > 0, endFrame: { kind: "none" } };
+    }
     if (!isContinuous(shot)) return { ...shot, endFrame: { kind: "none" } };
     const lastFrame = shots[last].finalImage;
     return index === last - 1 && endOnLast && lastFrame
