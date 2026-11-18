@@ -37,7 +37,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@google/genai": "2.28.0",
+    "@google/genai": "3.5.0",
     "fflate": "^0.8.3",
     "framer-motion": "^14.14.0",
     "lucide-react": "^1.74.0",
